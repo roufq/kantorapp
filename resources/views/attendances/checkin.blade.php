@@ -32,12 +32,14 @@
                         {{-- Check In Form --}}
                         <form id="checkinForm" method="POST" action="{{ route('attendance.checkin.post') }}">
                             @csrf
+                            <input type="hidden" id="latitude" name="latitude">
+                            <input type="hidden" id="longitude" name="longitude">
                             <div class="mb-3">
-                                <label for="location" class="form-label">Location (Optional)</label>
-                                <input type="text" class="form-control" id="location" name="location" readonly>
+                                <label class="form-label">Location</label>
+                                <div id="locationDisplay" class="form-control" readonly>Click "Get GPS Location" to fetch your current location</div>
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
                             </div>
-                            <button type="submit" class="btn btn-primary">Check In</button>
+                            <button type="submit" class="btn btn-primary" id="checkinBtn" disabled>Check In</button>
                         </form>
                     @endif
 
@@ -47,12 +49,14 @@
                         {{-- Check Out Form --}}
                         <form id="checkoutForm" method="POST" action="{{ route('attendance.checkout') }}">
                             @csrf
+                            <input type="hidden" id="checkout_latitude" name="latitude">
+                            <input type="hidden" id="checkout_longitude" name="longitude">
                             <div class="mb-3">
-                                <label for="checkout_location" class="form-label">Location (Optional)</label>
-                                <input type="text" class="form-control" id="checkout_location" name="location" readonly>
+                                <label class="form-label">Location</label>
+                                <div id="checkoutLocationDisplay" class="form-control" readonly>Click "Get GPS Location" to fetch your current location</div>
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
                             </div>
-                            <button type="submit" class="btn btn-warning">Check Out</button>
+                            <button type="submit" class="btn btn-warning" id="checkoutBtn" disabled>Check Out</button>
                         </form>
                     @endif
 
@@ -60,9 +64,21 @@
                         function getLocation() {
                             if (navigator.geolocation) {
                                 navigator.geolocation.getCurrentPosition(function(position) {
-                                    const location = position.coords.latitude + ', ' + position.coords.longitude;
-                                    document.getElementById('location').value = location;
-                                    document.getElementById('checkout_location').value = location;
+                                    const lat = position.coords.latitude;
+                                    const lng = position.coords.longitude;
+                                    const location = lat + ', ' + lng;
+
+                                    // For check-in form
+                                    document.getElementById('latitude').value = lat;
+                                    document.getElementById('longitude').value = lng;
+                                    document.getElementById('locationDisplay').textContent = location;
+                                    document.getElementById('checkinBtn').disabled = false;
+
+                                    // For check-out form
+                                    document.getElementById('checkout_latitude').value = lat;
+                                    document.getElementById('checkout_longitude').value = lng;
+                                    document.getElementById('checkoutLocationDisplay').textContent = location;
+                                    document.getElementById('checkoutBtn').disabled = false;
                                 }, function(error) {
                                     alert('Error getting location: ' + error.message);
                                 });

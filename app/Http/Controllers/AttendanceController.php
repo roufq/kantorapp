@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Attendance;
+use App\Models\OfficeLocation;
+use App\Models\Overtime;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
@@ -22,6 +24,11 @@ class AttendanceController extends Controller
             return back()->withErrors(['message' => 'You have already checked in today.']);
         }
 
+        // Validate location
+        if (!$this->isWithinOfficeRadius($request->latitude, $request->longitude)) {
+            return back()->withErrors(['message' => 'You must be within 50 meters of an office location to check in.']);
+        }
+
         $now = now();
         $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
         $isLate = false;
@@ -37,7 +44,7 @@ class AttendanceController extends Controller
         Attendance::create([
             'user_id' => $user->id,
             'check_in_time' => $now,
-            'location' => $request->location,
+            'location' => $request->latitude . ',' . $request->longitude,
             'is_late' => $isLate,
         ]);
 
@@ -58,7 +65,31 @@ class AttendanceController extends Controller
             return back()->withErrors(['message' => 'No active check-in found for today.']);
         }
 
+        // Validate location
+        if (!$this->isWithinOfficeRadius($request->latitude, $request->longitude)) {
+            return back()->withErrors(['message' => 'You must be within 50 meters of an office location to check out.']);
+        }
+
+        // Check for approved overtime
+        $approvedOvertime = Overtime::where('user_id', $user->id)
+            ->where('date', Carbon::today())
+            ->where('status', 'approved')
+            ->first();
+
         $now = now();
+        $canCheckOut = true;
+
+        if ($approvedOvertime) {
+            $endTime = Carbon::createFromFormat('H:i:s', $approvedOvertime->end_time);
+            if ($now->lt($endTime)) {
+                $canCheckOut = false;
+            }
+        }
+
+        if (!$canCheckOut) {
+            return back()->withErrors(['message' => 'You cannot check out before your approved overtime ends.']);
+        }
+
         $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
         $requiresApproval = false;
 
@@ -72,7 +103,7 @@ class AttendanceController extends Controller
 
         $attendance->update([
             'check_out_time' => $now,
-            'location' => $request->location,
+            'location' => $request->latitude . ',' . $request->longitude,
             'requires_approval' => $requiresApproval,
             'approval_status' => $requiresApproval ? 'pending' : 'approved',
         ]);
@@ -121,5 +152,38 @@ class AttendanceController extends Controller
         ]);
 
         return back()->with('success', 'Approval status updated successfully.');
+    }
+
+    private function isWithinOfficeRadius($latitude, $longitude)
+    {
+        if (!$latitude || !$longitude) {
+            return false;
+        }
+
+        $locations = OfficeLocation::all();
+
+        foreach ($locations as $location) {
+            $distance = $this->haversineDistance($latitude, $longitude, $location->latitude, $location->longitude);
+            if ($distance <= $location->radius) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function haversineDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // Earth radius in meters
+
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lonDelta = deg2rad($lon2 - $lon1);
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($lonDelta / 2) * sin($lonDelta / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 }

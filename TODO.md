@@ -1,30 +1,9 @@
-# TODO: Add File Upload/Download to Master Tasks and Employee Tasks
-
-## Database Migrations
-- [ ] Create migration to add photo_path and document_path to master_tasks table
-- [ ] Create migration to add photo_path and document_path to employee_tasks table
-
-## Models
-- [ ] Update MasterTask model to include photo_path and document_path in fillable
-- [ ] Update Task model to include photo_path and document_path in fillable
-
-## Controllers
-- [ ] Update MasterTaskController store/update methods to handle file uploads
-- [ ] Update TaskController store/update methods to handle file uploads
-- [ ] Add download methods to both controllers for photo and document
-
-## Views
-- [ ] Update master-tasks/create.blade.php to include file input fields
-- [ ] Update master-tasks/edit.blade.php to include file input fields and display current files
-- [ ] Update master-tasks/show.blade.php to include download links
-- [ ] Update tasks/create.blade.php to include file input fields
-- [ ] Update tasks/edit.blade.php to include file input fields and display current files
-- [ ] Update tasks/show.blade.php to include download links
-
-## Routes
-- [ ] Add download routes for both master-tasks and tasks
-
-## Followup
-- [ ] Run migrations
-- [ ] Ensure storage link is set up
+- [x] Create migration for office_locations table (id, name, latitude, longitude, radius, timestamps)
+- [x] Create OfficeLocation model
+- [x] Create OfficeLocationController with CRUD methods (index, create, store, show, edit, update, destroy) with master role middleware
+- [x] Add routes for office-locations resource with master middleware
+- [x] Update AttendanceController: add location validation in checkIn and checkOut using Haversine formula
+- [x] Update AttendanceController: add overtime check in checkOut to prevent early check out if overtime is approved and not ended
+- [x] Update checkin.blade.php view to include hidden lat and lng fields for better location handling
+- [x] Run migrations
 - [ ] Test functionality

@@ -78,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('masters', MasterController::class)->middleware('role:master');
     Route::resource('divisions', DivisionController::class)->middleware('role:master');
     Route::resource('karyawans', EmployeeController::class)->middleware('role:master');
+    Route::resource('office-locations', App\Http\Controllers\OfficeLocationController::class)->middleware('role:master');
     Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckIn'])->name('attendance.checkin');
     Route::post('/attendance/checkin', [AttendanceController::class, 'checkIn'])->name('attendance.checkin.post');
     Route::post('/attendance/checkout', [AttendanceController::class, 'checkOut'])->name('attendance.checkout');

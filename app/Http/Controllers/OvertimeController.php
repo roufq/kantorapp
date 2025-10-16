@@ -54,7 +54,7 @@ class OvertimeController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'reason' => 'required|string|max:1000',
             'selected_masters' => 'required|array|size:2',
-            'selected_masters.*' => 'exists:user_id',
+            'selected_masters.*' => 'exists:users,id',
         ]);
 
         // Calculate duration
