@@ -31,6 +31,7 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Karyawan</th>
                             <th>Role</th>
                             <th>Actions</th>
                         </tr>
@@ -41,6 +42,7 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $master->name }}</td>
                                 <td>{{ $master->email }}</td>
+                                <td>{{ $master->karyawan ? $master->karyawan->nama : 'N/A' }}</td>
                                 <td><span class="badge text-bg-primary">{{ ucfirst($master->role) }}</span></td>
                                 <td>
                                     <a href="{{ route('masters.show', $master) }}" class="btn btn-sm btn-outline-info">View</a>

@@ -25,8 +25,10 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'karyawan_id' => 'required|exists:employees,id',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'employee_id' => 'required|exists:employees,id',
         ]);
 
         $karyawan = Employee::find($request->karyawan_id);

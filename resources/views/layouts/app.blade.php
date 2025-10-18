@@ -355,6 +355,12 @@
                   <p>Karyawans</p>
                 </a>
               </li>
+              <li class="nav-item">
+                <a href="{{ route('office-locations.index') }}" class="nav-link">
+                  <i class="nav-icon bi bi-geo-alt"></i>
+                  <p>Office Locations</p>
+                </a>
+              </li>
               @endif
               <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">
                 <a href="#" class="nav-link">

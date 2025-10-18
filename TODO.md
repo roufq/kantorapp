@@ -1,9 +1,2 @@
-- [x] Create migration for office_locations table (id, name, latitude, longitude, radius, timestamps)
-- [x] Create OfficeLocation model
-- [x] Create OfficeLocationController with CRUD methods (index, create, store, show, edit, update, destroy) with master role middleware
-- [x] Add routes for office-locations resource with master middleware
-- [x] Update AttendanceController: add location validation in checkIn and checkOut using Haversine formula
-- [x] Update AttendanceController: add overtime check in checkOut to prevent early check out if overtime is approved and not ended
-- [x] Update checkin.blade.php view to include hidden lat and lng fields for better location handling
-- [x] Run migrations
-- [ ] Test functionality
+- [x] Update DashboardController.php: Modify master query to show all employee tasks (tasks where assignee has role 'employee')
+- [ ] Test dashboard: Ensure masters see all employee tasks, employees see only their own

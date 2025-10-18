@@ -61,24 +61,36 @@
                     @endif
 
                     <script>
+                        let currentLat, currentLng;
+
                         function getLocation() {
                             if (navigator.geolocation) {
                                 navigator.geolocation.getCurrentPosition(function(position) {
-                                    const lat = position.coords.latitude;
-                                    const lng = position.coords.longitude;
-                                    const location = lat + ', ' + lng;
+                                    currentLat = position.coords.latitude;
+                                    currentLng = position.coords.longitude;
+                                    const location = currentLat + ', ' + currentLng;
 
                                     // For check-in form
-                                    document.getElementById('latitude').value = lat;
-                                    document.getElementById('longitude').value = lng;
-                                    document.getElementById('locationDisplay').textContent = location;
-                                    document.getElementById('checkinBtn').disabled = false;
+                                    const latitudeInput = document.getElementById('latitude');
+                                    const longitudeInput = document.getElementById('longitude');
+                                    const locationDisplay = document.getElementById('locationDisplay');
+                                    const checkinBtn = document.getElementById('checkinBtn');
+
+                                    if (latitudeInput) latitudeInput.value = currentLat;
+                                    if (longitudeInput) longitudeInput.value = currentLng;
+                                    if (locationDisplay) locationDisplay.textContent = location;
+                                    if (checkinBtn) checkinBtn.disabled = false;
 
                                     // For check-out form
-                                    document.getElementById('checkout_latitude').value = lat;
-                                    document.getElementById('checkout_longitude').value = lng;
-                                    document.getElementById('checkoutLocationDisplay').textContent = location;
-                                    document.getElementById('checkoutBtn').disabled = false;
+                                    const checkoutLatitudeInput = document.getElementById('checkout_latitude');
+                                    const checkoutLongitudeInput = document.getElementById('checkout_longitude');
+                                    const checkoutLocationDisplay = document.getElementById('checkoutLocationDisplay');
+                                    const checkoutBtn = document.getElementById('checkoutBtn');
+
+                                    if (checkoutLatitudeInput) checkoutLatitudeInput.value = currentLat;
+                                    if (checkoutLongitudeInput) checkoutLongitudeInput.value = currentLng;
+                                    if (checkoutLocationDisplay) checkoutLocationDisplay.textContent = location;
+                                    if (checkoutBtn) checkoutBtn.disabled = false;
                                 }, function(error) {
                                     alert('Error getting location: ' + error.message);
                                 });
@@ -86,6 +98,13 @@
                                 alert('Geolocation is not supported by this browser.');
                             }
                         }
+
+                        // Auto-get location when page loads for check-out if user is already checked in
+                        @if($todayAttendance && !$todayAttendance->check_out_time)
+                        window.onload = function() {
+                            getLocation();
+                        };
+                        @endif
                     </script>
                 </div>
             </div>

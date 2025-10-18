@@ -11,16 +11,31 @@
                 <form action="{{ route('masters.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
+                        <label for="employee_id" class="form-label">Karyawan</label>
+                        <select name="employee_id" class="form-control" id="employee_id" required>
+                            <option value="">Select Karyawan</option>
+                            @foreach($karyawans as $karyawan)
+                                <option value="{{ $karyawan->id }}" data-name="{{ $karyawan->nama }}" data-email="{{ $karyawan->email }}">{{ $karyawan->nama }} - {{ $karyawan->email }}</option>
+                            @endforeach
+                        </select>
+                        @error('employee_id')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
                         <label for="name" class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" id="name" required>
+                        <input type="text" name="name" class="form-control" id="name" readonly required>
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" id="email" required>
+                        <input type="email" name="email" class="form-control" id="email" readonly required>
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" name="password" class="form-control" id="password" required>
+                        @error('password')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="password_confirmation" class="form-label">Confirm Password</label>
@@ -29,6 +44,13 @@
                     <button type="submit" class="btn btn-primary">Create Master</button>
                     <a href="{{ route('masters.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
+                <script>
+                    document.getElementById('employee_id').addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        document.getElementById('name').value = selectedOption.getAttribute('data-name') || '';
+                        document.getElementById('email').value = selectedOption.getAttribute('data-email') || '';
+                    });
+                </script>
             </div>
         </div>
     </div>

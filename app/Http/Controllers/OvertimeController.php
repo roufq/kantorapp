@@ -57,19 +57,31 @@ class OvertimeController extends Controller
             'selected_masters.*' => 'exists:users,id',
         ]);
 
-        // Calculate duration
-        $start = strtotime($request->start_time);
-        $end = strtotime($request->end_time);
-        $duration = ($end - $start) / 3600; // hours
+        // Parse times as WIB (Asia/Jakarta) and convert to UTC for storage
+        $date = $request->date;
+        $startTimeWib = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $request->start_time, 'Asia/Jakarta');
+        $endTimeWib = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $request->end_time, 'Asia/Jakarta');
+
+        // Convert to UTC for storage
+        $startTimeUtc = $startTimeWib->utc();
+        $endTimeUtc = $endTimeWib->utc();
+
+        // Calculate duration in hours and minutes
+        $duration = $startTimeWib->diffInHours($endTimeWib);
+        $durationMinutes = $startTimeWib->diffInMinutes($endTimeWib);
+
+        // For masters, auto-approve the overtime request
+        $status = $user->role === 'master' ? 'approved' : 'pending';
 
         $overtime = Overtime::create([
             'user_id' => $user->id,
             'date' => $request->date,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
+            'start_time' => $startTimeUtc->format('H:i:s'),
+            'end_time' => $endTimeUtc->format('H:i:s'),
             'duration_hours' => $duration,
             'reason' => $request->reason,
             'selected_masters' => $request->selected_masters,
+            'status' => $status,
         ]);
 
         // Create approval records for selected masters
@@ -77,6 +89,8 @@ class OvertimeController extends Controller
             OvertimeApproval::create([
                 'overtime_request_id' => $overtime->id,
                 'master_id' => $masterId,
+                'status' => $user->role === 'master' ? 'approved' : 'pending',
+                'approved_at' => $user->role === 'master' ? now() : null,
             ]);
         }
 
@@ -94,6 +108,80 @@ class OvertimeController extends Controller
         $overtime->load('user', 'approvals.master');
 
         return view('overtime.show', compact('overtime'));
+    }
+
+    public function report(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->role === 'master') {
+            // Masters can see all overtime requests
+            $query = Overtime::with('user', 'approvals.master');
+        } else {
+            // Employees see only their own requests
+            $query = Overtime::where('user_id', $user->id)->with('user', 'approvals.master');
+        }
+
+        // Search functionality
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reason', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function ($subQ) use ($search) {
+                      $subQ->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        }
+
+        $overtimes = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return view('overtime.report', compact('overtimes'));
+    }
+
+    public function export(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->role === 'master') {
+            // Masters can export all overtime requests
+            $query = Overtime::with('user', 'approvals.master');
+        } else {
+            // Employees can only export their own requests
+            $query = Overtime::where('user_id', $user->id)->with('user', 'approvals.master');
+        }
+
+        // Apply same filters as report
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reason', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function ($subQ) use ($search) {
+                      $subQ->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        }
+
+        $query->orderBy('created_at', 'desc');
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\OvertimeExport($query), 'overtime_report.xlsx');
     }
 
     public function approve(Request $request, Overtime $overtime)

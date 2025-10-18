@@ -15,8 +15,8 @@
                     <div class="col-md-6">
                         <p><strong>Employee:</strong> {{ $overtime->user->name }}</p>
                         <p><strong>Date:</strong> {{ $overtime->date->format('d M Y') }}</p>
-                        <p><strong>Time:</strong> {{ $overtime->start_time->format('H:i') }} - {{ $overtime->end_time->format('H:i') }}</p>
-                        <p><strong>Duration:</strong> {{ number_format($overtime->duration_hours, 2) }} hours</p>
+                        <p><strong>Time:</strong> {{ $overtime->start_time_wib }} - {{ $overtime->end_time_wib }} WIB</p>
+                        <p><strong>Duration:</strong> {{ number_format($overtime->duration_minutes, 0) }} minutes</p>
                         <p><strong>Reason:</strong> {{ $overtime->reason }}</p>
                         <p><strong>Status:</strong>
                             <span class="badge

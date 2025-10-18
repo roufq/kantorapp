@@ -83,12 +83,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/attendance/checkin', [AttendanceController::class, 'checkIn'])->name('attendance.checkin.post');
     Route::post('/attendance/checkout', [AttendanceController::class, 'checkOut'])->name('attendance.checkout');
     Route::get('/attendance/report', [AttendanceController::class, 'report'])->middleware('role:master')->name('attendance.report');
+    Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('role:master')->name('attendance.export');
     Route::patch('/attendance/{id}/approval', [AttendanceController::class, 'updateApproval'])->middleware('role:master')->name('attendance.update.approval');
 
     // Overtime Requests
     Route::get('/overtime', [App\Http\Controllers\OvertimeController::class, 'index'])->name('overtime.index');
     Route::get('/overtime/create', [App\Http\Controllers\OvertimeController::class, 'create'])->name('overtime.create');
     Route::post('/overtime', [App\Http\Controllers\OvertimeController::class, 'store'])->name('overtime.store');
+    Route::get('/overtime/export', [App\Http\Controllers\OvertimeController::class, 'export'])->name('overtime.export');
+    Route::get('/overtime-report', [App\Http\Controllers\OvertimeController::class, 'report'])->name('overtime.report');
     Route::get('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'show'])->name('overtime.show');
     Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:master')->name('overtime.approve');
 });

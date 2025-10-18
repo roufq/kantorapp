@@ -37,6 +37,13 @@
                         </div>
                     </form>
 
+                    {{-- Export Button --}}
+                    <div class="mb-3">
+                        <a href="{{ route('attendance.export', request()->query()) }}" class="btn btn-success">
+                            <i class="fas fa-download"></i> Export to Excel
+                        </a>
+                    </div>
+
                     {{-- Table --}}
                     <table class="table table-striped">
                         <thead>

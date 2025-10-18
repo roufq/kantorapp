@@ -70,13 +70,14 @@ class AttendanceController extends Controller
             return back()->withErrors(['message' => 'You must be within 50 meters of an office location to check out.']);
         }
 
+        $now = now();
+
         // Check for approved overtime
         $approvedOvertime = Overtime::where('user_id', $user->id)
             ->where('date', Carbon::today())
             ->where('status', 'approved')
             ->first();
 
-        $now = now();
         $canCheckOut = true;
 
         if ($approvedOvertime) {
@@ -152,6 +153,23 @@ class AttendanceController extends Controller
         ]);
 
         return back()->with('success', 'Approval status updated successfully.');
+    }
+
+    public function export(Request $request)
+    {
+        $query = Attendance::with('user.employee');
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('check_in_time', [$request->start_date, $request->end_date]);
+        }
+
+        $query->orderBy('check_in_time', 'desc');
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AttendanceExport($query), 'attendance_report.xlsx');
     }
 
     private function isWithinOfficeRadius($latitude, $longitude)

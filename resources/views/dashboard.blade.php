@@ -75,6 +75,46 @@
     <!-- /.info-box -->
   </div>
   <!-- /.col -->
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="info-box">
+      <span class="info-box-icon text-bg-light shadow-sm">
+        <i class="bi bi-clock-fill"></i>
+      </span>
+      <div class="info-box-content">
+        <span class="info-box-text">Clock In</span>
+        <span class="info-box-number">
+          @if($todayAttendance && $todayAttendance->check_in_time)
+            {{ $todayAttendance->check_in_time->format('H:i') }}
+          @else
+            --
+          @endif
+        </span>
+      </div>
+      <!-- /.info-box-content -->
+    </div>
+    <!-- /.info-box -->
+  </div>
+  <!-- /.col -->
+  <div class="col-12 col-sm-6 col-md-3">
+    <div class="info-box">
+      <span class="info-box-icon text-bg-dark shadow-sm">
+        <i class="bi bi-clock-history"></i>
+      </span>
+      <div class="info-box-content">
+        <span class="info-box-text">Clock Out</span>
+        <span class="info-box-number">
+          @if($todayAttendance && $todayAttendance->check_out_time)
+            {{ $todayAttendance->check_out_time->format('H:i') }}
+          @else
+            --
+          @endif
+        </span>
+      </div>
+      <!-- /.info-box-content -->
+    </div>
+    <!-- /.info-box -->
+  </div>
+  <!-- /.col -->
 </div>
 <!-- /.row -->
 
@@ -168,28 +208,6 @@
             @endif
           </form>
         </div>
-
-        <!-- Tasks List -->
-        <div class="row">
-          @foreach($tasks as $task)
-            <div class="col-md-6 mb-3">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title">{{ $task->title }}</h5>
-                </div>
-                <div class="card-body">
-                  <p>{{ $task->description }}</p>
-                  <p><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
-                  <p><strong>Due:</strong> {{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
-                  <p><strong>Assigned to:</strong> {{ $task->assignee->name }}</p>
-                  <p><strong>Assigned by:</strong> {{ $task->assigner->name }}</p>
-                </div>
-              </div>
-            </div>
-          @endforeach
-        </div>
-
-        <!-- Pagination -->
         @if($tasks->hasPages())
           <div class="d-flex justify-content-center mt-4">
             {{ $tasks->appends(request()->query())->links() }}

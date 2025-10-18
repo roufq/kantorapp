@@ -18,8 +18,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>My Assigned Master Tasks</h1>
     <div>
-        <a href="{{ route('master-tasks.create') }}" class="btn btn-primary me-2">Assign Task to Employee</a>
-        <a href="{{ route('master-tasks.create.self') }}" class="btn btn-success">Create Task for Myself</a>
+        <a href="{{ route('master-tasks.create.self') }}" class="btn btn-success">Create Task Master</a>
     </div>
 </div>
 

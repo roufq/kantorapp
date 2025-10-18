@@ -17,13 +17,8 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>My Tasks</h1>
-    <div>
-        @if(auth()->user()->role === 'master')
-            <a href="{{ route('master-tasks.index') }}" class="btn btn-info me-2">Manage All Tasks</a>
-            <a href="{{ route('tasks.create.self') }}" class="btn btn-success">Create Task for Myself</a>
-        @else
-            <a href="{{ route('tasks.create.self') }}" class="btn btn-primary">Create Task for Myself</a>
-        @endif
+    <div>        
+            <a href="{{ route('tasks.create') }}" class="btn btn-primary">Create Task Employee</a>
     </div>
 </div>
 

@@ -9,6 +9,7 @@ use App\Models\Message;
 use App\Models\Division;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\Attendance;
 
 class DashboardController extends Controller
 {
@@ -18,10 +19,9 @@ class DashboardController extends Controller
 
         // Fetch tasks based on role with search
         if ($user->role === 'master') {
-            // Masters only see tasks they assigned or assigned to them
-            $query = Task::where(function ($q) use ($user) {
-                $q->where('assigned_by', $user->id)
-                  ->orWhere('assigned_to', $user->id);
+            // Masters see all tasks assigned to employees
+            $query = Task::whereHas('assignee', function ($q) {
+                $q->where('role', 'employee');
             })->with('assignee', 'assigner');
         } else {
             // Employees see only their own tasks
@@ -52,6 +52,11 @@ class DashboardController extends Controller
         $totalDivisions = Division::count();
         $totalKaryawans = Employee::count();
 
-        return view('dashboard', compact('user', 'tasks', 'unreadMessages', 'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans'));
+        // Get today's attendance for the user
+        $todayAttendance = Attendance::where('user_id', $user->id)
+            ->whereDate('check_in_time', now()->toDateString())
+            ->first();
+
+        return view('dashboard', compact('user', 'tasks', 'unreadMessages', 'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans', 'todayAttendance'));
     }
 }

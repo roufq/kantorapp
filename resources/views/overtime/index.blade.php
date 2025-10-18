@@ -18,6 +18,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Overtime Requests</h1>
     <div>
+        @if(auth()->user()->role === 'master')
+            <a href="{{ route('overtime.report') }}" class="btn btn-info me-2">View Report</a>
+        @endif
         @if(auth()->user()->role === 'employee')
             <a href="{{ route('overtime.create') }}" class="btn btn-primary">Request Overtime</a>
         @endif
@@ -55,7 +58,7 @@
                 </div>
                 <div class="card-body">
                     <p><strong>Employee:</strong> {{ $overtime->user->name }}</p>
-                    <p><strong>Time:</strong> {{ $overtime->start_time->format('H:i') }} - {{ $overtime->end_time->format('H:i') }} ({{ number_format($overtime->duration_hours, 2) }} hours)</p>
+                    <p><strong>Time:</strong> {{ $overtime->start_time_wib }} - {{ $overtime->end_time_wib }} WIB ({{ number_format($overtime->duration_minutes, 0) }} minutes)</p>
                     <p><strong>Reason:</strong> {{ Str::limit($overtime->reason, 100) }}</p>
 
                     @if(auth()->user()->role === 'master')

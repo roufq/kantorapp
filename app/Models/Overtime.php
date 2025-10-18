@@ -30,6 +30,21 @@ class Overtime extends Model
         'selected_masters' => 'array',
     ];
 
+    public function getDurationMinutesAttribute()
+    {
+        return $this->duration_hours * 60;
+    }
+
+    public function getStartTimeWibAttribute()
+    {
+        return $this->start_time ? $this->start_time->setTimezone('Asia/Jakarta')->format('H:i') : null;
+    }
+
+    public function getEndTimeWibAttribute()
+    {
+        return $this->end_time ? $this->end_time->setTimezone('Asia/Jakarta')->format('H:i') : null;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
