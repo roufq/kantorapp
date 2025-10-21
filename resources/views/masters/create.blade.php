@@ -11,14 +11,14 @@
                 <form action="{{ route('masters.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
-                        <label for="employee_id" class="form-label">Karyawan</label>
-                        <select name="employee_id" class="form-control" id="employee_id" required>
-                            <option value="">Select Karyawan</option>
+                        <label for="karyawan_id" class="form-label">Employee</label>
+                        <select name="karyawan_id" class="form-control" id="karyawan_id" required>
+                            <option value="">Select Employee</option>
                             @foreach($karyawans as $karyawan)
                                 <option value="{{ $karyawan->id }}" data-name="{{ $karyawan->nama }}" data-email="{{ $karyawan->email }}">{{ $karyawan->nama }} - {{ $karyawan->email }}</option>
                             @endforeach
                         </select>
-                        @error('employee_id')
+                        @error('karyawan_id')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
@@ -45,7 +45,7 @@
                     <a href="{{ route('masters.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
                 <script>
-                    document.getElementById('employee_id').addEventListener('change', function() {
+                    document.getElementById('karyawan_id').addEventListener('change', function() {
                         const selectedOption = this.options[this.selectedIndex];
                         document.getElementById('name').value = selectedOption.getAttribute('data-name') || '';
                         document.getElementById('email').value = selectedOption.getAttribute('data-email') || '';

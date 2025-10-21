@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Division;
+use App\Models\Location;
+
 
 class EmployeeController extends Controller
 {
@@ -13,7 +15,17 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::with('division')->get();
+        $query = Employee::with(['division', 'location']);
+
+        $user = auth()->user();
+        $locationId = session('location_id');
+
+        if ($user && !$user->hasRole('Super Admin') && $locationId) {
+            $query->where('location_id', $locationId);
+        }
+
+        $employees = $query->get();
+
         return view('karyawans.index', compact('employees'));
     }
 
@@ -23,7 +35,8 @@ class EmployeeController extends Controller
     public function create()
     {
         $divisions = Division::all();
-        return view('karyawans.create', compact('divisions'));
+        $locations = Location::active()->orderBy('name')->get();
+        return view('karyawans.create', compact('divisions', 'locations'));
     }
 
     /**
@@ -40,6 +53,7 @@ class EmployeeController extends Controller
             'departemen' => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
             'divisi_id' => 'required|exists:divisions,id',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         Employee::create($request->all());
@@ -52,7 +66,7 @@ class EmployeeController extends Controller
      */
     public function show(Employee $karyawan)
     {
-        $karyawan->load('division');
+        $karyawan->load(['division', 'location']);
         return view('karyawans.show', compact('karyawan'));
     }
 
@@ -62,7 +76,8 @@ class EmployeeController extends Controller
     public function edit(Employee $karyawan)
     {
         $divisions = Division::all();
-        return view('karyawans.edit', compact('karyawan', 'divisions'));
+        $locations = Location::active()->orderBy('name')->get();
+        return view('karyawans.edit', compact('karyawan', 'divisions', 'locations'));
     }
 
     /**
@@ -79,6 +94,7 @@ class EmployeeController extends Controller
             'departemen' => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
             'divisi_id' => 'required|exists:divisions,id',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $karyawan->update($request->all());

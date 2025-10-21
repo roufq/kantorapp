@@ -5,7 +5,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Karyawan Details</h3>
+                <h3 class="card-title">Employee Details</h3>
                 <div class="card-tools">
                     <a href="{{ route('karyawans.index') }}" class="btn btn-sm btn-secondary">Back to List</a>
                     <a href="{{ route('karyawans.edit', $karyawan) }}" class="btn btn-sm btn-primary">Edit</a>
@@ -22,7 +22,9 @@
                         <p><strong>Departemen:</strong> {{ $karyawan->departemen }}</p>
                         <p><strong>Tanggal Lahir:</strong> {{ $karyawan->tanggal_lahir ? $karyawan->tanggal_lahir->format('d M Y') : '-' }}</p>
                         <p><strong>Divisi:</strong> {{ $karyawan->division->nama }}</p>
-                        <p><strong>Master:</strong> {{ $karyawan->master->name }}</p>
+                        <p><strong>Lokasi:</strong> {{ $karyawan->location->name ?? 'N/A' }}</p>
+
+                        <p><strong>Master:</strong> {{ $karyawan->master ? $karyawan->master->name : 'N/A' }}</p>
                         <p><strong>Created:</strong> {{ $karyawan->created_at->format('d M Y H:i') }}</p>
                     </div>
                     <div class="col-md-6">

@@ -22,6 +22,9 @@
                         </div>
                     @endif
 
+                    <div id="geolocation-error" class="alert alert-danger" style="display: none;"></div>
+                    <div id="manual-mode-info" class="alert alert-info" style="display: none;">Manual check-in is enabled. Please fill in the location manually.</div>
+
                     <h4>Check In / Check Out</h4>
 
                     @if($todayAttendance && !$todayAttendance->check_out_time)
@@ -36,8 +39,9 @@
                             <input type="hidden" id="longitude" name="longitude">
                             <div class="mb-3">
                                 <label class="form-label">Location</label>
-                                <div id="locationDisplay" class="form-control" readonly>Click "Get GPS Location" to fetch your current location</div>
+                                <input type="text" id="locationDisplay" class="form-control" readonly placeholder="Click 'Get GPS Location' to fetch your current location">
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
+                                <button type="button" class="btn btn-info mt-1" onclick="enableManualCheckin()">Manual Check-in</button>
                             </div>
                             <button type="submit" class="btn btn-primary" id="checkinBtn" disabled>Check In</button>
                         </form>
@@ -92,11 +96,51 @@
                                     if (checkoutLocationDisplay) checkoutLocationDisplay.textContent = location;
                                     if (checkoutBtn) checkoutBtn.disabled = false;
                                 }, function(error) {
-                                    alert('Error getting location: ' + error.message);
+                                    const errorMessage = 'Error getting location: ' + error.message;
+                                    const errorDiv = document.getElementById('geolocation-error');
+                                    errorDiv.textContent = errorMessage;
+                                    errorDiv.style.display = 'block';
+
+                                    // Disable buttons
+                                    const checkinBtn = document.getElementById('checkinBtn');
+                                    const checkoutBtn = document.getElementById('checkoutBtn');
+                                    if (checkinBtn) checkinBtn.disabled = true;
+                                    if (checkoutBtn) checkoutBtn.disabled = true;
                                 });
                             } else {
-                                alert('Geolocation is not supported by this browser.');
+                                const errorMessage = 'Geolocation is not supported by this browser.';
+                                const errorDiv = document.getElementById('geolocation-error');
+                                errorDiv.textContent = errorMessage;
+                                errorDiv.style.display = 'block';
+
+                                // Disable buttons
+                                const checkinBtn = document.getElementById('checkinBtn');
+                                const checkoutBtn = document.getElementById('checkoutBtn');
+                                if (checkinBtn) checkinBtn.disabled = true;
+                                if (checkoutBtn) checkoutBtn.disabled = true;
                             }
+                        }
+
+                        function enableManualCheckin() {
+                            // Hide error message
+                            const errorDiv = document.getElementById('geolocation-error');
+                            errorDiv.style.display = 'none';
+
+                            // Show manual mode info
+                            const manualModeDiv = document.getElementById('manual-mode-info');
+                            manualModeDiv.style.display = 'block';
+
+                            // Enable buttons
+                            const checkinBtn = document.getElementById('checkinBtn');
+                            const checkoutBtn = document.getElementById('checkoutBtn');
+                            if (checkinBtn) checkinBtn.disabled = false;
+                            if (checkoutBtn) checkoutBtn.disabled = false;
+
+                            // Make location fields editable
+                            const locationDisplay = document.getElementById('locationDisplay');
+                            const checkoutLocationDisplay = document.getElementById('checkoutLocationDisplay');
+                            if (locationDisplay) locationDisplay.readOnly = false;
+                            if (checkoutLocationDisplay) checkoutLocationDisplay.readOnly = false;
                         }
 
                         // Auto-get location when page loads for check-out if user is already checked in

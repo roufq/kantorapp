@@ -31,7 +31,7 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Karyawan</th>
+                            <th>Employee</th>
                             <th>Role</th>
                             <th>Actions</th>
                         </tr>

@@ -352,14 +352,37 @@
               <li class="nav-item">
                 <a href="{{ route('karyawans.index') }}" class="nav-link">
                   <i class="nav-icon bi bi-person-lines-fill"></i>
-                  <p>Karyawans</p>
+                  <p>Employees</p>
                 </a>
               </li>
-              <li class="nav-item">
-                <a href="{{ route('office-locations.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-geo-alt"></i>
-                  <p>Office Locations</p>
+              @endif
+              @if(auth()->user()->role == 'master')
+              <li class="nav-item {{ request()->routeIs('location.*') ? 'menu-open' : '' }}">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-geo-alt-fill"></i>
+                  <p>Multi Location</p>
+                  <i class="nav-arrow bi bi-chevron-right"></i>
                 </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{{ route('locations.index') }}" class="nav-link {{ request()->routeIs('locations.index') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Locations</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.index') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Shifts</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{{ route('location-shifts.index') }}" class="nav-link {{ request()->routeIs('location-shifts.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Location Shifts</p>
+                    </a>
+                  </li>
+                </ul>
               </li>
               @endif
               <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">

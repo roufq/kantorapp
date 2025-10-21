@@ -11,15 +11,16 @@ class UserController extends Controller
 {
     public function index()
     {
-        $employees = User::where('role', 'employee')->with('employee')->get();
+        $employees = User::where('role', 'employee')->with('karyawan', 'location')->get();
         return view('users.index', compact('employees'));
     }
 
     public function create()
     {
-        $linkedEmployeeIds = User::whereNotNull('employee_id')->pluck('employee_id');
+        $linkedEmployeeIds = User::whereNotNull('karyawan_id')->pluck('karyawan_id');
         $karyawans = Employee::whereNotIn('id', $linkedEmployeeIds)->get();
-        return view('users.create', compact('karyawans'));
+        $locations = \App\Models\Location::all();
+        return view('users.create', compact('karyawans', 'locations'));
     }
 
     public function store(Request $request)
@@ -28,12 +29,13 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'employee_id' => 'required|exists:employees,id',
+            'karyawan_id' => 'required|exists:employees,id',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $karyawan = Employee::find($request->karyawan_id);
-        if ($karyawan->users()->exists()) {
-            return back()->withErrors(['karyawan_id' => 'This karyawan already has a user account.']);
+        if ($karyawan->users()->where('role', 'employee')->exists()) {
+            return back()->withErrors(['karyawan_id' => 'This karyawan already has an employee user account.']);
         }
 
         $user = User::create([
@@ -41,7 +43,8 @@ class UserController extends Controller
             'email' => $karyawan->email,
             'password' => Hash::make($request->password),
             'role' => 'employee',
-            'employee_id' => $karyawan->id,
+            'karyawan_id' => $karyawan->id,
+            'location_id' => $request->location_id,
         ]);
 
         return redirect()->route('users.index')->with('success', 'Employee user created successfully.');
@@ -57,7 +60,8 @@ class UserController extends Controller
         if ($user->role !== 'employee') {
             abort(403, 'Only employees can be edited.');
         }
-        return view('users.edit', compact('user'));
+        $locations = \App\Models\Location::all();
+        return view('users.edit', compact('user', 'locations'));
     }
 
     public function update(Request $request, User $user)
@@ -70,11 +74,13 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $updateData = [
             'name' => $request->name,
             'email' => $request->email,
+            'location_id' => $request->location_id,
         ];
 
         if ($request->filled('password')) {

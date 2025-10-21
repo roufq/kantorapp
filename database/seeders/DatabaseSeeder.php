@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(RoleSeeder::class);
+
         // Create divisions
         Division::create(['nama' => 'HR']);
         Division::create(['nama' => 'IT']);

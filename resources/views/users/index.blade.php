@@ -32,7 +32,8 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
-                            <th>Karyawan</th>
+                            <th>Employee</th>
+                            <th>Location</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -44,6 +45,7 @@
                                 <td>{{ $employee->email }}</td>
                                 <td><span class="badge text-bg-secondary">{{ ucfirst($employee->role) }}</span></td>
                                 <td>{{ $employee->employee ? $employee->employee->nama : '-' }}</td>
+                                <td>{{ $employee->location ? $employee->location->name : '-' }}</td>
                                 <td>
                                     <a href="{{ route('users.show', $employee) }}" class="btn btn-sm btn-outline-info">View</a>
                                     <a href="{{ route('users.edit', $employee) }}" class="btn btn-sm btn-outline-primary">Edit</a>

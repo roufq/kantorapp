@@ -11,9 +11,9 @@
                 <form action="{{ route('users.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
-                        <label for="karyawan_id" class="form-label">Select Karyawan</label>
+                        <label for="karyawan_id" class="form-label">Select Employee</label>
                         <select name="karyawan_id" class="form-control" id="karyawan_id" required>
-                            <option value="">Pilih Karyawan</option>
+                            <option value="">Select Employee</option>
                             @foreach($karyawans as $karyawan)
                                 <option value="{{ $karyawan->id }}" data-name="{{ $karyawan->nama }}" data-email="{{ $karyawan->email }}">{{ $karyawan->nama }} - {{ $karyawan->email }}</option>
                             @endforeach
@@ -40,6 +40,15 @@
                     <div class="mb-3">
                         <label for="password_confirmation" class="form-label">Confirm Password</label>
                         <input type="password" name="password_confirmation" class="form-control" id="password_confirmation" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location_id" class="form-label">Location (Optional)</label>
+                        <select name="location_id" class="form-control" id="location_id">
+                            <option value="">Select Location</option>
+                            @foreach($locations as $location)
+                                <option value="{{ $location->id }}">{{ $location->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-primary">Create Employee</button>
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>

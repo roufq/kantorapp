@@ -36,6 +36,15 @@
                         <label for="password_confirmation" class="form-label">Confirm Password</label>
                         <input type="password" class="form-control" id="password_confirmation" name="password_confirmation">
                     </div>
+                    <div class="mb-3">
+                        <label for="location_id" class="form-label">Location (Optional)</label>
+                        <select name="location_id" class="form-control" id="location_id">
+                            <option value="">Select Location</option>
+                            @foreach($locations as $location)
+                                <option value="{{ $location->id }}" {{ $user->location_id == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">Update Employee</button>
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>

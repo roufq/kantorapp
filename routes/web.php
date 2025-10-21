@@ -30,6 +30,19 @@ Route::get('/login', function () {
 Route::post('/login', function (Request $request) {
     $credentials = $request->only('email', 'password');
     if (Auth::attempt($credentials)) {
+        $user = Auth::user();
+
+        // Super Admin can login without a location
+        if ($user->hasRole('Super Admin')) {
+            return redirect()->intended('/dashboard');
+        }
+
+        // Other users must have a location
+        if (is_null($user->location_id)) {
+            Auth::logout();
+            return back()->withErrors(['email' => 'This account is not assigned to any location.']);
+        }
+
         return redirect()->intended('/dashboard');
     }
     return back()->withErrors(['email' => 'Invalid credentials']);
@@ -46,7 +59,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
     Route::patch('/messages/{id}/read', [MessageController::class, 'markAsRead'])->name('messages.read');
-    Route::delete('/messages/{id}', [MessageController::class, 'destroy'])->middleware('role:master')->name('messages.destroy');
+    Route::delete('/messages/{id}', [MessageController::class, 'destroy'])->middleware('role:Super Admin')->name('messages.destroy');
 
     // Employee Tasks (employee_tasks table)
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
@@ -62,29 +75,41 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks/{task}/download-document', [TaskController::class, 'downloadDocument'])->name('tasks.download.document');
 
     // Master Tasks (master_tasks table) - only masters can access their own tasks
-    Route::get('/master-tasks', [MasterTaskController::class, 'index'])->middleware('role:master')->name('master-tasks.index');
-    Route::get('/master-tasks/create', [MasterTaskController::class, 'create'])->middleware('role:master')->name('master-tasks.create');
-    Route::post('/master-tasks', [MasterTaskController::class, 'store'])->middleware('role:master')->name('master-tasks.store');
-    Route::get('/master-tasks/create-self', [MasterTaskController::class, 'createSelf'])->middleware('role:master')->name('master-tasks.create.self');
-    Route::post('/master-tasks/store-self', [MasterTaskController::class, 'storeSelf'])->middleware('role:master')->name('master-tasks.store.self');
-    Route::get('/master-tasks/{masterTask}', [MasterTaskController::class, 'show'])->middleware('role:master')->name('master-tasks.show');
-    Route::get('/master-tasks/{masterTask}/edit', [MasterTaskController::class, 'edit'])->middleware('role:master')->name('master-tasks.edit');
-    Route::patch('/master-tasks/{masterTask}', [MasterTaskController::class, 'update'])->middleware('role:master')->name('master-tasks.update');
-    Route::delete('/master-tasks/{masterTask}', [MasterTaskController::class, 'destroy'])->middleware('role:master')->name('master-tasks.destroy');
-    Route::get('/master-tasks/{masterTask}/download-photo', [MasterTaskController::class, 'downloadPhoto'])->middleware('role:master')->name('master-tasks.download.photo');
-    Route::get('/master-tasks/{masterTask}/download-document', [MasterTaskController::class, 'downloadDocument'])->middleware('role:master')->name('master-tasks.download.document');
+    Route::get('/master-tasks', [MasterTaskController::class, 'index'])->middleware('role:Super Admin')->name('master-tasks.index');
+    Route::get('/master-tasks/create', [MasterTaskController::class, 'create'])->middleware('role:Super Admin')->name('master-tasks.create');
+    Route::post('/master-tasks', [MasterTaskController::class, 'store'])->middleware('role:Super Admin')->name('master-tasks.store');
+    Route::get('/master-tasks/create-self', [MasterTaskController::class, 'createSelf'])->middleware('role:Super Admin')->name('master-tasks.create.self');
+    Route::post('/master-tasks/store-self', [MasterTaskController::class, 'storeSelf'])->middleware('role:Super Admin')->name('master-tasks.store.self');
+    Route::get('/master-tasks/{masterTask}', [MasterTaskController::class, 'show'])->middleware('role:Super Admin')->name('master-tasks.show');
+    Route::get('/master-tasks/{masterTask}/edit', [MasterTaskController::class, 'edit'])->middleware('role:Super Admin')->name('master-tasks.edit');
+    Route::patch('/master-tasks/{masterTask}', [MasterTaskController::class, 'update'])->middleware('role:Super Admin')->name('master-tasks.update');
+    Route::delete('/master-tasks/{masterTask}', [MasterTaskController::class, 'destroy'])->middleware('role:Super Admin')->name('master-tasks.destroy');
+    Route::get('/master-tasks/{masterTask}/download-photo', [MasterTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin')->name('master-tasks.download.photo');
+    Route::get('/master-tasks/{masterTask}/download-document', [MasterTaskController::class, 'downloadDocument'])->middleware('role:Super Admin')->name('master-tasks.download.document');
 
-    Route::resource('users', UserController::class)->middleware('role:master');
-    Route::resource('masters', MasterController::class)->middleware('role:master');
-    Route::resource('divisions', DivisionController::class)->middleware('role:master');
-    Route::resource('karyawans', EmployeeController::class)->middleware('role:master');
-    Route::resource('office-locations', App\Http\Controllers\OfficeLocationController::class)->middleware('role:master');
+    Route::resource('users', UserController::class)->middleware('role:Super Admin');
+    Route::resource('masters', MasterController::class)->middleware('role:Super Admin');
+    Route::resource('divisions', DivisionController::class)->middleware('role:Super Admin');
+    Route::resource('karyawans', EmployeeController::class)->middleware('role:Super Admin');
+
+    Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
+    Route::resource('shifts', App\Http\Controllers\ShiftController::class)->middleware('role:Super Admin');
+
+    // Location Shifts Management
+    Route::resource('location-shifts', App\Http\Controllers\LocationShiftController::class, [
+        'parameters' => [
+            'location-shifts' => 'location'
+        ]
+    ])->middleware('role:Super Admin');
+    Route::post('/location-shifts/{location}/attach-shift', [App\Http\Controllers\LocationShiftController::class, 'attachShift'])->middleware('role:Super Admin')->name('location-shifts.attach-shift');
+    Route::delete('/location-shifts/{location}/detach-shift/{shift}', [App\Http\Controllers\LocationShiftController::class, 'detachShift'])->middleware('role:Super Admin')->name('location-shifts.detach-shift');
+
     Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckIn'])->name('attendance.checkin');
     Route::post('/attendance/checkin', [AttendanceController::class, 'checkIn'])->name('attendance.checkin.post');
     Route::post('/attendance/checkout', [AttendanceController::class, 'checkOut'])->name('attendance.checkout');
-    Route::get('/attendance/report', [AttendanceController::class, 'report'])->middleware('role:master')->name('attendance.report');
-    Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('role:master')->name('attendance.export');
-    Route::patch('/attendance/{id}/approval', [AttendanceController::class, 'updateApproval'])->middleware('role:master')->name('attendance.update.approval');
+    Route::get('/attendance/report', [AttendanceController::class, 'report'])->middleware('role:Super Admin')->name('attendance.report');
+    Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('role:Super Admin')->name('attendance.export');
+    Route::patch('/attendance/{id}/approval', [AttendanceController::class, 'updateApproval'])->middleware('role:Super Admin')->name('attendance.update.approval');
 
     // Overtime Requests
     Route::get('/overtime', [App\Http\Controllers\OvertimeController::class, 'index'])->name('overtime.index');
@@ -93,5 +118,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/overtime/export', [App\Http\Controllers\OvertimeController::class, 'export'])->name('overtime.export');
     Route::get('/overtime-report', [App\Http\Controllers\OvertimeController::class, 'report'])->name('overtime.report');
     Route::get('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'show'])->name('overtime.show');
-    Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:master')->name('overtime.approve');
+    Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:Super Admin')->name('overtime.approve');
 });

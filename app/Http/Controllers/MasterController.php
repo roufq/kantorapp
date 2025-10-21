@@ -11,13 +11,13 @@ class MasterController extends Controller
 {
     public function index()
     {
-        $masters = User::where('role', 'master')->with('karyawan')->get();
+        $masters = User::role('Super Admin')->with('employee')->get();
         return view('masters.index', compact('masters'));
     }
 
     public function create()
     {
-        $linkedEmployeeIds = User::whereNotNull('employee_id')->pluck('employee_id');
+        $linkedEmployeeIds = User::whereNotNull('karyawan_id')->pluck('karyawan_id');
         $karyawans = Employee::whereNotIn('id', $linkedEmployeeIds)->get();
         return view('masters.create', compact('karyawans'));
     }
@@ -28,28 +28,29 @@ class MasterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'employee_id' => 'required|exists:employees,id',
+            'karyawan_id' => 'required|exists:employees,id',
         ]);
 
-        $employee = Employee::find($request->employee_id);
-        if ($employee->users()->where('role', 'master')->exists()) {
-            return back()->withErrors(['employee_id' => 'This karyawan already has a master account.']);
+        $karyawan = Employee::find($request->karyawan_id);
+        if ($karyawan->users()->whereHas('roles', function ($q) { $q->where('name', 'Super Admin'); })->exists()) {
+            return back()->withErrors(['karyawan_id' => 'This employee already has a Super Admin account.']);
         }
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'master',
-            'employee_id' => $employee->id,
+            'karyawan_id' => $karyawan->id,
         ]);
+
+        $user->assignRole('Super Admin');
 
         return redirect()->route('masters.index')->with('success', 'Master created successfully.');
     }
 
     public function show(User $master)
     {
-        if ($master->role !== 'master') {
+        if (!$master->hasRole('Super Admin')) {
             abort(404);
         }
         $master->load('karyawan');
@@ -58,7 +59,7 @@ class MasterController extends Controller
 
     public function edit(User $master)
     {
-        if ($master->role !== 'master') {
+        if (!$master->hasRole('Super Admin')) {
             abort(404);
         }
         $karyawans = Employee::all();
@@ -75,13 +76,13 @@ class MasterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $master->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'employee_id' => 'required|exists:employees,id',
+            'karyawan_id' => 'required|exists:employees,id',
         ]);
 
         $updateData = [
             'name' => $request->name,
             'email' => $request->email,
-            'employee_id' => $request->employee_id,
+            'karyawan_id' => $request->karyawan_id,
         ];
 
         if ($request->filled('password')) {

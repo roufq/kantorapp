@@ -154,7 +154,7 @@
         <i class="bi bi-person-badge-fill"></i>
       </span>
       <div class="info-box-content">
-        <span class="info-box-text">Total Karyawans</span>
+        <span class="info-box-text">Total Employees</span>
         <span class="info-box-number">{{ $totalKaryawans }}</span>
       </div>
       <!-- /.info-box-content -->

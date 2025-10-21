@@ -5,7 +5,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Edit Karyawan</h3>
+                <h3 class="card-title">Edit Employee</h3>
             </div>
             <div class="card-body">
                 <form action="{{ route('karyawans.update', $karyawan) }}" method="POST">
@@ -71,6 +71,21 @@
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="location_id" class="form-label">Lokasi</label>
+                            <select name="location_id" class="form-control" id="location_id">
+                                <option value="">Pilih Lokasi (Opsional)</option>
+                                @foreach($locations as $location)
+                                    <option value="{{ $location->id }}" {{ old('location_id', $karyawan->location_id) == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('location_id')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                    </div>
                     <div class="mb-3">
                         <label for="alamat" class="form-label">Alamat</label>
                         <textarea name="alamat" class="form-control" id="alamat" rows="3">{{ old('alamat', $karyawan->alamat) }}</textarea>
@@ -78,7 +93,7 @@
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
-                    <button type="submit" class="btn btn-primary">Update Karyawan</button>
+                    <button type="submit" class="btn btn-primary">Update Employee</button>
                     <a href="{{ route('karyawans.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>

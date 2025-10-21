@@ -18,6 +18,7 @@
                         <p><strong>Name:</strong> {{ $user->name }}</p>
                         <p><strong>Email:</strong> {{ $user->email }}</p>
                         <p><strong>Role:</strong> <span class="badge text-bg-secondary">{{ ucfirst($user->role) }}</span></p>
+                        <p><strong>Location:</strong> {{ $user->location ? $user->location->name : '-' }}</p>
                         <p><strong>Created:</strong> {{ $user->created_at->format('d M Y H:i') }}</p>
                     </div>
                 </div>

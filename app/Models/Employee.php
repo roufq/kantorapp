@@ -19,6 +19,7 @@ class Employee extends Model
         'tanggal_lahir',
         'divisi_id',
         'master_id',
+        'location_id',
     ];
 
     protected $casts = [
@@ -39,4 +40,11 @@ class Employee extends Model
     {
         return $this->belongsTo(User::class, 'master_id');
     }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+
 }

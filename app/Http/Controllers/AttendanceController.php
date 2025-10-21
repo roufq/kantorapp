@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Attendance;
-use App\Models\OfficeLocation;
+use App\Models\Location;
+use App\Models\Shift;
 use App\Models\Overtime;
 use Carbon\Carbon;
 
@@ -32,17 +33,70 @@ class AttendanceController extends Controller
         $now = now();
         $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
         $isLate = false;
+        $shiftId = null;
 
-        // Determine if late based on day
-        if ($dayOfWeek >= 1 && $dayOfWeek <= 5) { // Monday to Friday
-            $isLate = $now->hour > 9 || ($now->hour == 9 && $now->minute > 0);
-        } elseif ($dayOfWeek == 6) { // Saturday
-            $isLate = $now->hour > 8 || ($now->hour == 8 && $now->minute > 0);
+        // Find active shift for user's location at check-in time
+        if ($user->location_id) {
+            $location = Location::find($user->location_id);
+            if ($location && $location->shift_enabled) {
+                $activeShift = $location->shifts()
+                    ->where('is_active', true)
+                    ->where(function ($query) use ($now) {
+                        $currentTime = $now->format('H:i');
+                        $query->where(function ($q) use ($currentTime) {
+                            // For single shifts
+                            $q->where('shift_type', 'single')
+                              ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(time_slots, '$.start')) <= ?", [$currentTime])
+                              ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(time_slots, '$.end')) >= ?", [$currentTime]);
+                        })->orWhere(function ($q) use ($currentTime) {
+                            // For multiple shifts - check if any slot is active
+                            $q->where('shift_type', 'multiple')
+                              ->whereRaw("EXISTS (
+                                  SELECT 1 FROM JSON_TABLE(time_slots, '$[*]' COLUMNS (
+                                      start_time VARCHAR(5) PATH '$.start',
+                                      end_time VARCHAR(5) PATH '$.end'
+                                  )) slots
+                                  WHERE slots.start_time <= ? AND slots.end_time >= ?
+                              )", [$currentTime, $currentTime]);
+                        });
+                    })
+                    ->first();
+
+                if ($activeShift) {
+                    // Use shift's start time for late calculation
+                    if ($activeShift->isSingleShift()) {
+                        $shiftStartTime = Carbon::createFromFormat('H:i', $activeShift->time_slots['start']);
+                        $isLate = $now->gt($shiftStartTime);
+                    } else {
+                        // For multiple shifts, check if current time is after any start time
+                        $isLate = false;
+                        foreach ($activeShift->time_slots as $slot) {
+                            $slotStart = Carbon::createFromFormat('H:i', $slot['start']);
+                            if ($now->gt($slotStart)) {
+                                $isLate = true;
+                                break;
+                            }
+                        }
+                    }
+                    $shiftId = $activeShift->id;
+                }
+            }
         }
-        // Sunday: no late check
+
+        // Fallback to day-based rules if no active shift found
+        if (!$shiftId) {
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 5) { // Monday to Friday
+                $isLate = $now->hour > 9 || ($now->hour == 9 && $now->minute > 0);
+            } elseif ($dayOfWeek == 6) { // Saturday
+                $isLate = $now->hour > 8 || ($now->hour == 8 && $now->minute > 0);
+            }
+            // Sunday: no late check
+        }
 
         Attendance::create([
             'user_id' => $user->id,
+            'location_id' => $user->location_id,
+            'shift_id' => $shiftId,
             'check_in_time' => $now,
             'location' => $request->latitude . ',' . $request->longitude,
             'is_late' => $isLate,
@@ -178,16 +232,19 @@ class AttendanceController extends Controller
             return false;
         }
 
-        $locations = OfficeLocation::all();
-
-        foreach ($locations as $location) {
-            $distance = $this->haversineDistance($latitude, $longitude, $location->latitude, $location->longitude);
-            if ($distance <= $location->radius) {
-                return true;
-            }
+        // Get user's assigned location
+        $user = auth()->user();
+        if (!$user->location_id) {
+            return false; // User has no assigned location
         }
 
-        return false;
+        $location = Location::find($user->location_id);
+        if (!$location || !$location->latitude || !$location->longitude) {
+            return false; // Location not configured with geo coordinates
+        }
+
+        $distance = $this->haversineDistance($latitude, $longitude, $location->latitude, $location->longitude);
+        return $distance <= $location->radius;
     }
 
     private function haversineDistance($lat1, $lon1, $lat2, $lon2)
