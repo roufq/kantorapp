@@ -11,7 +11,7 @@ class MasterController extends Controller
 {
     public function index()
     {
-        $masters = User::role('Super Admin')->with('employee')->get();
+        $masters = User::role('Super Admin')->with('karyawan')->get();
         return view('masters.index', compact('masters'));
     }
 
@@ -68,7 +68,7 @@ class MasterController extends Controller
 
     public function update(Request $request, User $master)
     {
-        if ($master->role !== 'master') {
+        if (!$master->hasRole('Super Admin')) {
             abort(404);
         }
 
@@ -96,7 +96,7 @@ class MasterController extends Controller
 
     public function destroy(User $master)
     {
-        if ($master->role !== 'master') {
+        if (!$master->hasRole('Super Admin')) {
             abort(404);
         }
 

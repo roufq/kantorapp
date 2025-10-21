@@ -11,7 +11,7 @@
                 <form action="{{ route('tasks.update', $task) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PATCH')
-                    @if(auth()->user()->role === 'master')
+                    @if(auth()->user()->hasRole('Super Admin'))
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
                         <input type="text"  class="form-control" id="title" name="title" value="{{ old('title', $task->title) }}" >

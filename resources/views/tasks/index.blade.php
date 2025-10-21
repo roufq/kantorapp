@@ -55,7 +55,7 @@
                             <option value="completed" {{ $task->status == 'completed' ? 'selected' : '' }}>Completed</option>
                         </select>
                     </form>
-                    @if(auth()->user()->role === 'master' || $task->assigned_to === auth()->id())
+                    @if(auth()->user()->hasRole('Super Admin') || $task->assigned_to === auth()->id())
                         <div class="mt-2">
                             <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form action="{{ route('tasks.destroy', $task) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure?')">

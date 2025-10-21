@@ -17,14 +17,18 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Fetch tasks based on role with search
-        if ($user->role === 'master') {
-            // Masters see all tasks assigned to employees
-            $query = Task::whereHas('assignee', function ($q) {
-                $q->where('role', 'employee');
+        // Fetch tasks based on roles with search
+        if ($user->hasRole('Super Admin')) {
+            // Super Admin sees all tasks
+            $query = Task::with('assignee', 'assigner');
+        } else if ($user->hasRole('Admin Lokasi')) {
+            // Admin Lokasi sees tasks for users in their location
+            $locationId = $user->location_id;
+            $query = Task::whereHas('assignee', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
             })->with('assignee', 'assigner');
         } else {
-            // Employees see only their own tasks
+            // Karyawan sees only their own tasks
             $query = Task::where('assigned_to', $user->id)->with('assignee', 'assigner');
         }
 
@@ -43,14 +47,31 @@ class DashboardController extends Controller
 
         $unreadMessages = Message::where('receiver_id', $user->id)->whereNull('read_at')->count();
 
-        // Get counts for dashboard
-        $totalMasters = \App\Models\User::where('role', 'master')->count();
-        $totalEmployees = \App\Models\User::where('role', 'employee')->count();
-        $totalTasks = Task::count();
-        $totalMessages = Message::count();
-        $totalUsers = \App\Models\User::count();
-        $totalDivisions = Division::count();
-        $totalKaryawans = Employee::count();
+        // Get counts for dashboard (location-aware for non Super Admin)
+        if ($user->hasRole('Super Admin')) {
+            $totalMasters = User::role('Super Admin')->count();
+            $totalEmployees = User::role('Karyawan')->count();
+            $totalTasks = Task::count();
+            $totalMessages = Message::count();
+            $totalUsers = User::count();
+            $totalDivisions = Division::count();
+            $totalKaryawans = Employee::count();
+        } else {
+            $locationId = $user->location_id;
+            $totalMasters = User::role('Super Admin')->count(); // global masters
+            $totalEmployees = User::role('Karyawan')->where('location_id', $locationId)->count();
+            $totalTasks = Task::whereHas('assignee', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            })->count();
+            $totalMessages = Message::whereHas('receiver', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            })->orWhereHas('sender', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            })->count();
+            $totalUsers = User::where('location_id', $locationId)->count();
+            $totalDivisions = Division::count(); // divisions not location-specific yet
+            $totalKaryawans = Employee::where('location_id', $locationId)->count();
+        }
 
         // Get today's attendance for the user
         $todayAttendance = Attendance::where('user_id', $user->id)

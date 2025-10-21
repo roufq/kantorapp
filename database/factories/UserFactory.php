@@ -47,9 +47,11 @@ class UserFactory extends Factory
      */
     public function master(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'master',
-        ]);
+        return $this->afterCreating(function (\App\Models\User $user) {
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole('Super Admin');
+            }
+        });
     }
 
     /**
@@ -57,8 +59,10 @@ class UserFactory extends Factory
      */
     public function employee(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'employee',
-        ]);
+        return $this->afterCreating(function (\App\Models\User $user) {
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole('Karyawan');
+            }
+        });
     }
 }

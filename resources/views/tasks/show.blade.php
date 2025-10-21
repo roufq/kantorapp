@@ -8,7 +8,7 @@
                 <h3 class="card-title">Task Details</h3>
                 <div class="card-tools">
                     <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-secondary">Back to Tasks</a>
-                    @if(auth()->user()->role === 'master')
+                    @if(auth()->user()->hasRole('Super Admin'))
                         <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-primary">Edit</a>
                     @endif
                 </div>

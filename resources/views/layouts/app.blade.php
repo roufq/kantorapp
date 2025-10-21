@@ -318,17 +318,33 @@
                   <p>Tasks</p>
                 </a>
               </li>
+              @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
+              <li class="nav-item">
+                <a href="{{ route('location-admin-tasks.index') }}" class="nav-link {{ request()->routeIs('location-admin-tasks.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-geo"></i>
+                  <p>Location Tasks</p>
+                </a>
+              </li>
+              @endif
+              @if(auth()->user()->hasRole('Super Admin'))
+              <li class="nav-item">
+                <a href="{{ route('location-admins.index') }}" class="nav-link {{ request()->routeIs('location-admins.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-person-gear"></i>
+                  <p>Location Admins</p>
+                </a>
+              </li>
+              @endif
               <li class="nav-item">
                 <a href="{{ route('overtime.index') }}" class="nav-link">
                   <i class="nav-icon bi bi-clock"></i>
                   <p>Overtime</p>
                 </a>
               </li>
-              @if(auth()->user()->role == 'master')
+              @if(auth()->user()->hasRole('Super Admin'))
               <li class="nav-item">
                 <a href="{{ route('master-tasks.index') }}" class="nav-link">
                   <i class="nav-icon bi bi-check-circle"></i>
-                  <p>Master Task</p>
+                  <p>Super Admin Task</p>
                 </a>
               </li>
               <li class="nav-item">
@@ -340,7 +356,7 @@
               <li class="nav-item">
                 <a href="{{ route('masters.index') }}" class="nav-link">
                   <i class="nav-icon bi bi-person-badge"></i>
-                  <p>Masters</p>
+                  <p>Super Admins</p>
                 </a>
               </li>
               <li class="nav-item">
@@ -356,7 +372,7 @@
                 </a>
               </li>
               @endif
-              @if(auth()->user()->role == 'master')
+              @if(auth()->user()->hasRole('Super Admin'))
               <li class="nav-item {{ request()->routeIs('location.*') ? 'menu-open' : '' }}">
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-geo-alt-fill"></i>
@@ -398,7 +414,7 @@
                       <p>Check In/Out</p>
                     </a>
                   </li>
-                  @if(auth()->user()->role == 'master')
+                  @if(auth()->user()->hasRole('Super Admin'))
                   <li class="nav-item">
                     <a href="{{ route('attendance.report') }}" class="nav-link {{ request()->routeIs('attendance.report') ? 'active' : '' }}">
                       <i class="nav-icon bi bi-circle"></i>

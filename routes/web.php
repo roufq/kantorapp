@@ -12,6 +12,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\MasterTaskController;
+use App\Http\Controllers\LocationChangeRequestController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -32,13 +33,8 @@ Route::post('/login', function (Request $request) {
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
 
-        // Super Admin can login without a location
-        if ($user->hasRole('Super Admin')) {
-            return redirect()->intended('/dashboard');
-        }
-
-        // Other users must have a location
-        if (is_null($user->location_id)) {
+        // Non Super Admins must have a location to login
+        if (is_null($user->location_id) && !$user->hasRole('Super Admin')) {
             Auth::logout();
             return back()->withErrors(['email' => 'This account is not assigned to any location.']);
         }
@@ -87,10 +83,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/master-tasks/{masterTask}/download-photo', [MasterTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin')->name('master-tasks.download.photo');
     Route::get('/master-tasks/{masterTask}/download-document', [MasterTaskController::class, 'downloadDocument'])->middleware('role:Super Admin')->name('master-tasks.download.document');
 
-    Route::resource('users', UserController::class)->middleware('role:Super Admin');
+    // Users: authorize via gates to allow Super Admin and Admin Lokasi within location
+    Route::resource('users', UserController::class);
+    Route::patch('/users/{user}/transfer', [UserController::class, 'transfer'])->name('users.transfer');
+    Route::post('/users/{user}/promote-to-location-admin', [UserController::class, 'promoteToLocationAdmin'])->middleware('role:Super Admin')->name('users.promote.location-admin');
+    Route::post('/users/{user}/demote-to-employee', [UserController::class, 'demoteToEmployee'])->middleware('role:Super Admin')->name('users.demote.employee');
     Route::resource('masters', MasterController::class)->middleware('role:Super Admin');
     Route::resource('divisions', DivisionController::class)->middleware('role:Super Admin');
-    Route::resource('karyawans', EmployeeController::class)->middleware('role:Super Admin');
+    Route::resource('karyawans', EmployeeController::class);
 
     Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
     Route::resource('shifts', App\Http\Controllers\ShiftController::class)->middleware('role:Super Admin');
@@ -107,9 +107,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckIn'])->name('attendance.checkin');
     Route::post('/attendance/checkin', [AttendanceController::class, 'checkIn'])->name('attendance.checkin.post');
     Route::post('/attendance/checkout', [AttendanceController::class, 'checkOut'])->name('attendance.checkout');
-    Route::get('/attendance/report', [AttendanceController::class, 'report'])->middleware('role:Super Admin')->name('attendance.report');
-    Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('role:Super Admin')->name('attendance.export');
-    Route::patch('/attendance/{id}/approval', [AttendanceController::class, 'updateApproval'])->middleware('role:Super Admin')->name('attendance.update.approval');
+    Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
+    Route::get('/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
+    Route::patch('/attendance/{id}/approval', [AttendanceController::class, 'updateApproval'])->name('attendance.update.approval');
 
     // Overtime Requests
     Route::get('/overtime', [App\Http\Controllers\OvertimeController::class, 'index'])->name('overtime.index');
@@ -119,4 +119,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/overtime-report', [App\Http\Controllers\OvertimeController::class, 'report'])->name('overtime.report');
     Route::get('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'show'])->name('overtime.show');
     Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:Super Admin')->name('overtime.approve');
+
+    // Location Admin Tasks (Super Admin and Admin Lokasi)
+    Route::resource('location-admin-tasks', App\Http\Controllers\LocationAdminTaskController::class)->middleware('role:Super Admin,Admin Lokasi');
+    Route::get('/location-admin-tasks/{task}/download-photo', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Admin Lokasi')->name('location-admin-tasks.download.photo');
+    Route::get('/location-admin-tasks/{task}/download-document', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Admin Lokasi')->name('location-admin-tasks.download.document');
+
+    // Location Admin Management (Super Admin only)
+    Route::resource('location-admins', App\Http\Controllers\LocationAdminController::class)->middleware('role:Super Admin');
+
+    // Location Change Requests
+    Route::get('/location-change-requests', [LocationChangeRequestController::class, 'index'])->name('location-change-requests.index');
+    Route::get('/location-change-requests/create', [LocationChangeRequestController::class, 'create'])->name('location-change-requests.create');
+    Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->name('location-change-requests.store');
+    Route::patch('/location-change-requests/{request}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Admin Lokasi')->name('location-change-requests.updateStatus');
 });

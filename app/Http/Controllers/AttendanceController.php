@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Location;
 use App\Models\Shift;
 use App\Models\Overtime;
+use App\Models\LocationChangeRequest;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
@@ -25,9 +26,15 @@ class AttendanceController extends Controller
             return back()->withErrors(['message' => 'You have already checked in today.']);
         }
 
-        // Validate location
-        if (!$this->isWithinOfficeRadius($request->latitude, $request->longitude)) {
-            return back()->withErrors(['message' => 'You must be within 50 meters of an office location to check in.']);
+        // Validate user has an assigned location
+        if (!$user->location) {
+            return back()->withErrors(['message' => 'You are not assigned to any location.']);
+        }
+
+        // Validate location radius compliance
+        if (!$this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location)) {
+            $radius = $user->location && $user->location->radius ? $user->location->radius : 0;
+            return back()->withErrors(['message' => 'You must be within ' . $radius . ' meters of your assigned office location to check in.']);
         }
 
         $now = now();
@@ -120,9 +127,23 @@ class AttendanceController extends Controller
         }
 
         // Validate location
-        if (!$this->isWithinOfficeRadius($request->latitude, $request->longitude)) {
-            return back()->withErrors(['message' => 'You must be within 50 meters of an office location to check out.']);
+        $isValidLocation = $this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location);
+
+        if (!$isValidLocation) {
+            $approvedChangeRequest = LocationChangeRequest::where('user_id', $user->id)
+                ->where('request_date', Carbon::today())
+                ->where('status', 'approved')
+                ->first();
+
+            if ($approvedChangeRequest) {
+                $isValidLocation = $this->isWithinOfficeRadius($request->latitude, $request->longitude, $approvedChangeRequest->targetLocation);
+            }
+
+            if (!$isValidLocation) {
+                return back()->withErrors(['message' => 'You must be within the radius of your assigned or approved location to check out.']);
+            }
         }
+
 
         $now = now();
 
@@ -163,12 +184,14 @@ class AttendanceController extends Controller
             'approval_status' => $requiresApproval ? 'pending' : 'approved',
         ]);
 
-        $message = $requiresApproval ? 'Checked out successfully. Early check-out requires master approval.' : 'Checked out successfully.';
+        $message = $requiresApproval ? 'Checked out successfully. Early check-out requires admin approval.' : 'Checked out successfully.';
         return back()->with('success', $message);
     }
 
     public function showCheckIn()
     {
+        $this->authorize('viewAny', Attendance::class);
+
         $user = auth()->user();
         $todayAttendance = Attendance::where('user_id', $user->id)
             ->whereDate('check_in_time', Carbon::today())
@@ -179,7 +202,17 @@ class AttendanceController extends Controller
 
     public function report(Request $request)
     {
+        $this->authorize('viewAny', Attendance::class);
+
+        $user = auth()->user();
         $query = Attendance::with('user.employee');
+
+        // Filter by role
+        if ($user->hasRole('Admin Lokasi')) {
+            $query->where('location_id', $user->location_id);
+        } elseif ($user->hasRole('Karyawan')) {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
@@ -197,6 +230,7 @@ class AttendanceController extends Controller
     public function updateApproval(Request $request, $id)
     {
         $attendance = Attendance::findOrFail($id);
+        $this->authorize('update', $attendance);
 
         $request->validate([
             'approval_status' => 'required|in:pending,approved,rejected',
@@ -211,7 +245,17 @@ class AttendanceController extends Controller
 
     public function export(Request $request)
     {
+        $this->authorize('viewAny', Attendance::class);
+
+        $user = auth()->user();
         $query = Attendance::with('user.employee');
+
+        // Filter by role
+        if ($user->hasRole('Admin Lokasi')) {
+            $query->where('location_id', $user->location_id);
+        } elseif ($user->hasRole('Karyawan')) {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
@@ -226,19 +270,12 @@ class AttendanceController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AttendanceExport($query), 'attendance_report.xlsx');
     }
 
-    private function isWithinOfficeRadius($latitude, $longitude)
+    private function isWithinOfficeRadius($latitude, $longitude, ?Location $location)
     {
         if (!$latitude || !$longitude) {
             return false;
         }
 
-        // Get user's assigned location
-        $user = auth()->user();
-        if (!$user->location_id) {
-            return false; // User has no assigned location
-        }
-
-        $location = Location::find($user->location_id);
         if (!$location || !$location->latitude || !$location->longitude) {
             return false; // Location not configured with geo coordinates
         }

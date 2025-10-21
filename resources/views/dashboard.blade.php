@@ -23,7 +23,7 @@
         <i class="bi bi-person-fill-gear"></i>
       </span>
       <div class="info-box-content">
-        <span class="info-box-text">Total Masters</span>
+        <span class="info-box-text">Total Super Admins</span>
         <span class="info-box-number">{{ $totalMasters }}</span>
       </div>
       <!-- /.info-box-content -->
@@ -214,7 +214,7 @@
           </div>
         @endif
         <div class="table-responsive">
-          @if($user->role === 'master')
+          @if($user->hasRole('Super Admin'))
             <table class="table table-bordered table-striped table-sm">
               <thead>
                 <tr>

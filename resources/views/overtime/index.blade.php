@@ -18,7 +18,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Overtime Requests</h1>
     <div>
-        @if(auth()->user()->role === 'master')
+        @if(auth()->user()->hasRole('Super Admin'))
             <a href="{{ route('overtime.report') }}" class="btn btn-info me-2">View Report</a>
         @endif
         @if(auth()->user()->role === 'employee')
@@ -61,7 +61,7 @@
                     <p><strong>Time:</strong> {{ $overtime->start_time_wib }} - {{ $overtime->end_time_wib }} WIB ({{ number_format($overtime->duration_minutes, 0) }} minutes)</p>
                     <p><strong>Reason:</strong> {{ Str::limit($overtime->reason, 100) }}</p>
 
-                    @if(auth()->user()->role === 'master')
+                    @if(auth()->user()->hasRole('Super Admin'))
                         <div class="mt-3">
                             <strong>Approvals:</strong>
                             @foreach($overtime->approvals as $approval)
@@ -81,7 +81,7 @@
                 <div class="card-footer">
                     <a href="{{ route('overtime.show', $overtime) }}" class="btn btn-sm btn-outline-primary">View Details</a>
 
-                    @if(auth()->user()->role === 'master' && in_array(auth()->id(), $overtime->selected_masters))
+                    @if(auth()->user()->hasRole('Super Admin') && in_array(auth()->id(), $overtime->selected_masters))
                         @php
                             $userApproval = $overtime->approvals->where('master_id', auth()->id())->first();
                         @endphp
@@ -94,7 +94,7 @@
         </div>
 
         <!-- Approval Modal -->
-        @if(auth()->user()->role === 'master' && in_array(auth()->id(), $overtime->selected_masters))
+        @if(auth()->user()->hasRole('Super Admin') && in_array(auth()->id(), $overtime->selected_masters))
             @php
                 $userApproval = $overtime->approvals->where('master_id', auth()->id())->first();
             @endphp

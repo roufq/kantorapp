@@ -43,7 +43,14 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $employee->name }}</td>
                                 <td>{{ $employee->email }}</td>
-                                <td><span class="badge text-bg-secondary">{{ ucfirst($employee->role) }}</span></td>
+                                <td>
+                                  @php($roles = $employee->getRoleNames())
+                                  @if($roles->isNotEmpty())
+                                    <span class="badge text-bg-secondary">{{ $roles->implode(', ') }}</span>
+                                  @else
+                                    <span class="badge text-bg-light">-</span>
+                                  @endif
+                                </td>
                                 <td>{{ $employee->employee ? $employee->employee->nama : '-' }}</td>
                                 <td>{{ $employee->location ? $employee->location->name : '-' }}</td>
                                 <td>

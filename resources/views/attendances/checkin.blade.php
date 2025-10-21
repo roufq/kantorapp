@@ -40,6 +40,14 @@
                             <div class="mb-3">
                                 <label class="form-label">Location</label>
                                 <input type="text" id="locationDisplay" class="form-control" readonly placeholder="Click 'Get GPS Location' to fetch your current location">
+                                <div id="manualInputs" class="row mt-2" style="display:none;">
+                                    <div class="col-md-6 mb-2">
+                                        <input type="number" step="any" class="form-control" id="manual_latitude" placeholder="Latitude (e.g. -6.2)">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <input type="number" step="any" class="form-control" id="manual_longitude" placeholder="Longitude (e.g. 106.8)">
+                                    </div>
+                                </div>
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
                                 <button type="button" class="btn btn-info mt-1" onclick="enableManualCheckin()">Manual Check-in</button>
                             </div>
@@ -82,7 +90,7 @@
 
                                     if (latitudeInput) latitudeInput.value = currentLat;
                                     if (longitudeInput) longitudeInput.value = currentLng;
-                                    if (locationDisplay) locationDisplay.textContent = location;
+                                    if (locationDisplay) locationDisplay.value = location;
                                     if (checkinBtn) checkinBtn.disabled = false;
 
                                     // For check-out form
@@ -106,7 +114,7 @@
                                     const checkoutBtn = document.getElementById('checkoutBtn');
                                     if (checkinBtn) checkinBtn.disabled = true;
                                     if (checkoutBtn) checkoutBtn.disabled = true;
-                                });
+                                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
                             } else {
                                 const errorMessage = 'Geolocation is not supported by this browser.';
                                 const errorDiv = document.getElementById('geolocation-error');
@@ -141,6 +149,27 @@
                             const checkoutLocationDisplay = document.getElementById('checkoutLocationDisplay');
                             if (locationDisplay) locationDisplay.readOnly = false;
                             if (checkoutLocationDisplay) checkoutLocationDisplay.readOnly = false;
+
+                            // Show manual lat/lng inputs and bind to hidden fields
+                            const manualInputs = document.getElementById('manualInputs');
+                            if (manualInputs) manualInputs.style.display = 'flex';
+                            const manualLat = document.getElementById('manual_latitude');
+                            const manualLng = document.getElementById('manual_longitude');
+                            const latitudeInput = document.getElementById('latitude');
+                            const longitudeInput = document.getElementById('longitude');
+                            const checkoutLatitudeInput = document.getElementById('checkout_latitude');
+                            const checkoutLongitudeInput = document.getElementById('checkout_longitude');
+                            function syncManual() {
+                                const lat = manualLat.value;
+                                const lng = manualLng.value;
+                                if (latitudeInput) latitudeInput.value = lat;
+                                if (longitudeInput) longitudeInput.value = lng;
+                                if (checkoutLatitudeInput) checkoutLatitudeInput.value = lat;
+                                if (checkoutLongitudeInput) checkoutLongitudeInput.value = lng;
+                                if (locationDisplay) locationDisplay.value = (lat && lng) ? (lat + ', ' + lng) : '';
+                            }
+                            if (manualLat) manualLat.addEventListener('input', syncManual);
+                            if (manualLng) manualLng.addEventListener('input', syncManual);
                         }
 
                         // Auto-get location when page loads for check-out if user is already checked in

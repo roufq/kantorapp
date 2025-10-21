@@ -3,11 +3,11 @@
 <div class="container-fluid">
             <!--begin::Row-->
             <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">My Assigned Master Tasks</h3></div>
+              <div class="col-sm-6"><h3 class="mb-0">My Assigned Super Admin Tasks</h3></div>
               <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
                   <li class="breadcrumb-item"><a href="#">Home</a></li>
-                  <li class="breadcrumb-item active" aria-current="page">My Assigned Master Tasks</li>
+                  <li class="breadcrumb-item active" aria-current="page">My Assigned Super Admin Tasks</li>
                 </ol>
               </div>
             </div>
@@ -16,9 +16,9 @@
 @endsection
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>My Assigned Master Tasks</h1>
+    <h1>My Assigned Super Admin Tasks</h1>
     <div>
-        <a href="{{ route('master-tasks.create.self') }}" class="btn btn-success">Create Task Master</a>
+        <a href="{{ route('master-tasks.create.self') }}" class="btn btn-success">Create Super Admin Task</a>
     </div>
 </div>
 

@@ -20,8 +20,6 @@ class Location extends Model
         'settings',
         'is_active',
         'shift_enabled',
-        'schedule_type',
-        'daily_schedule',
     ];
 
     protected $casts = [
@@ -31,7 +29,6 @@ class Location extends Model
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'radius' => 'decimal:2',
-        'daily_schedule' => 'array',
     ];
 
     public function users(): HasMany

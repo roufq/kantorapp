@@ -6,22 +6,32 @@ use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Division;
 use App\Models\Location;
-
+use Illuminate\Support\Facades\Auth;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        // Authorize all resource methods using the EmployeePolicy.
+        // The 'karyawan' parameter name must match the route parameter name.
+        $this->authorizeResource(Employee::class, 'karyawan');
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
+        $user = Auth::user();
         $query = Employee::with(['division', 'location']);
 
-        $user = auth()->user();
-        $locationId = session('location_id');
-
-        if ($user && !$user->hasRole('Super Admin') && $locationId) {
-            $query->where('location_id', $locationId);
+        // If the user is an Admin Lokasi, only show employees from their location.
+        // Super Admins will not be affected by this and will see all.
+        if ($user->hasRole('Admin Lokasi')) {
+            $query->where('location_id', $user->location_id);
         }
 
         $employees = $query->get();

@@ -24,7 +24,7 @@
                         <p><strong>Divisi:</strong> {{ $karyawan->division->nama }}</p>
                         <p><strong>Lokasi:</strong> {{ $karyawan->location->name ?? 'N/A' }}</p>
 
-                        <p><strong>Master:</strong> {{ $karyawan->master ? $karyawan->master->name : 'N/A' }}</p>
+                        <p><strong>Super Admin:</strong> {{ $karyawan->master ? $karyawan->master->name : 'N/A' }}</p>
                         <p><strong>Created:</strong> {{ $karyawan->created_at->format('d M Y H:i') }}</p>
                     </div>
                     <div class="col-md-6">

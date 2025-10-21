@@ -3,10 +3,10 @@
 <div class="container-fluid">
             <!--begin::Row-->
             <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">Edit Master Task</h3></div>
+              <div class="col-sm-6"><h3 class="mb-0">Edit Super Admin Task</h3></div>
               <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
-                  <li class="breadcrumb-item"><a href="{{ route('master-tasks.index') }}">Master Tasks</a></li>
+                  <li class="breadcrumb-item"><a href="{{ route('master-tasks.index') }}">Super Admin Tasks</a></li>
                   <li class="breadcrumb-item active" aria-current="page">Edit Task</li>
                 </ol>
               </div>
@@ -19,7 +19,7 @@
     <div class="col-md-8 offset-md-2">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title">Edit Master Task</h5>
+                <h5 class="card-title">Edit Super Admin Task</h5>
             </div>
             <div class="card-body">
                 <form action="{{ route('master-tasks.update', $masterTask) }}" method="POST" enctype="multipart/form-data">
@@ -40,11 +40,12 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="assigned_to" class="form-label">Assign to Employee or Master (Optional)</label>
+                        <label for="assigned_to" class="form-label">Assign to Employee or Super Admin (Optional)</label>
                         <select class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to" name="assigned_to">
-                            <option value="">Select Employee or Master (Optional)</option>
+                            <option value="">Select Employee or Super Admin (Optional)</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('assigned_to', $masterTask->assigned_to) == $user->id ? 'selected' : '' }}>{{ $user->name }} ({{ ucfirst($user->role) }})</option>
+                                @php($roles = $user->getRoleNames())
+                                <option value="{{ $user->id }}" {{ old('assigned_to', $masterTask->assigned_to) == $user->id ? 'selected' : '' }}>{{ $user->name }} @if($roles->isNotEmpty()) ({{ $roles->implode(', ') }}) @endif</option>
                             @endforeach
                         </select>
                         @error('assigned_to')

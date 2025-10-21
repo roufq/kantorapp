@@ -29,7 +29,7 @@ class MasterTaskController extends Controller
 
     public function create()
     {
-        $users = User::whereIn('role', ['employee', 'master'])->get();
+        $users = User::role(['Karyawan', 'Super Admin'])->get();
 
         return view('master-tasks.create', compact('users'));
     }
@@ -88,7 +88,7 @@ class MasterTaskController extends Controller
             abort(403);
         }
 
-        $users = User::whereIn('role', ['employee', 'master'])->get();
+        $users = User::role(['Karyawan', 'Super Admin'])->get();
 
         return view('master-tasks.edit', compact('masterTask', 'users'));
     }

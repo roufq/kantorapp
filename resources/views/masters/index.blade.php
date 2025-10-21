@@ -3,11 +3,11 @@
 <div class="container-fluid">
             <!--begin::Row-->
             <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">Master</h3></div>
+              <div class="col-sm-6"><h3 class="mb-0">Super Admin</h3></div>
               <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
                   <li class="breadcrumb-item"><a href="#">Home</a></li>
-                  <li class="breadcrumb-item active" aria-current="page">Master</li>
+                  <li class="breadcrumb-item active" aria-current="page">Super Admin</li>
                 </ol>
               </div>
             </div>
@@ -19,9 +19,9 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Masters</h3>
+                <h3 class="card-title">Super Admins</h3>
                 <div class="card-tools">
-                    <a href="{{ route('masters.create') }}" class="btn btn-sm btn-primary">Add Master</a>
+                    <a href="{{ route('masters.create') }}" class="btn btn-sm btn-primary">Add Super Admin</a>
                 </div>
             </div>
             <div class="card-body table-responsive p-0">
@@ -43,7 +43,14 @@
                                 <td>{{ $master->name }}</td>
                                 <td>{{ $master->email }}</td>
                                 <td>{{ $master->karyawan ? $master->karyawan->nama : 'N/A' }}</td>
-                                <td><span class="badge text-bg-primary">{{ ucfirst($master->role) }}</span></td>
+                                <td>
+                                  @php($roles = $master->getRoleNames())
+                                  @if($roles->isNotEmpty())
+                                    <span class="badge text-bg-primary">{{ $roles->implode(', ') }}</span>
+                                  @else
+                                    <span class="badge text-bg-light">-</span>
+                                  @endif
+                                </td>
                                 <td>
                                     <a href="{{ route('masters.show', $master) }}" class="btn btn-sm btn-outline-info">View</a>
                                     <a href="{{ route('masters.edit', $master) }}" class="btn btn-sm btn-outline-primary">Edit</a>

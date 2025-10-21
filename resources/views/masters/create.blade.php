@@ -5,7 +5,7 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Add Master</h3>
+                <h3 class="card-title">Add Super Admin</h3>
             </div>
             <div class="card-body">
                 <form action="{{ route('masters.store') }}" method="POST">
@@ -41,7 +41,7 @@
                         <label for="password_confirmation" class="form-label">Confirm Password</label>
                         <input type="password" name="password_confirmation" class="form-control" id="password_confirmation" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Create Master</button>
+                    <button type="submit" class="btn btn-primary">Create Super Admin</button>
                     <a href="{{ route('masters.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
                 <script>

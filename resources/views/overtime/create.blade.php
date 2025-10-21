@@ -37,7 +37,7 @@
                         <textarea name="reason" class="form-control" id="reason" rows="4" required placeholder="Please explain why you need to work overtime..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Select 2 Masters for Approval</label>
+                        <label class="form-label">Select 2 Super Admins for Approval</label>
                         <div class="row">
                             @foreach($masters as $master)
                                 <div class="col-md-6">

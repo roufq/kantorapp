@@ -14,9 +14,15 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Masters can see all overtime requests
+        if ($user->hasRole('Super Admin')) {
+            // Super Admins can see all overtime requests
             $query = Overtime::with('user', 'approvals.master');
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            // Admin Lokasi can see overtime requests for users in their location
+            $loc = $user->location_id;
+            $query = Overtime::whereHas('user', function ($q) use ($loc) {
+                $q->where('location_id', $loc);
+            })->with('user', 'approvals.master');
         } else {
             // Employees see only their own requests
             $query = Overtime::where('user_id', $user->id)->with('user', 'approvals.master');
@@ -40,7 +46,7 @@ class OvertimeController extends Controller
 
     public function create()
     {
-        $masters = User::where('role', 'master')->get();
+        $masters = User::role('Super Admin')->get();
         return view('overtime.create', compact('masters'));
     }
 
@@ -70,8 +76,8 @@ class OvertimeController extends Controller
         $duration = $startTimeWib->diffInHours($endTimeWib);
         $durationMinutes = $startTimeWib->diffInMinutes($endTimeWib);
 
-        // For masters, auto-approve the overtime request
-        $status = $user->role === 'master' ? 'approved' : 'pending';
+        // For Super Admins, auto-approve the overtime request
+        $status = $user->hasRole('Super Admin') ? 'approved' : 'pending';
 
         $overtime = Overtime::create([
             'user_id' => $user->id,
@@ -89,8 +95,8 @@ class OvertimeController extends Controller
             OvertimeApproval::create([
                 'overtime_request_id' => $overtime->id,
                 'master_id' => $masterId,
-                'status' => $user->role === 'master' ? 'approved' : 'pending',
-                'approved_at' => $user->role === 'master' ? now() : null,
+                'status' => $user->hasRole('Super Admin') ? 'approved' : 'pending',
+                'approved_at' => $user->hasRole('Super Admin') ? now() : null,
             ]);
         }
 
@@ -101,8 +107,13 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'employee' && $overtime->user_id !== $user->id) {
+        if ($user->hasRole('Karyawan') && $overtime->user_id !== $user->id) {
             abort(403, 'You can only view your own overtime requests');
+        }
+        if ($user->hasRole('Admin Lokasi')) {
+            if ($overtime->user && $overtime->user->location_id !== $user->location_id) {
+                abort(403, 'Not authorized to view this request');
+            }
         }
 
         $overtime->load('user', 'approvals.master');
@@ -114,9 +125,14 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Masters can see all overtime requests
+        if ($user->hasRole('Super Admin')) {
+            // Super Admins can see all overtime requests
             $query = Overtime::with('user', 'approvals.master');
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $loc = $user->location_id;
+            $query = Overtime::whereHas('user', function ($q) use ($loc) {
+                $q->where('location_id', $loc);
+            })->with('user', 'approvals.master');
         } else {
             // Employees see only their own requests
             $query = Overtime::where('user_id', $user->id)->with('user', 'approvals.master');
@@ -152,9 +168,14 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Masters can export all overtime requests
+        if ($user->hasRole('Super Admin')) {
+            // Super Admins can export all overtime requests
             $query = Overtime::with('user', 'approvals.master');
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $loc = $user->location_id;
+            $query = Overtime::whereHas('user', function ($q) use ($loc) {
+                $q->where('location_id', $loc);
+            })->with('user', 'approvals.master');
         } else {
             // Employees can only export their own requests
             $query = Overtime::where('user_id', $user->id)->with('user', 'approvals.master');
@@ -188,8 +209,8 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role !== 'master') {
-            abort(403, 'Only masters can approve overtime requests');
+        if (!$user->hasRole('Super Admin')) {
+            abort(403, 'Only Super Admins can approve overtime requests');
         }
 
         // Check if this master is selected for this request

@@ -14,11 +14,17 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Master can see all employee tasks
+        if ($user->hasRole('Super Admin')) {
+            // Super Admin: all tasks
             $query = Task::with('assignee', 'assigner');
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            // Admin Lokasi: tasks for users in same location
+            $locationId = $user->location_id;
+            $query = Task::whereHas('assignee', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            })->with('assignee', 'assigner');
         } else {
-            // Employees see only their own tasks
+            // Karyawan: own tasks
             $query = Task::where('assigned_to', $user->id)->with('assignee', 'assigner');
         }
 
@@ -42,8 +48,11 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            $users = User::where('role', 'employee')->get();
+        if ($user->hasRole('Super Admin')) {
+            $users = User::role('Karyawan')->get();
+            return view('tasks.create', compact('users'));
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $users = User::role('Karyawan')->where('location_id', $user->location_id)->get();
             return view('tasks.create', compact('users'));
         }
 
@@ -55,7 +64,7 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
+        if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -64,6 +73,16 @@ class TaskController extends Controller
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             ]);
+
+            if ($user->hasRole('Admin Lokasi')) {
+                $valid = User::role('Karyawan')
+                    ->where('id', $request->assigned_to)
+                    ->where('location_id', $user->location_id)
+                    ->exists();
+                if (!$valid) {
+                    abort(403, 'You can only assign tasks to employees in your location');
+                }
+            }
 
             $photoPath = null;
             $documentPath = null;
@@ -96,26 +115,37 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Master can access all tasks
-            return view('tasks.show', compact('task'));
-        } else {
-            // Employees can only access their own tasks
-            if ($task->assigned_to !== $user->id) {
-                abort(403, 'You can only access your own tasks');
-            }
+        if ($user->hasRole('Super Admin')) {
             return view('tasks.show', compact('task'));
         }
+        if ($user->hasRole('Admin Lokasi')) {
+            $assignee = $task->assignee;
+            if ($assignee && $assignee->location_id === $user->location_id) {
+                return view('tasks.show', compact('task'));
+            }
+            abort(403, 'Not authorized for this task');
+        }
+        // Karyawan: only own tasks
+        if ($task->assigned_to !== $user->id) {
+            abort(403, 'You can only access your own tasks');
+        }
+        return view('tasks.show', compact('task'));
     }
 
     public function edit(Task $task)
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Master can edit all tasks
-            $users = User::where('role', 'employee')->get();
+        if ($user->hasRole('Super Admin')) {
+            $users = User::role('Karyawan')->get();
             return view('tasks.edit', compact('task', 'users'));
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $assignee = $task->assignee;
+            if ($assignee && $assignee->location_id === $user->location_id) {
+                $users = User::role('Karyawan')->where('location_id', $user->location_id)->get();
+                return view('tasks.edit', compact('task', 'users'));
+            }
+            abort(403, 'Not authorized to edit this task');
         } else {
             // Employees can only edit their own tasks, but only status
             if ($task->assigned_to !== $user->id) {
@@ -129,8 +159,8 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Master can update all fields
+        if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
+            // Super Admin/Admin Lokasi can update all fields (Admin Lokasi within location)
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -140,6 +170,21 @@ class TaskController extends Controller
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             ]);
+
+            if ($user->hasRole('Admin Lokasi')) {
+                // Ensure current task and target assignee are in the same location
+                $assignee = $task->assignee;
+                if (!$assignee || $assignee->location_id !== $user->location_id) {
+                    abort(403, 'Not authorized to update this task');
+                }
+                $valid = User::role('Karyawan')
+                    ->where('id', $request->assigned_to)
+                    ->where('location_id', $user->location_id)
+                    ->exists();
+                if (!$valid) {
+                    abort(403, 'You can only reassign within your location');
+                }
+            }
 
             $photoPath = $task->photo_path;
             $documentPath = $task->document_path;
@@ -191,8 +236,8 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'master') {
-            // Master can delete all tasks
+        if ($user->hasRole('Super Admin')) {
+            // Super Admin can delete all tasks
             // Delete associated files
             if ($task->photo_path) {
                 Storage::disk('public')->delete($task->photo_path);
@@ -201,6 +246,19 @@ class TaskController extends Controller
                 Storage::disk('public')->delete($task->document_path);
             }
             $task->delete();
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $assignee = $task->assignee;
+            if ($assignee && $assignee->location_id === $user->location_id) {
+                if ($task->photo_path) {
+                    Storage::disk('public')->delete($task->photo_path);
+                }
+                if ($task->document_path) {
+                    Storage::disk('public')->delete($task->document_path);
+                }
+                $task->delete();
+            } else {
+                abort(403, 'Not authorized to delete this task');
+            }
         } else {
             // Employees can only delete their own tasks
             if ($task->assigned_to !== $user->id) {
@@ -263,7 +321,7 @@ class TaskController extends Controller
     public function downloadPhoto(Task $task)
     {
         $user = Auth::user();
-        if ($user->role === 'master' || $task->assigned_to === $user->id) {
+        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id)) {
             if (!$task->photo_path || !Storage::disk('public')->exists($task->photo_path)) {
                 abort(404);
             }
@@ -275,7 +333,7 @@ class TaskController extends Controller
     public function downloadDocument(Task $task)
     {
         $user = Auth::user();
-        if ($user->role === 'master' || $task->assigned_to === $user->id) {
+        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id)) {
             if (!$task->document_path || !Storage::disk('public')->exists($task->document_path)) {
                 abort(404);
             }
