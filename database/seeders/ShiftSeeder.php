@@ -63,7 +63,11 @@ class ShiftSeeder extends Seeder
         ];
 
         foreach ($shifts as $shiftData) {
-            Shift::create($shiftData);
+            // Idempotent insert by unique code
+            Shift::firstOrCreate(
+                ['code' => $shiftData['code']],
+                $shiftData
+            );
         }
     }
 }

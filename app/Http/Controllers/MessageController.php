@@ -23,7 +23,29 @@ class MessageController extends Controller
                 return $otherUser->id;
             });
 
-        $users = User::where('id', '!=', $user->id)->get();
+        // Restrict recipient list by role/location
+        if ($user->hasRole('Super Admin')) {
+            $users = User::where('id', '!=', $user->id)->get();
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $users = User::where('id', '!=', $user->id)
+                ->where(function ($q) use ($user) {
+                    $q->where('location_id', $user->location_id)
+                      ->orWhereHas('roles', function ($r) {
+                          $r->where('name', 'Super Admin');
+                      });
+                })
+                ->get();
+        } else {
+            // Karyawan: same location users and any admins (Admin Lokasi/Super Admin)
+            $users = User::where('id', '!=', $user->id)
+                ->where(function ($q) use ($user) {
+                    $q->where('location_id', $user->location_id)
+                      ->orWhereHas('roles', function ($r) {
+                          $r->whereIn('name', ['Admin Lokasi', 'Super Admin']);
+                      });
+                })
+                ->get();
+        }
 
         return view('messages.index', compact('conversations', 'users'));
     }

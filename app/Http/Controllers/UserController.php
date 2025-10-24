@@ -79,6 +79,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        Gate::authorize('manage-user', $user);
         $locations = Location::all();
         return view('users.show', compact('user', 'locations'));
     }

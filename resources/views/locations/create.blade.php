@@ -39,6 +39,66 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
+                                            <label for="brand_name">Brand Name</label>
+                                            <input type="text" class="form-control @error('brand_name') is-invalid @enderror" id="brand_name" name="brand_name" value="{{ old('brand_name') }}">
+                                            @error('brand_name')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="brand_logo_url">Brand Logo URL/Path</label>
+                                            <input type="text" class="form-control @error('brand_logo_url') is-invalid @enderror" id="brand_logo_url" name="brand_logo_url" value="{{ old('brand_logo_url') }}" placeholder="/storage/logos/main.png or https://...">
+                                            @error('brand_logo_url')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="primary_color">Primary Color (e.g., #0d6efd)</label>
+                                            <input type="text" class="form-control @error('primary_color') is-invalid @enderror" id="primary_color" name="primary_color" value="{{ old('primary_color') }}">
+                                            @error('primary_color')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="secondary_color">Secondary Color</label>
+                                            <input type="text" class="form-control @error('secondary_color') is-invalid @enderror" id="secondary_color" name="secondary_color" value="{{ old('secondary_color') }}">
+                                            @error('secondary_color')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="custom_css_url">Custom CSS URL</label>
+                                            <input type="text" class="form-control @error('custom_css_url') is-invalid @enderror" id="custom_css_url" name="custom_css_url" value="{{ old('custom_css_url') }}">
+                                            @error('custom_css_url')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="custom_js_url">Custom JS URL</label>
+                                            <input type="text" class="form-control @error('custom_js_url') is-invalid @enderror" id="custom_js_url" name="custom_js_url" value="{{ old('custom_js_url') }}">
+                                            @error('custom_js_url')
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
                                             <label for="name">Name <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
                                             @error('name')

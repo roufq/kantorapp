@@ -15,13 +15,13 @@ class LocationSeeder extends Seeder
     {
         $locations = [
             [
-                'name' => 'Main Office Jakarta',
-                'code' => 'MAIN_JKT',
-                'address' => 'Jl. Sudirman No. 1, Jakarta Pusat, DKI Jakarta 10220',
+                'name' => 'Nava Group',
+                'code' => 'JJ_MAIN',
+                'address' => 'Jl. Sugeng Jeroni No.54, Patangpuluhan, Wirobrajan, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55251',
                 'timezone' => 'Asia/Jakarta',
-                'latitude' => -6.2088,
-                'longitude' => 106.8456,
-                'radius' => 100,
+                'latitude' => -7.812183414227418,
+                'longitude' => 110.35052119376307,
+                'radius' => 50,
                 'is_active' => true,
                 'shift_enabled' => true,
                 'settings' => [
@@ -81,7 +81,12 @@ class LocationSeeder extends Seeder
         ];
 
         foreach ($locations as $locationData) {
-            Location::create($locationData);
+            // Use code as unique key to avoid duplicate seeding errors
+            $code = $locationData['code'];
+            Location::firstOrCreate(
+                ['code' => $code],
+                $locationData
+            );
         }
     }
 }

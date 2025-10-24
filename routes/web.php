@@ -7,7 +7,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\MasterController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
@@ -88,11 +87,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/users/{user}/transfer', [UserController::class, 'transfer'])->name('users.transfer');
     Route::post('/users/{user}/promote-to-location-admin', [UserController::class, 'promoteToLocationAdmin'])->middleware('role:Super Admin')->name('users.promote.location-admin');
     Route::post('/users/{user}/demote-to-employee', [UserController::class, 'demoteToEmployee'])->middleware('role:Super Admin')->name('users.demote.employee');
-    Route::resource('masters', MasterController::class)->middleware('role:Super Admin');
+    // Removed masters management; Super Admin role manages all directly
     Route::resource('divisions', DivisionController::class)->middleware('role:Super Admin');
     Route::resource('karyawans', EmployeeController::class);
 
     Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
+    // Location Settings (Super Admin and Admin Lokasi for own location)
+    Route::get('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'settings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings');
+    Route::patch('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'updateSettings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings.update');
     Route::resource('shifts', App\Http\Controllers\ShiftController::class)->middleware('role:Super Admin');
 
     // Location Shifts Management
@@ -132,5 +134,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/location-change-requests', [LocationChangeRequestController::class, 'index'])->name('location-change-requests.index');
     Route::get('/location-change-requests/create', [LocationChangeRequestController::class, 'create'])->name('location-change-requests.create');
     Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->name('location-change-requests.store');
-    Route::patch('/location-change-requests/{request}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Admin Lokasi')->name('location-change-requests.updateStatus');
+    Route::patch('/location-change-requests/{locationChangeRequest}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Admin Lokasi')->name('location-change-requests.updateStatus');
+
+    // Shift Assignments (Super Admin and Admin Lokasi)
+    Route::resource('shift-assignments', App\Http\Controllers\ShiftAssignmentController::class)->middleware('role:Super Admin,Admin Lokasi');
+    Route::get('/shift-assignments-export', [App\Http\Controllers\ShiftAssignmentController::class, 'export'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.export');
 });

@@ -13,27 +13,27 @@
 
 ### **MINGGU 1: LOCATION MANAGEMENT SYSTEM**
 **Target:** Setup sistem multi-lokasi dengan data isolation
-- [ ] Create `locations` table dengan fields: id, name, code, address, timezone, settings
-- [ ] Create `location_settings` table untuk konfigurasi per lokasi
-- [ ] Implement location-based middleware
+- [x] Create `locations` table dengan fields: id, name, code, address, timezone, settings
+- [x] Create `location_settings` table untuk konfigurasi per lokasi
+- [x] Implement location-based middleware (LocationAware)
 - [ ] Create location selection UI untuk admin
-- [ ] Setup location-specific database connections (separate schema per location)
+- [ ] Setup location-specific database connections (separate schema per location) (N/A – menggunakan single DB + row-level isolation via `location_id`)
 - [ ] Test data isolation antar lokasi
 
 ### **MINGGU 2: LOCATION-SPECIFIC USER MANAGEMENT**
 **Target:** User management yang terpisah per lokasi
-- [ ] Modify User model dengan location_id
-- [ ] Create location-based authentication
-- [ ] Implement user transfer antar lokasi
-- [ ] Create location admin roles
-- [ ] Setup location-specific permissions
+- [x] Modify User model dengan location_id
+- [x] Create location-based authentication
+- [x] Implement user transfer antar lokasi
+- [x] Create location admin roles
+- [x] Setup location-specific permissions (Gates + Policies)
 - [ ] Test user access control per lokasi
 
 ### **MINGGU 3: LOCATION DASHBOARD & CONFIGURATION**
 **Target:** Dashboard terpisah per lokasi
-- [ ] Create location-specific dashboard
-- [ ] Implement location settings management
-- [ ] Add location branding customization
+- [x] Create location-specific dashboard (menggunakan DashboardController location-aware)
+- [x] Implement location settings management (UI + CRUD + validasi)
+- [x] Add location branding customization (brand name/logo/primary/secondary color, custom CSS/JS)
 - [ ] Create location performance metrics
 - [ ] Setup location-specific notifications
 - [ ] Test location configuration features
@@ -44,9 +44,9 @@
 
 ### **MINGGU 4: SHIFT MANAGEMENT CORE**
 **Target:** Sistem shift yang flexible per lokasi
-- [ ] Create `shifts` table: id, location_id, name, start_time, end_time, is_active, days_of_week
+- [x] Create `shifts` table (tanpa `location_id`, menggunakan pivot `location_shifts`)
 - [ ] Create `shift_assignments` table: user_id, shift_id, date, status
-- [ ] Implement shift creation via dashboard per lokasi
+- [ ] Implement shift creation via dashboard per lokasi (UI tersedia, perlu assignment per user/tanggal)
 - [ ] Add shift templates (pagi, siang, malam, 24jam)
 - [ ] Create shift scheduling logic
 - [ ] Test basic shift assignment

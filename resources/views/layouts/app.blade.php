@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <!--begin::Head-->
   <head>
@@ -38,6 +38,29 @@
       onload="this.media='all'"
     />
     <!--end::Fonts-->
+    <!-- Branding Hook: Inject per-location brand styles and assets -->
+    @php
+      $brandLocation = auth()->check() ? auth()->user()->location : null;
+      $brandName = $brandLocation && $brandLocation->brand_name ? $brandLocation->brand_name : null;
+      $brandLogoUrl = $brandLocation && $brandLocation->brand_logo_url ? (\Illuminate\Support\Str::startsWith($brandLocation->brand_logo_url, ['http://','https://']) ? $brandLocation->brand_logo_url : asset($brandLocation->brand_logo_url)) : null;
+      $primaryColor = $brandLocation && $brandLocation->primary_color ? $brandLocation->primary_color : null;
+      $secondaryColor = $brandLocation && $brandLocation->secondary_color ? $brandLocation->secondary_color : null;
+    @endphp
+    @if($primaryColor || $secondaryColor)
+    <style>
+      :root{
+        @if($primaryColor)--brand-primary: {{ $primaryColor }};@endif
+        @if($secondaryColor)--brand-secondary: {{ $secondaryColor }};@endif
+      }
+      .brand-text{ color: var(--brand-primary, inherit); }
+      .btn-primary{ background-color: var(--brand-primary, #0d6efd); border-color: var(--brand-primary, #0d6efd); }
+      .text-primary{ color: var(--brand-primary, #0d6efd) !important; }
+      .bg-primary{ background-color: var(--brand-primary, #0d6efd) !important; }
+    </style>
+    @endif
+    @if($brandLocation && $brandLocation->custom_css_url)
+      <link rel="stylesheet" href="{{ $brandLocation->custom_css_url }}" />
+    @endif
     <!--begin::Third Party Plugin(OverlayScrollbars)-->
     <link
       rel="stylesheet"
@@ -223,7 +246,7 @@
                   class="user-image rounded-circle shadow"
                   alt="User Image"
                 />
-                <span class="d-none d-md-inline">{{ auth()->user()->name }} - {{ ucfirst(auth()->user()->role) }}</span>
+                <span class="d-none d-md-inline">{{ auth()->user()->name }} - {{ auth()->user()->getRoleNames()->first() }}</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
                 <!--begin::User Image-->
@@ -234,7 +257,7 @@
                     alt="User Image"
                   />
                   <p>
-                    {{ auth()->user()->name }} - {{ ucfirst(auth()->user()->role) }}
+                    {{ auth()->user()->name }} - {{ auth()->user()->getRoleNames()->first() }}
                     <small>Member since {{ auth()->user()->created_at->format('M. Y') }}</small>
                   </p>
                 </li>
@@ -276,13 +299,13 @@
           <a href="{{ url('/') }}" class="brand-link">
             <!--begin::Brand Image-->
             <img
-              src="{{asset('assets/img/AdminLTELogo.png')}}"
-              alt="AdminLTE Logo"
+              src="{{ $brandLogoUrl ?: asset('assets/img/AdminLTELogo.png') }}"
+              alt="Logo"
               class="brand-image opacity-75 shadow"
             />
             <!--end::Brand Image-->
             <!--begin::Brand Text-->
-            <span class="brand-text fw-light">Office App</span>
+            <span class="brand-text fw-light">{{ $brandName ?: 'Office App' }}</span>
             <!--end::Brand Text-->
           </a>
           <!--end::Brand Link-->
@@ -300,107 +323,31 @@
               data-accordion="false"
               id="navigation"
             >
+              <li class="nav-header">Main</li>
               <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link">
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                   <i class="nav-icon bi bi-speedometer"></i>
                   <p>Dashboard</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{{ route('messages.index') }}" class="nav-link">
+                <a href="{{ route('messages.index') }}" class="nav-link {{ request()->routeIs('messages.*') ? 'active' : '' }}">
                   <i class="nav-icon bi bi-chat-dots"></i>
                   <p>Messages</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{{ route('tasks.index') }}" class="nav-link">
+                <a href="{{ route('tasks.index') }}" class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
                   <i class="nav-icon bi bi-check-circle"></i>
                   <p>Tasks</p>
                 </a>
               </li>
-              @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
               <li class="nav-item">
-                <a href="{{ route('location-admin-tasks.index') }}" class="nav-link {{ request()->routeIs('location-admin-tasks.*') ? 'active' : '' }}">
-                  <i class="nav-icon bi bi-geo"></i>
-                  <p>Location Tasks</p>
+                <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-arrow-left-right"></i>
+                  <p>Location Change</p>
                 </a>
               </li>
-              @endif
-              @if(auth()->user()->hasRole('Super Admin'))
-              <li class="nav-item">
-                <a href="{{ route('location-admins.index') }}" class="nav-link {{ request()->routeIs('location-admins.*') ? 'active' : '' }}">
-                  <i class="nav-icon bi bi-person-gear"></i>
-                  <p>Location Admins</p>
-                </a>
-              </li>
-              @endif
-              <li class="nav-item">
-                <a href="{{ route('overtime.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-clock"></i>
-                  <p>Overtime</p>
-                </a>
-              </li>
-              @if(auth()->user()->hasRole('Super Admin'))
-              <li class="nav-item">
-                <a href="{{ route('master-tasks.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-check-circle"></i>
-                  <p>Super Admin Task</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="{{ route('users.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-people"></i>
-                  <p>Users</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="{{ route('masters.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-person-badge"></i>
-                  <p>Super Admins</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="{{ route('divisions.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-building"></i>
-                  <p>Divisions</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="{{ route('karyawans.index') }}" class="nav-link">
-                  <i class="nav-icon bi bi-person-lines-fill"></i>
-                  <p>Employees</p>
-                </a>
-              </li>
-              @endif
-              @if(auth()->user()->hasRole('Super Admin'))
-              <li class="nav-item {{ request()->routeIs('location.*') ? 'menu-open' : '' }}">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-geo-alt-fill"></i>
-                  <p>Multi Location</p>
-                  <i class="nav-arrow bi bi-chevron-right"></i>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="{{ route('locations.index') }}" class="nav-link {{ request()->routeIs('locations.index') ? 'active' : '' }}">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Locations</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.index') ? 'active' : '' }}">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Shifts</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="{{ route('location-shifts.index') }}" class="nav-link {{ request()->routeIs('location-shifts.*') ? 'active' : '' }}">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Location Shifts</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              @endif
               <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-calendar-check"></i>
@@ -410,20 +357,111 @@
                 <ul class="nav nav-treeview">
                   <li class="nav-item">
                     <a href="{{ route('attendance.checkin') }}" class="nav-link {{ request()->routeIs('attendance.checkin') ? 'active' : '' }}">
-                      <i class="nav-icon bi bi-circle"></i>
+                      <i class="nav-icon bi bi-dot"></i>
                       <p>Check In/Out</p>
                     </a>
                   </li>
                   @if(auth()->user()->hasRole('Super Admin'))
                   <li class="nav-item">
                     <a href="{{ route('attendance.report') }}" class="nav-link {{ request()->routeIs('attendance.report') ? 'active' : '' }}">
-                      <i class="nav-icon bi bi-circle"></i>
+                      <i class="nav-icon bi bi-dot"></i>
                       <p>Report</p>
                     </a>
                   </li>
                   @endif
                 </ul>
               </li>
+              <li class="nav-item">
+                <a href="{{ route('overtime.index') }}" class="nav-link {{ request()->routeIs('overtime.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-clock"></i>
+                  <p>Overtime</p>
+                </a>
+              </li>
+
+              @if(auth()->user()->hasRole('Admin Lokasi'))
+              <li class="nav-header">Location</li>
+              <li class="nav-item">
+                <a href="{{ route('location-admin-tasks.index') }}" class="nav-link {{ request()->routeIs('location-admin-tasks.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-geo"></i>
+                  <p>Location Tasks</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-calendar3"></i>
+                  <p>Shift Assignments</p>
+                </a>
+              </li>
+              @if(auth()->user()->location_id)
+              <li class="nav-item">
+                <a href="{{ route('locations.settings', auth()->user()->location_id) }}" class="nav-link {{ request()->routeIs('locations.settings*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-gear"></i>
+                  <p>My Location Settings</p>
+                </a>
+              </li>
+              @endif
+              @endif
+
+              @if(auth()->user()->hasRole('Super Admin'))
+              <li class="nav-header">Administration</li>
+              <li class="nav-item">
+                <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-people"></i>
+                  <p>Users</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('divisions.index') }}" class="nav-link {{ request()->routeIs('divisions.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-diagram-3"></i>
+                  <p>Divisions</p>
+                </a>
+              </li>
+              <li class="nav-item {{ request()->routeIs('locations.*') || request()->routeIs('shifts.*') || request()->routeIs('location-shifts.*') ? 'menu-open' : '' }}">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-geo-alt"></i>
+                  <p>Locations</p>
+                  <i class="nav-arrow bi bi-chevron-right"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{{ route('locations.index') }}" class="nav-link {{ request()->routeIs('locations.index') || request()->routeIs('locations.show') || request()->routeIs('locations.edit') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-dot"></i>
+                      <p>All Locations</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-dot"></i>
+                      <p>Shifts</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{{ route('location-shifts.index') }}" class="nav-link {{ request()->routeIs('location-shifts.*') ? 'active' : '' }}">
+                      <i class="nav-icon bi bi-dot"></i>
+                      <p>Location Shifts</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('location-admins.index') }}" class="nav-link {{ request()->routeIs('location-admins.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-person-gear"></i>
+                  <p>Location Admins</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-calendar3"></i>
+                  <p>Shift Assignments</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('master-tasks.index') }}" class="nav-link {{ request()->routeIs('master-tasks.*') ? 'active' : '' }}">
+                  <i class="nav-icon bi bi-check2-circle"></i>
+                  <p>Master Tasks</p>
+                </a>
+              </li>
+              @endif
             </ul>
             <!--end::Sidebar Menu-->
           </nav>
@@ -719,8 +757,21 @@
             }
         }
     </script>
+    @php
+      $brandLocation = auth()->check() ? auth()->user()->location : null;
+    @endphp
+    @if($brandLocation && $brandLocation->custom_js_url)
+      <script src="{{ $brandLocation->custom_js_url }}"></script>
+    @endif
     @yield('scripts')
     <!--end::Script-->
   </body>
   <!--end::Body-->
 </html>
+
+
+
+
+
+
+

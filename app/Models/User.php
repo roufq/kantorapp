@@ -69,6 +69,11 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'assigned_to');
     }
 
+    public function shiftAssignments()
+    {
+        return $this->hasMany(\App\Models\ShiftAssignment::class);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id');

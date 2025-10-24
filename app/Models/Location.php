@@ -11,13 +11,19 @@ class Location extends Model
 {
     protected $fillable = [
         'name',
+        'brand_name',
+        'brand_logo_url',
         'code',
         'address',
         'timezone',
+        'primary_color',
+        'secondary_color',
         'latitude',
         'longitude',
         'radius',
         'settings',
+        'custom_css_url',
+        'custom_js_url',
         'is_active',
         'shift_enabled',
     ];

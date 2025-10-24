@@ -100,6 +100,11 @@
                                             <a href="{{ route('locations.show', $location) }}" class="btn btn-info btn-sm" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            @if(auth()->user()->hasRole('Super Admin'))
+                                            <a href="{{ route('locations.settings', $location) }}" class="btn btn-primary btn-sm" title="Settings">
+                                                <i class="bi bi-gear"></i>
+                                            </a>
+                                            @endif
                                             <a href="{{ route('locations.edit', $location) }}" class="btn btn-warning btn-sm" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>

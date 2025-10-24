@@ -17,11 +17,13 @@ class Shift extends Model
         'time_slots',
         'is_active',
         'description',
+        'break_minutes',
     ];
 
     protected $casts = [
         'time_slots' => 'array', // JSON cast for flexible time slots
         'is_active' => 'boolean',
+        'break_minutes' => 'integer',
     ];
 
     public function locations(): BelongsToMany
@@ -32,6 +34,11 @@ class Shift extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(ShiftAssignment::class);
     }
 
     public function scopeActive($query)

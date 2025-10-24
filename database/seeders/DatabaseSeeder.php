@@ -18,17 +18,25 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RoleSeeder::class);
-        $this->call(LocationSeeder::class);
+        // Seed locations only if not present to avoid duplicates
+        if (Location::count() === 0) {
+            $this->call(LocationSeeder::class);
+        }
+        // Optional: seed some base shifts if not present
+        if (\App\Models\Shift::count() === 0) {
+            $this->call(ShiftSeeder::class);
+        }
 
-        // Create divisions
-        Division::create(['nama' => 'HR']);
-        Division::create(['nama' => 'IT']);
-        Division::create(['nama' => 'Finance']);
+        // Create divisions (idempotent)
+        Division::firstOrCreate(['nama' => 'HR']);
+        Division::firstOrCreate(['nama' => 'IT']);
+        Division::firstOrCreate(['nama' => 'Finance']);
 
-        // Create employees (attach to random locations)
-        Employee::create([
-            'nama' => 'John Doe',
+        // Create employees (attach to random locations) (idempotent by email)
+        Employee::firstOrCreate([
             'email' => 'john@example.com',
+        ], [
+            'nama' => 'John Doe',
             'telepon' => '123456789',
             'alamat' => 'Address 1',
             'jabatan' => 'Manager',
@@ -37,9 +45,10 @@ class DatabaseSeeder extends Seeder
             'divisi_id' => 1,
             'location_id' => Location::inRandomOrder()->value('id'),
         ]);
-        Employee::create([
-            'nama' => 'Jane Smith',
+        Employee::firstOrCreate([
             'email' => 'jane@example.com',
+        ], [
+            'nama' => 'Jane Smith',
             'telepon' => '987654321',
             'alamat' => 'Address 2',
             'jabatan' => 'Developer',
@@ -54,9 +63,10 @@ class DatabaseSeeder extends Seeder
             for ($i = 1; $i <= 3; $i++) {
                 $empName = $loc->code . ' Employee ' . $i;
                 $empEmail = strtolower($loc->code) . '.employee' . $i . '@example.com';
-                $employee = Employee::create([
-                    'nama' => $empName,
+                $employee = Employee::firstOrCreate([
                     'email' => $empEmail,
+                ], [
+                    'nama' => $empName,
                     'telepon' => '08' . rand(100000000, 999999999),
                     'alamat' => $loc->address,
                     'jabatan' => 'Staff',
@@ -65,49 +75,61 @@ class DatabaseSeeder extends Seeder
                     'divisi_id' => Division::inRandomOrder()->value('id'),
                     'location_id' => $loc->id,
                 ]);
-                $u = User::factory()->create([
-                    'name' => $employee->nama,
+                $u = User::firstOrCreate([
                     'email' => $employee->email,
+                ], [
+                    'name' => $employee->nama,
                     'password' => Hash::make('password'),
                     'employee_id' => $employee->id,
                     'karyawan_id' => $employee->id,
                     'location_id' => $loc->id,
                 ]);
-                $u->assignRole('Karyawan');
+                if (!$u->hasRole('Karyawan')) {
+                    $u->assignRole('Karyawan');
+                }
             }
         }
 
         // Create 3 Super Admin users
         for ($i = 1; $i <= 3; $i++) {
-            $user = User::factory()->create([
-                'name' => 'Super Admin ' . $i,
+            $user = User::firstOrCreate([
                 'email' => 'superadmin' . $i . '@example.com',
+            ], [
+                'name' => 'Super Admin ' . $i,
                 'password' => Hash::make('password'),
             ]);
-            $user->assignRole('Super Admin');
+            if (!$user->hasRole('Super Admin')) {
+                $user->assignRole('Super Admin');
+            }
         }
 
         // Create 2 Admin Lokasi users with assigned locations
         $locations = Location::take(2)->pluck('id');
         foreach ($locations as $idx => $locId) {
-            $al = User::factory()->create([
-                'name' => 'Admin Lokasi ' . ($idx + 1),
+            $al = User::firstOrCreate([
                 'email' => 'adminlokasi' . ($idx + 1) . '@example.com',
+            ], [
+                'name' => 'Admin Lokasi ' . ($idx + 1),
                 'password' => Hash::make('password'),
                 'location_id' => $locId,
             ]);
-            $al->assignRole('Admin Lokasi');
+            if (!$al->hasRole('Admin Lokasi')) {
+                $al->assignRole('Admin Lokasi');
+            }
         }
 
         // Create 5 Karyawan users
         for ($i = 1; $i <= 5; $i++) {
-            $user = User::factory()->create([
-                'name' => 'Employee ' . $i,
+            $user = User::firstOrCreate([
                 'email' => 'employee' . $i . '@example.com',
+            ], [
+                'name' => 'Employee ' . $i,
                 'password' => Hash::make('password'),
                 'location_id' => Location::inRandomOrder()->value('id'),
             ]);
-            $user->assignRole('Karyawan');
+            if (!$user->hasRole('Karyawan')) {
+                $user->assignRole('Karyawan');
+            }
         }
 
         // Assign masters to employees
@@ -118,5 +140,8 @@ class DatabaseSeeder extends Seeder
 
         // Backfill roles for any users missing roles
         $this->call(UserRoleBackfillSeeder::class);
+
+        // Seed shift assignments sample for next 7 days (per lokasi)
+        $this->call(ShiftAssignmentSeeder::class);
     }
 }

@@ -41,9 +41,34 @@ class AttendanceController extends Controller
         $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
         $isLate = false;
         $shiftId = null;
+        $usedAssignment = false;
 
-        // Find active shift for user's location at check-in time
-        if ($user->location_id) {
+        // Prefer shift assignment for today
+        if (class_exists(\App\Models\ShiftAssignment::class)) {
+            $assignment = \App\Models\ShiftAssignment::where('user_id', $user->id)
+                ->whereDate('date', $now->toDateString())
+                ->with('shift')
+                ->first();
+            if ($assignment && $assignment->shift) {
+                $assignedShift = $assignment->shift;
+                if ($assignedShift->isSingleShift()) {
+                    $shiftStartTime = Carbon::createFromFormat('H:i', $assignedShift->time_slots['start']);
+                    $isLate = $now->gt($shiftStartTime);
+                } else {
+                    foreach ($assignedShift->time_slots as $slot) {
+                        $slotStart = Carbon::createFromFormat('H:i', $slot['start']);
+                        if ($now->gt($slotStart)) { $isLate = true; break; }
+                    }
+                }
+                $shiftId = $assignedShift->id;
+                $usedAssignment = true;
+            }
+        }
+
+        
+
+        // Find active shift for user's location at check-in time (fallback when no assignment)
+        if (!$usedAssignment && $user->location_id) {
             $location = Location::find($user->location_id);
             if ($location && $location->shift_enabled) {
                 $activeShift = $location->shifts()
@@ -299,3 +324,5 @@ class AttendanceController extends Controller
         return $earthRadius * $c;
     }
 }
+
+

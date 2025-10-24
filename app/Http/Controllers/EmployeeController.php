@@ -66,7 +66,15 @@ class EmployeeController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        Employee::create($request->all());
+        // Enforce Admin Lokasi boundary on location_id
+        $auth = Auth::user();
+        $data = $request->all();
+        if ($auth->hasRole('Admin Lokasi')) {
+            // If not provided, default to admin's location; if provided, must match
+            $data['location_id'] = $auth->location_id;
+        }
+
+        Employee::create($data);
 
         return redirect()->route('karyawans.index')->with('success', 'Employee created successfully.');
     }
@@ -107,7 +115,14 @@ class EmployeeController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $karyawan->update($request->all());
+        // Enforce Admin Lokasi boundary on location_id
+        $auth = Auth::user();
+        $data = $request->all();
+        if ($auth->hasRole('Admin Lokasi')) {
+            $data['location_id'] = $auth->location_id;
+        }
+
+        $karyawan->update($data);
 
         return redirect()->route('karyawans.index')->with('success', 'Employee updated successfully.');
     }

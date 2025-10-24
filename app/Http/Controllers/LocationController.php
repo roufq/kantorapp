@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Location;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class LocationController extends Controller
 {
@@ -53,13 +54,20 @@ class LocationController extends Controller
             'code' => 'required|string|max:10|unique:locations,code',
             'address' => 'nullable|string',
             'timezone' => 'nullable|string|timezone',
+            'brand_name' => 'nullable|string|max:255',
+            'brand_logo_url' => 'nullable|string|max:255',
+            'primary_color' => 'nullable|string|max:20',
+            'secondary_color' => 'nullable|string|max:20',
+            'custom_css_url' => 'nullable|string|max:255',
+            'custom_js_url' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius' => 'nullable|numeric|min:1|max:10000',
             'is_active' => 'boolean',
             'shift_enabled' => 'boolean',
-            'schedule_type' => 'required|in:daily,shifts',
-            'daily_schedule' => 'nullable|json|required_if:schedule_type,daily',
+            // Make schedule fields optional to match current schema usage
+            'schedule_type' => 'nullable|in:daily,shifts',
+            'daily_schedule' => 'nullable|json',
         ]);
 
         if ($validator->fails()) {
@@ -70,12 +78,18 @@ class LocationController extends Controller
 
         Location::create([
             'name' => $request->name,
+            'brand_name' => $request->brand_name,
+            'brand_logo_url' => $request->brand_logo_url,
             'code' => strtoupper($request->code),
             'address' => $request->address,
             'timezone' => $request->timezone ?? 'Asia/Jakarta',
+            'primary_color' => $request->primary_color,
+            'secondary_color' => $request->secondary_color,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'radius' => $request->radius ?? 50,
+            'custom_css_url' => $request->custom_css_url,
+            'custom_js_url' => $request->custom_js_url,
             'is_active' => $request->has('is_active'),
             'shift_enabled' => $request->has('shift_enabled'),
             'schedule_type' => $request->schedule_type,
@@ -107,6 +121,20 @@ class LocationController extends Controller
     }
 
     /**
+     * Show the settings form for a location.
+     */
+    public function settings(Location $location)
+    {
+        $user = Auth::user();
+        if ($user->hasRole('Admin Lokasi') && (int) $user->location_id !== (int) $location->id) {
+            abort(403, 'Unauthorized');
+        }
+
+        $location->load('locationSettings');
+        return view('locations.settings', compact('location'));
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, Location $location)
@@ -116,13 +144,20 @@ class LocationController extends Controller
             'code' => 'required|string|max:10|unique:locations,code,' . $location->id,
             'address' => 'nullable|string',
             'timezone' => 'nullable|string|timezone',
+            'brand_name' => 'nullable|string|max:255',
+            'brand_logo_url' => 'nullable|string|max:255',
+            'primary_color' => 'nullable|string|max:20',
+            'secondary_color' => 'nullable|string|max:20',
+            'custom_css_url' => 'nullable|string|max:255',
+            'custom_js_url' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius' => 'nullable|numeric|min:1|max:10000',
             'is_active' => 'boolean',
             'shift_enabled' => 'boolean',
-            'schedule_type' => 'required|in:daily,shifts',
-            'daily_schedule' => 'nullable|json|required_if:schedule_type,daily',
+            // Make schedule fields optional to match current schema usage
+            'schedule_type' => 'nullable|in:daily,shifts',
+            'daily_schedule' => 'nullable|json',
         ]);
 
         if ($validator->fails()) {
@@ -133,12 +168,18 @@ class LocationController extends Controller
 
         $location->update([
             'name' => $request->name,
+            'brand_name' => $request->brand_name,
+            'brand_logo_url' => $request->brand_logo_url,
             'code' => strtoupper($request->code),
             'address' => $request->address,
             'timezone' => $request->timezone ?? 'Asia/Jakarta',
+            'primary_color' => $request->primary_color,
+            'secondary_color' => $request->secondary_color,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'radius' => $request->radius ?? 50,
+            'custom_css_url' => $request->custom_css_url,
+            'custom_js_url' => $request->custom_js_url,
             'is_active' => $request->has('is_active'),
             'shift_enabled' => $request->has('shift_enabled'),
             'schedule_type' => $request->schedule_type,
@@ -168,6 +209,10 @@ class LocationController extends Controller
      */
     public function updateSettings(Request $request, Location $location)
     {
+        $user = Auth::user();
+        if ($user->hasRole('Admin Lokasi') && (int) $user->location_id !== (int) $location->id) {
+            abort(403, 'Unauthorized');
+        }
         $validator = Validator::make($request->all(), [
             'settings' => 'required|array',
             'settings.*.key' => 'required|string',
