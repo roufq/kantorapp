@@ -10,6 +10,7 @@ use App\Models\Division;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\Attendance;
+use App\Models\ShiftAssignment;
 
 class DashboardController extends Controller
 {
@@ -46,16 +47,22 @@ class DashboardController extends Controller
         $tasks = $query->orderBy('created_at', 'desc')->paginate(10);
 
         $unreadMessages = Message::where('receiver_id', $user->id)->whereNull('read_at')->count();
+        $today = now()->toDateString();
+        $todayAssignment = null;
+        $todayAssignmentsCount = 0;
+        $recentAssignments = collect();
+        $myUpcomingAssignments = collect();
 
         // Get counts for dashboard (location-aware for non Super Admin)
         if ($user->hasRole('Super Admin')) {
             $totalMasters = User::role('Super Admin')->count();
             $totalEmployees = User::role('Karyawan')->count();
             $totalTasks = Task::count();
-            $totalMessages = Message::count();
+            $totalMessages = Message::count(); // keep global for admins
             $totalUsers = User::count();
             $totalDivisions = Division::count();
             $totalKaryawans = Employee::count();
+            $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)->count();
         } else {
             $locationId = $user->location_id;
             $totalMasters = User::role('Super Admin')->count(); // global masters
@@ -71,6 +78,30 @@ class DashboardController extends Controller
             $totalUsers = User::where('location_id', $locationId)->count();
             $totalDivisions = Division::count(); // divisions not location-specific yet
             $totalKaryawans = Employee::where('location_id', $locationId)->count();
+            if ($user->hasRole('Admin Lokasi')) {
+                $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)
+                    ->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); })
+                    ->count();
+                $recentAssignments = ShiftAssignment::with(['user','shift'])
+                    ->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); })
+                    ->whereDate('date', '>=', $today)
+                    ->orderBy('date', 'asc')
+                    ->limit(5)
+                    ->get();
+            }
+        }
+
+        if ($user->hasRole('Karyawan')) {
+            $todayAssignment = ShiftAssignment::with('shift')
+                ->where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->first();
+            $myUpcomingAssignments = ShiftAssignment::with('shift')
+                ->where('user_id', $user->id)
+                ->whereDate('date', '>=', $today)
+                ->orderBy('date', 'asc')
+                ->limit(5)
+                ->get();
         }
 
         // Get today's attendance for the user
@@ -78,6 +109,10 @@ class DashboardController extends Controller
             ->whereDate('check_in_time', now()->toDateString())
             ->first();
 
-        return view('dashboard', compact('user', 'tasks', 'unreadMessages', 'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans', 'todayAttendance'));
+        return view('dashboard', compact(
+            'user', 'tasks', 'unreadMessages',
+            'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
+            'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments'
+        ));
     }
 }
