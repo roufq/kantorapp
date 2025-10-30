@@ -1,4 +1,4 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# KantorApp - Multi-Location Attendance Management System
 
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
@@ -7,55 +7,392 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+## About KantorApp
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+KantorApp is a comprehensive multi-location attendance management system built with Laravel, designed to streamline workforce management across multiple office locations. The system provides GPS-validated attendance tracking, flexible shift scheduling, task management, overtime handling, and comprehensive reporting capabilities.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+#### 🏢 Multi-Location Support
+- **Location Management**: Create and manage multiple office locations
+- **Location-Based Access Control**: Role-based permissions scoped to specific locations
+- **Location Settings**: Customize settings per location (GPS coordinates, branding, schedules)
+- **Location Transfer**: Seamless employee transfers between locations
 
-## Learning Laravel
+#### 📍 GPS-Validated Attendance
+- **Real-time GPS Tracking**: Accurate location validation during check-in/out
+- **Geofencing**: Configurable location boundaries with radius settings
+- **Anti-Spoofing**: Advanced GPS validation to prevent location manipulation
+- **Attendance History**: Complete audit trail of attendance records
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+#### ⏰ Flexible Shift Management
+- **Dynamic Shift Scheduling**: Create custom shifts with flexible time slots
+- **Shift Assignments**: Assign employees to specific shifts on specific dates
+- **Shift Rotation**: Support for rotating schedules and patterns
+- **Overtime Integration**: Automatic overtime calculation based on shift hours
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+#### 📋 Task Management
+- **Employee Tasks**: Daily task tracking and progress monitoring
+- **Master Tasks**: Administrative task assignment and oversight
+- **File Attachments**: Support for photos and documents in tasks
+- **Task Categories**: Organize tasks by type and priority
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+#### 💼 Overtime & Leave Management
+- **Overtime Requests**: Employee overtime submission with approval workflow
+- **Leave Management**: Comprehensive leave tracking (annual, sick, personal)
+- **Holiday Calendar**: Configurable holidays and weekly offs
+- **Approval Workflows**: Multi-level approval system for requests
 
-## Laravel Sponsors
+#### 📊 Reporting & Analytics
+- **Excel Exports**: Comprehensive attendance and overtime reports
+- **Dashboard Analytics**: Real-time metrics and KPIs
+- **Custom Reports**: Filtered reports by location, department, date range
+- **Data Visualization**: Charts and graphs for attendance patterns
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+#### 👥 User Management & Communication
+- **Role-Based Access**: Super Admin, Location Admin, Employee roles
+- **Employee Directory**: Centralized employee information management
+- **Internal Messaging**: Real-time communication between users
+- **User Transfer**: Administrative tools for user management
 
-### Premium Partners
+#### 🔒 Security & Compliance
+- **Data Encryption**: Secure data storage and transmission
+- **Audit Trails**: Complete logging of all system activities
+- **GDPR Ready**: Privacy-compliant data handling
+- **Multi-Tenant Architecture**: Isolated data per organization
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Technical Stack
+
+- **Framework**: Laravel 12.0
+- **PHP**: 8.2+
+- **Database**: MySQL 8.0+ / MariaDB 10.5+
+- **Frontend**: Blade Templates, AdminLTE UI
+- **Authentication**: Laravel Sanctum (API-ready)
+- **Authorization**: Spatie Laravel Permission
+- **Real-time**: Laravel Reverb (WebSockets)
+- **Export**: Maatwebsite Laravel Excel
+- **Queue**: Database/Redis queue system
+
+## System Requirements
+
+### Server Requirements
+- **OS**: Ubuntu 20.04+, CentOS 7+, Windows Server 2019+
+- **Web Server**: Apache 2.4+ / Nginx 1.18+
+- **PHP**: 8.2+ with extensions:
+  - `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `gd`, `fileinfo`
+- **Database**: MySQL 8.0+ / MariaDB 10.5+
+- **RAM**: Minimum 2GB (Recommended 4GB+)
+- **Storage**: Minimum 20GB (Recommended 50GB+)
+
+### Client Requirements
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- JavaScript enabled
+- GPS-enabled device for mobile attendance
+- Stable internet connection
+
+## Installation
+
+### Quick Setup (Development)
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd kantorapp
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database configuration**
+   - Create MySQL database
+   - Update `.env` with database credentials
+   ```bash
+   php artisan migrate --seed
+   ```
+
+5. **Build assets**
+   ```bash
+   npm run build
+   # or for development
+   npm run dev
+   ```
+
+6. **Start the application**
+   ```bash
+   php artisan serve
+   ```
+
+### Automated Setup Script
+
+The project includes an automated setup script:
+
+```bash
+composer run setup
+```
+
+This will:
+- Install PHP dependencies
+- Generate application key
+- Run database migrations
+- Seed initial data
+- Install and build frontend assets
+
+## Usage
+
+### User Roles
+
+#### Super Admin
+- Full system access across all locations
+- User management and role assignment
+- Location creation and configuration
+- System-wide reporting and analytics
+
+#### Location Admin (Admin Lokasi)
+- Manage users within their location
+- Configure location-specific settings
+- Approve attendance and overtime requests
+- Generate location-specific reports
+
+#### Employee (Karyawan)
+- Daily attendance check-in/out
+- Task management and submission
+- Overtime request submission
+- Leave request management
+
+### Key Workflows
+
+#### Daily Attendance
+1. Employee checks in via web/mobile interface
+2. GPS validation confirms location
+3. System records check-in time and location
+4. Employee checks out at end of shift
+5. System calculates total hours worked
+
+#### Shift Assignment
+1. Admin creates shift schedules
+2. Assigns employees to specific shifts
+3. System validates shift conflicts
+4. Employees receive shift notifications
+5. Attendance system uses shift data for validation
+
+#### Overtime Management
+1. Employee submits overtime request
+2. Location admin reviews and approves
+3. System calculates overtime hours
+4. Payroll integration (if configured)
+5. Reports generated for accounting
+
+## Deployment
+
+### Production Deployment
+
+For detailed production deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+
+#### Quick Production Setup
+
+1. **Server preparation**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update
+   sudo apt install apache2 mysql-server php8.2 php8.2-mysql php8.2-xml php8.2-curl php8.2-zip php8.2-gd php8.2-mbstring php8.2-fileinfo
+   ```
+
+2. **Application deployment**
+   ```bash
+   # Upload files to /var/www/kantorapp
+   cd /var/www/kantorapp
+   composer install --optimize-autoloader --no-dev
+   npm install && npm run build
+   ```
+
+3. **Environment configuration**
+   ```bash
+   cp .env.example .env
+   # Edit .env with production settings
+   php artisan key:generate
+   ```
+
+4. **Database setup**
+   ```bash
+   php artisan migrate --force
+   php artisan db:seed --force
+   ```
+
+5. **Optimization**
+   ```bash
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   php artisan storage:link
+   ```
+
+6. **Queue worker (optional)**
+   ```bash
+   php artisan queue:work --daemon
+   ```
+
+### SSL Configuration
+
+```bash
+# Using Let's Encrypt
+sudo apt install certbot python3-certbot-apache
+sudo certbot --apache -d yourdomain.com
+```
+
+### Monitoring & Maintenance
+
+- **Logs**: Monitor `/storage/logs/laravel.log`
+- **Backups**: Automated daily database backups
+- **Updates**: Regular security updates and patches
+- **Performance**: Monitor response times and resource usage
+
+## Configuration
+
+### Environment Variables
+
+Key configuration options in `.env`:
+
+```env
+# Application
+APP_NAME="KantorApp"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=kantorapp
+DB_USERNAME=your_user
+DB_PASSWORD=your_password
+
+# GPS Settings
+GOOGLE_MAPS_API_KEY=your_api_key
+
+# Mail Configuration
+MAIL_MAILER=smtp
+MAIL_HOST=your_smtp_host
+MAIL_PORT=587
+MAIL_USERNAME=your_email
+MAIL_PASSWORD=your_password
+
+# Queue (Redis recommended for production)
+QUEUE_CONNECTION=database
+# QUEUE_CONNECTION=redis
+```
+
+### Location Settings
+
+Each location can be configured with:
+- GPS coordinates and radius
+- Working hours and shifts
+- Branding colors and logo
+- Custom policies and rules
+
+## API Documentation
+
+The system includes REST API endpoints for integration:
+
+- Authentication: `/api/login`, `/api/logout`
+- Attendance: `/api/attendance/checkin`, `/api/attendance/checkout`
+- Tasks: `/api/tasks`, `/api/tasks/{id}`
+- Reports: `/api/reports/attendance`, `/api/reports/overtime`
+
+API documentation available at `/api/documentation` when in development mode.
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test suite
+php artisan test --testsuite=Feature
+
+# Run with coverage
+php artisan test --coverage
+```
+
+### Test Coverage
+
+- Unit tests for models and services
+- Feature tests for critical workflows
+- Integration tests for API endpoints
+- Browser tests for UI interactions
+
+## Security
+
+### Security Features
+
+- **CSRF Protection**: All forms protected against CSRF attacks
+- **XSS Prevention**: Input sanitization and output escaping
+- **SQL Injection Prevention**: Parameterized queries
+- **Rate Limiting**: API and login attempt limiting
+- **Data Encryption**: Sensitive data encrypted at rest
+- **Audit Logging**: Complete activity logging
+
+### Security Best Practices
+
+- Regular security updates
+- Strong password policies
+- Two-factor authentication ready
+- Secure session management
+- File upload restrictions
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Thank you for considering contributing to KantorApp!
 
-## Code of Conduct
+### Development Setup
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new features
+5. Ensure all tests pass
+6. Submit a pull request
 
-## Security Vulnerabilities
+### Coding Standards
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Follow PSR-12 coding standards
+- Use meaningful commit messages
+- Write comprehensive tests
+- Update documentation for new features
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+KantorApp is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Support
+
+### Documentation
+- [Deployment Guide](DEPLOYMENT_GUIDE.md)
+- [API Documentation](api/documentation)
+- [User Manual](docs/user-manual.md)
+
+### Community
+- Report issues on GitHub
+- Join our Discord community
+- Check documentation for FAQs
+
+### Professional Support
+- Email: support@kantorapp.com
+- Priority support packages available
+- Custom development services
+
+---
+
+**Built with ❤️ using Laravel**
+
+*Empowering businesses with intelligent workforce management*
