@@ -191,6 +191,150 @@ This will:
 4. Payroll integration (if configured)
 5. Reports generated for accounting
 
+## Application Modules
+
+The following modules and menus are available in the web application. Each item lists the main routes and required roles.
+
+- Dashboard
+  - `GET /dashboard` — Overview cards, recent assignments, notices (holidays/leaves), location metrics.
+
+- Messages
+  - `GET /messages` — List conversations
+  - `GET /messages/{user}` — Conversation detail
+  - `POST /messages` — Send message
+  - `PATCH /messages/{id}/read` — Mark as read
+  - `DELETE /messages/{id}` — Delete (Super Admin)
+
+- Tasks (Employee Tasks)
+  - `GET /tasks` — List
+  - `GET /tasks/create` — Create (assign)
+  - `POST /tasks` — Store
+  - `GET /tasks/create-self` — Create task for self
+  - `POST /tasks/store-self` — Store self task
+  - `GET /tasks/{task}` — Show
+  - `GET /tasks/{task}/edit` — Edit
+  - `PATCH /tasks/{task}` — Update
+  - `DELETE /tasks/{task}` — Delete
+  - `GET /tasks/{task}/download-photo` — Download attachment (photo)
+  - `GET /tasks/{task}/download-document` — Download attachment (document)
+
+- Master Tasks (Super Admin)
+  - `GET /master-tasks` — List (Super Admin)
+  - `GET /master-tasks/create` — Create (Super Admin)
+  - `POST /master-tasks` — Store
+  - `GET /master-tasks/create-self` — Create for self
+  - `POST /master-tasks/store-self` — Store self
+  - `GET /master-tasks/{masterTask}` — Show
+  - `GET /master-tasks/{masterTask}/edit` — Edit
+  - `PATCH /master-tasks/{masterTask}` — Update
+  - `DELETE /master-tasks/{masterTask}` — Delete
+  - `GET /master-tasks/{masterTask}/download-photo` — Download photo
+  - `GET /master-tasks/{masterTask}/download-document` — Download document
+
+- Attendance
+  - `GET /attendance/checkin` — Check In/Out page
+  - `POST /attendance/checkin` — Check in
+  - `POST /attendance/checkout` — Check out
+  - `GET /attendance/report` — Attendance report
+  - `GET /attendance/export` — Export to Excel
+  - `PATCH /attendance/{id}/approval` — Update approval
+  - `GET /attendance/absences` — Absence list
+  - `GET /attendance/recap` — Recap view
+
+- Overtime
+  - `GET /overtime` — List requests
+  - `GET /overtime/create` — Create
+  - `POST /overtime` — Store
+  - `GET /overtime/{overtime}` — Show
+  - `GET /overtime/export` — Export to Excel
+  - `GET /overtime-report` — Report view
+  - `PATCH /overtime/{overtime}/approve` — Approve (Super Admin)
+
+- Holidays, Weekly Offs, Leaves
+  - Holidays (Super Admin, Admin Lokasi): `GET/POST/DELETE /holidays`
+  - Weekly Offs (Super Admin, Admin Lokasi): `GET/POST/DELETE /weekly-offs`
+  - Leaves: `GET /leaves`, `POST /leaves` (Super Admin, Admin Lokasi, Karyawan), `PATCH /leaves/{leave}/status` (Super/Admin Lokasi)
+
+- Locations
+  - Location settings: `GET /locations/{location}` show, `GET /locations/{location}/settings`, `PATCH /locations/{location}/settings`
+  - Location admins (Super Admin): `resource /location-admins`
+  - Location admin tasks (Super/Admin Lokasi): `resource /location-admin-tasks` + download routes
+  - Location change requests: `GET /location-change-requests` (index/create/store), `PATCH /location-change-requests/{id}/status` (Admin Lokasi)
+
+- Shifts & Assignments
+  - Shifts (Super Admin): `resource /shifts`
+  - Location shifts (Super Admin): `resource /location-shifts`, `POST /location-shifts/{location}/attach-shift`, `DELETE /location-shifts/{location}/detach-shift/{shift}`
+  - Shift assignments (Super/Admin Lokasi): `resource /shift-assignments`, `GET /shift-assignments-export`
+
+- Employees (Karyawan)
+  - `resource /karyawans` (Super Admin, Admin Lokasi)
+
+- Two-Factor Authentication (2FA)
+  - `GET /2fa/setup` — Choose method: SMS, Email, Authenticator App
+  - `POST /2fa/setup` — Persist method (and secret for app)
+  - `GET /2fa/verify` — Enter code (email/sms/app)
+  - `POST /2fa/verify` — Verify code (enables 2FA and generates backup codes on first confirmation)
+  - `POST /2fa/disable` — Disable 2FA (requires authenticated session)
+  - Challenge flow: `GET /2fa/challenge` during login, then redirect to `2fa.verify`
+
+## Security & Middleware
+
+- Role-based authorization via Spatie Permission
+  - Roles used: `Super Admin`, `Admin Lokasi`, `Karyawan`
+  - Custom `RoleMiddleware` supports comma/pipe separated roles
+- TwoFactorMiddleware
+  - Protects authenticated routes until 2FA is verified (`session('2fa_verified')`)
+  - Skips only setup/verify routes (not disable)
+- 2FA storage
+  - `users.two_factor_secret` stored encrypted
+  - Backup codes generated and consumed on use
+  - Basic session-based brute-force guard for verification attempts
+
+## Exports
+
+- Attendance, Overtime, Shift Assignments exports using Laravel Excel
+- Files are generated through dedicated controller actions: `/attendance/export`, `/overtime/export`, `/shift-assignments-export`
+
+## Frontend & UX
+
+- Layout based on AdminLTE (Bootstrap 5)
+- Mobile-friendly sidebar
+  - Header hamburger and in-sidebar hamburger
+  - Auto-close on menu/submenu click in mobile
+  - Overlay managed to prevent interaction lock
+- Per-location branding
+  - Dynamic CSS variables for primary/secondary colors
+  - Optional custom CSS per location
+  - Optional theme stylesheet: `public/themes/{theme}.css`
+- Custom assets
+  - `public/asset/app.css` — app styles (helpers + sidebar overlay)
+  - `public/asset/app.js` — sidebar behavior and OverlayScrollbars init
+
+## Configuration
+
+- `.env` notable keys
+  - `SESSION_DRIVER=database`
+  - `QUEUE_CONNECTION=database`
+  - `CACHE_STORE=database`
+  - `MAIL_MAILER=log` (dev) — set SMTP in production
+  - Twilio (if SMS 2FA enabled): `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`
+  - Reverb (WebSocket) keys if used for real-time
+
+## Testing
+
+- Run tests
+  - `composer test` or `php artisan test`
+- Included feature tests
+  - `tests/Feature/TwoFactorAuthTest.php` — covers 2FA setup/verify/disable and backup codes
+
+## Developer Scripts
+
+- Composer
+  - `composer run setup` — one-shot local setup
+  - `composer run dev` — serve app, queue listener, and Vite dev server concurrently
+  - `composer run test` — clear config cache and run tests
+
+
 ## Deployment
 
 ### Production Deployment
