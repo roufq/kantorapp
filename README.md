@@ -531,7 +531,7 @@ KantorApp is open-sourced software licensed under the [MIT license](https://open
 - Check documentation for FAQs
 
 ### Professional Support
-- Email: support@kantorapp.com
+- Email: roufmawanto963@gmail.com
 - Priority support packages available
 - Custom development services
 
