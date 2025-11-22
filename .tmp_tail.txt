@@ -1,0 +1,14 @@
+// Shift Assignments (Super Admin and Admin Lokasi)
+    Route::resource('shift-assignments', App\Http\Controllers\ShiftAssignmentController::class)->middleware('role:Super Admin,Admin Lokasi');
+    Route::get('/shift-assignments-export', [App\Http\Controllers\ShiftAssignmentController::class, 'export'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.export');
+
+    // Attendance reports
+    Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
+    Route::get('/attendance/absences', [AttendanceController::class, 'absences'])->name('attendance.absences');
+    Route::get('/attendance/recap', [AttendanceController::class, 'recap'])->name('attendance.recap');
+    // Employees (Super Admin and Admin Lokasi)
+    Route::resource('karyawans', App\\Http\\Controllers\\EmployeeController::class)->middleware('role:Super Admin,Admin Lokasi');
+});
+
+    // Employees (Super Admin and Admin Lokasi)
+    Route::resource('karyawans', App\Http\Controllers\EmployeeController::class)->middleware('role:Super Admin,Admin Lokasi');
