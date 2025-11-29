@@ -32,6 +32,12 @@ Route::post('/login', function (Request $request) {
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
 
+        // Invalidate other sessions
+        \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
+            ->where('user_id', $user->id)
+            ->where('id', '!=', $request->session()->getId())
+            ->delete();
+
         // Non Super Admins must have a location to login
         if (is_null($user->location_id) && !$user->hasRole('Super Admin')) {
             Auth::logout();
@@ -56,7 +62,7 @@ Route::post('/login', function (Request $request) {
         return redirect()->intended('/dashboard');
     }
     return back()->withErrors(['email' => 'Email atau password salah.']);
-})->name('login.post');
+})->name('login.post')->middleware('throttle:5,1');
 
 Route::post('/logout', function () {
     Auth::logout();
@@ -89,6 +95,8 @@ Route::middleware('auth')->group(function () {
     // Profile
     Route::get('/profile', [App\Http\Controllers\UserController::class, 'profile'])->name('profile.show');
     Route::post('/profile/photo', [App\Http\Controllers\UserController::class, 'updatePhoto'])->name('profile.photo');
+    Route::post('/profile/password', [App\Http\Controllers\UserController::class, 'updatePassword'])->name('profile.password.update');
+    Route::delete('/profile/sessions/{sessionId}', [App\Http\Controllers\UserController::class, 'logoutSession'])->name('profile.session.logout');
 });
 
 // 2FA Challenge route (before auth middleware)

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rules\Password;
 use App\Models\User;
 use App\Models\Employee;
 use App\Models\Location;
@@ -48,7 +49,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'karyawan_id' => 'required|exists:employees,id',
             'location_id' => 'nullable|exists:locations,id',
         ]);
@@ -118,7 +119,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
@@ -138,6 +139,11 @@ class UserController extends Controller
 
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
+
+            // Invalidate all sessions for this user to force re-login
+            \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $user->id)
+                ->delete();
         }
 
         $user->update($updateData);
@@ -207,8 +213,12 @@ class UserController extends Controller
     {
         $user = Auth::user()->load(['location', 'employee', 'karyawan']);
         $roles = $user->getRoleNames();
+        $sessions = \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
+            ->where('user_id', $user->id)
+            ->latest('last_activity')
+            ->get();
 
-        return view('profile.show', compact('user', 'roles'));
+        return view('profile.show', compact('user', 'roles', 'sessions'));
     }
 
     public function updatePhoto(Request $request)
@@ -228,5 +238,45 @@ class UserController extends Controller
         $user->update(['profile_photo_path' => $path]);
 
         return redirect()->route('profile.show')->with('success', 'Foto profil diperbarui.');
+    }
+
+    /**
+     * Update the authenticated user's password.
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'The provided password does not match your current password.']);
+        }
+        
+        // It is recommended to use logoutOtherDevices before password update
+        Auth::logoutOtherDevices($request->current_password);
+
+        $user->forceFill([
+            'password' => Hash::make($request->password),
+        ])->save();
+
+        return redirect()->route('profile.show')->with('success', 'Password updated successfully and other sessions have been logged out.');
+    }
+
+    public function logoutSession(Request $request, $sessionId)
+    {
+        if ($sessionId === $request->session()->getId()) {
+            return back()->withErrors(['error' => "You cannot log out your current session."]);
+        }
+
+        \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
+            ->where('id', $sessionId)
+            ->where('user_id', Auth::user()->id) // ensure we can only delete our own sessions
+            ->delete();
+
+        return redirect()->route('profile.show')->with('success', 'Session logged out.');
     }
 }

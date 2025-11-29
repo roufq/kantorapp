@@ -84,6 +84,68 @@
               </dl>
             </div>
           </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h5 class="mb-0">Ubah Password</h5>
+            </div>
+            <div class="card-body">
+              <form action="{{ route('profile.password.update') }}" method="POST">
+                @csrf
+                <div class="mb-3">
+                  <label for="current_password" class="form-label">Password Saat Ini</label>
+                  <input type="password" name="current_password" id="current_password" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label for="password" class="form-label">Password Baru</label>
+                  <input type="password" name="password" id="password" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label for="password_confirmation" class="form-label">Konfirmasi Password Baru</label>
+                  <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Password</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h5 class="mb-0">Sesi Browser</h5>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Kelola dan logout dari sesi aktif Anda di browser dan perangkat lain.</p>
+              @if (count($sessions) > 0)
+                <div class="list-group list-group-flush">
+                  @foreach ($sessions as $session)
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                      <div>
+                        <div class="fw-bold">
+                          {{ $session->ip_address }}
+                        </div>
+                        <div class="text-secondary" style="font-size: 0.9rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ $session->user_agent }}
+                        </div>
+                        <div class="text-secondary">
+                          Last active: {{ \Carbon\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }}
+                          @if ($session->id === request()->session()->getId())
+                            <span class="badge bg-success ms-2">Sesi ini</span>
+                          @endif
+                        </div>
+                      </div>
+                      @if ($session->id !== request()->session()->getId())
+                        <form action="{{ route('profile.session.logout', $session->id) }}" method="POST">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Logout</button>
+                        </form>
+                      @endif
+                    </div>
+                  @endforeach
+                </div>
+              @endif
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -8,15 +8,15 @@
     -   [x] SMS-based 2FA
     -   [x] Email-based 2FA
     -   [x] Authenticator app support
--   [ ] Manajemen Sesi yang Proper
-    -   [ ] Batas sesi concurrent per user
-    -   [ ] Invalidasi sesi saat password change
-    -   [ ] Device tracking dan management
-    -   [ ] Session timeout policies
--   [ ] Password Security Enhancement
-    -   [ ] Password strength requirements
-    -   [ ] Brute force protection
-    -   [ ] Account lockout policies
+-   [x] Manajemen Sesi yang Proper
+    -   [x] Batas sesi concurrent per user
+    -   [x] Invalidasi sesi saat password change
+    -   [x] Device tracking dan management
+    -   [x] Session timeout policies
+-   [x] Password Security Enhancement
+    -   [x] Password strength requirements
+    -   [x] Brute force protection
+    -   [x] Account lockout policies
 
 ### **1.2 Perlindungan Data**
 

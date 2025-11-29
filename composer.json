@@ -17,6 +17,7 @@
         "maatwebsite/excel": "^4.0@dev",
         "pragmarx/google2fa-laravel": "^2.2",
         "spatie/laravel-permission": "^6.21",
+        "jenssegers/agent": "^2.6",
         "twilio/sdk": "^7.0"
     },
     "require-dev": {
