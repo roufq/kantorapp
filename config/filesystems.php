@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        'encrypted_private' => [
+            'driver' => 'encrypted',
+            'root' => storage_path('app/encrypted_private'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

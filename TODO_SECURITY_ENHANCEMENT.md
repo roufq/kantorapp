@@ -20,10 +20,10 @@
 
 ### **1.2 Perlindungan Data**
 
--   [ ] Enkripsi Komprehensif
-    -   [ ] File storage encryption (photos, documents)
-    -   [ ] Cache encryption
-    -   [ ] Backup encryption
+-   [x] Enkripsi Komprehensif
+    -   [x] File storage encryption (photos, documents)
+    -   [x] Cache encryption
+    -   [x] Backup encryption
 -   [ ] Data Masking
     -   [ ] PII masking di application logs
     -   [ ] Sensitive data masking di database backups
