@@ -15,8 +15,19 @@
           </div>
 @endsection
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Buat Master Task untuk Diri Sendiri</h1>
+            <p class="text-muted mb-0">Catat tugas pribadi level master dan pantau progresnya.</p>
+        </div>
+        <div>
+            <a href="{{ route('master-tasks.index') }}" class="text-decoration-none">Kembali</a>
+        </div>
+    </div>
+</div>
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title">Create Task for Myself</h5>

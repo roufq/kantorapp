@@ -13,24 +13,24 @@ KantorApp is a comprehensive multi-location attendance management system built w
 
 ## Recent Updates
 
+- Security Hardening (Phase 1)
+  - 2FA multi-metode (SMS/Email/App) dengan middleware verifikasi.
+  - Login lockout: setelah 5 gagal, akun dikunci 15 menit; throttle 5/menit tetap aktif.
+  - Session timeout default 30 menit (atur via `SESSION_LIFETIME`).
+  - Sanitasi input global (strip tags/trim) kecuali field file; pemasangan di web middleware.
+  - Saat login: sesi lain user dihapus; saat ganti password: `logoutOtherDevices` memaksa logout sesi lain.
+- Tasks & Forms
+  - Semua form create/edit diberi header konsisten (judul, deskripsi singkat, link kembali).
+  - Dropdown assign task dengan pencarian di dalam panel (custom combobox).
 - Employees
-  - Added `tanggal_masuk_kerja` (join date) column to `employees` table. Run `php artisan migrate` after pulling.
-  - Employee forms (create/edit/show/index) now include join date.
-  - Location rules: Super Admin must pick a `location_id`; Admin Lokasi is auto-bound to their location.
-- Sidebar Navigation
-  - New “Karyawan” menu visible to Super Admin and Admin Lokasi (`karyawans.index`).
-- Email Verification (Configurable)
-  - Built-in verification routes/views added. Protected routes can require verified email.
-  - Toggle via env: set `EMAIL_VERIFICATION_ENABLED=true` to enforce; `false` to disable (default off for easier local dev).
-  - When enabled, creating a user triggers a verification email; login also prompts resend if not verified.
-- SMTP/Gmail Notes
-  - Use TLS on port 587 and an App Password for Gmail. See “Mail & Verification Config” below.
-- Tasks Improvements
-  - Super Admin: can assign tasks to Karyawan, Admin Lokasi, or themselves.
-  - Admin Lokasi: can assign to Karyawan in their location or themselves.
-  - Employees: can create tasks for themselves and only see their own tasks.
-  - Index filters: search, status; Super Admin can also filter by assignee role and location. Quick client-side filter in user pickers.
-  - Edit/Delete buttons visible based on role and location scoping.
+  - Field `tanggal_masuk_kerja` (join date) ditambahkan; form create/edit/show/index sudah mendukung.
+  - Admin Lokasi otomatis terikat `location_id`; Super Admin wajib pilih lokasi saat membuat admin lokasi/karyawan.
+- Menu & Navigasi
+  - Menu “Karyawan” aktif untuk Super Admin dan Admin Lokasi (`karyawans.index`).
+- Email Verification (opsional)
+  - Rute/view verifikasi tersedia; aktifkan dengan `EMAIL_VERIFICATION_ENABLED=true` jika ingin enforce.
+- SMTP/Gmail
+  - Gunakan TLS port 587 + App Password untuk Gmail (lihat bagian mail config).
 
 ### Key Features
 

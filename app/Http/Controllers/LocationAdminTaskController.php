@@ -70,7 +70,7 @@ class LocationAdminTaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'assigned_to' => 'required|exists:users,id',
-            'due_date' => 'nullable|date|after:today',
+            'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
         ]);
@@ -153,7 +153,7 @@ class LocationAdminTaskController extends Controller
             'description' => 'nullable|string',
             'assigned_to' => 'required|exists:users,id',
             'status' => 'required|in:pending,in_progress,completed',
-            'due_date' => 'nullable|date',
+            'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
         ]);

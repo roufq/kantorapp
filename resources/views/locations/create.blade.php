@@ -1,6 +1,17 @@
 ﻿@extends('layouts.app')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Tambah Lokasi</h1>
+            <p class="text-muted mb-0">Lengkapi detail lokasi baru untuk keperluan operasional dan penugasan.</p>
+        </div>
+        <div>
+            <a href="{{ route('locations.index') }}" class="text-decoration-none">Kembali</a>
+        </div>
+    </div>
+</div>
 <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <div class="content-header">
@@ -449,7 +460,6 @@
     });
 </script>
 @endsection
-
 
 
 

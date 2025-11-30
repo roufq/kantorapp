@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TaskController;
@@ -29,8 +30,21 @@ Route::get('/login', function () {
 
 Route::post('/login', function (Request $request) {
     $credentials = $request->only('email', 'password');
+    $cacheKey = 'login:lock:' . md5(strtolower($request->email));
+    $lockSeconds = 900; // 15 menit lockout
+    $maxAttempts = 5;
+
+    // Cek apakah sedang terkunci
+    if (Cache::has($cacheKey . ':locked')) {
+        return back()->withErrors(['email' => 'Akun dikunci sementara karena terlalu banyak percobaan. Coba lagi dalam beberapa menit.']);
+    }
+
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
+
+        // Reset hitungan gagal
+        Cache::forget($cacheKey . ':count');
+        Cache::forget($cacheKey . ':locked');
 
         // Invalidate other sessions
         \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
@@ -61,6 +75,16 @@ Route::post('/login', function (Request $request) {
 
         return redirect()->intended('/dashboard');
     }
+
+    // Gagal login: tingkatkan counter, lock jika perlu
+    $count = Cache::increment($cacheKey . ':count', 1);
+    if ($count === 1) {
+        Cache::put($cacheKey . ':count', 1, $lockSeconds);
+    }
+    if ($count >= $maxAttempts) {
+        Cache::put($cacheKey . ':locked', true, $lockSeconds);
+    }
+
     return back()->withErrors(['email' => 'Email atau password salah.']);
 })->name('login.post')->middleware('throttle:5,1');
 

@@ -24,14 +24,13 @@
     -   [x] File storage encryption (photos, documents)
     -   [x] Cache encryption
     -   [x] Backup encryption
--   [ ] Data Masking
-    -   [ ] PII masking di application logs
-    -   [ ] Sensitive data masking di database backups
--   [ ] Data Sanitization
-    -   [ ] Input validation enhancement
-    -   [ ] XSS protection
-    -   [ ] SQL injection prevention (parameterized queries)
-
+-   [x] Data Masking
+    -   [x] PII masking di application logs
+    -   [x] Sensitive data masking di database backups
+-   [x] Data Sanitization
+    -   [x] Input validation enhancement
+    -   [x] XSS protection
+    -   [x] SQL injection prevention (parameterized queries)
 ---
 
 ## **📱 PHASE 2: MOBILE & OFFLINE (2-3 Minggu)**

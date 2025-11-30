@@ -1,6 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Ajukan Perubahan Lokasi</h1>
+            <p class="text-muted mb-0">Kirim permintaan pindah lokasi dengan alasan yang jelas.</p>
+        </div>
+        <div>
+            <a href="{{ route('location_change_requests.index') }}" class="text-decoration-none">Kembali</a>
+        </div>
+    </div>
+</div>
 <div class="container">
     <h1>Create Location Change Request</h1>
 

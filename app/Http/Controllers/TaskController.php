@@ -107,7 +107,7 @@ class TaskController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'assigned_to' => 'required|exists:users,id',
-                'due_date' => 'nullable|date|after:today',
+                'due_date' => 'nullable|date|after_or_equal:today',
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             ]);
@@ -156,6 +156,7 @@ class TaskController extends Controller
                 'description' => $request->description,
                 'assigned_by' => $user->id,
                 'assigned_to' => $request->assigned_to,
+                'status' => 'pending',
                 'due_date' => $request->due_date,
                 'photo_path' => $photoPath,
                 'document_path' => $documentPath,
@@ -228,6 +229,35 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
+        $isStatusOnly = $request->has('status')
+            && !$request->hasAny(['title', 'description', 'assigned_to', 'due_date'])
+            && !$request->hasFile('photo')
+            && !$request->hasFile('document');
+
+        if ($isStatusOnly) {
+            if ($user->hasRole('Super Admin')) {
+                // allowed
+            } elseif ($user->hasRole('Admin Lokasi')) {
+                if (optional($task->assignee)->location_id !== $user->location_id) {
+                    abort(403, 'Not authorized to update this task');
+                }
+            } else {
+                if ($task->assigned_to !== $user->id) {
+                    abort(403, 'You can only update your own tasks');
+                }
+            }
+
+            $request->validate([
+                'status' => 'required|in:pending,in_progress,completed',
+            ]);
+
+            $task->update([
+                'status' => $request->status,
+            ]);
+
+            return redirect()->route('tasks.index')->with('success', 'Task updated!');
+        }
+
         if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
             // Super Admin/Admin Lokasi can update all fields (Admin Lokasi within location)
             $request->validate([
@@ -235,7 +265,7 @@ class TaskController extends Controller
                 'description' => 'nullable|string',
                 'assigned_to' => 'required|exists:users,id',
                 'status' => 'required|in:pending,in_progress,completed',
-                'due_date' => 'nullable|date',
+                'due_date' => 'nullable|date|after_or_equal:today',
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             ]);
@@ -373,7 +403,7 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'due_date' => 'nullable|date|after:today',
+            'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
         ]);
@@ -394,6 +424,7 @@ class TaskController extends Controller
             'description' => $request->description,
             'assigned_by' => $user->id,
             'assigned_to' => $user->id,
+            'status' => 'pending',
             'due_date' => $request->due_date,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,

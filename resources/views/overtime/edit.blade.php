@@ -1,8 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Edit Pengajuan Lembur</h1>
+            <p class="text-muted mb-0">Sesuaikan detail permintaan lembur sebelum disetujui.</p>
+        </div>
+        <div>
+            <a href="{{ route('overtime.index') }}" class="text-decoration-none">Kembali</a>
+        </div>
+    </div>
+</div>
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">Edit Overtime Request</h3>

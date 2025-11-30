@@ -1,6 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Edit Laporan</h1>
+            <p class="text-muted mb-0">Perbarui isi laporan sebelum dikirim atau direview.</p>
+        </div>
+        <div>
+            <a href="{{ route('reports.index') }}" class="text-decoration-none">Kembali</a>
+        </div>
+    </div>
+</div>
 <div class="content-wrapper">
   <div class="content-header">
     <div class="container-fluid d-flex justify-content-between align-items-center">
