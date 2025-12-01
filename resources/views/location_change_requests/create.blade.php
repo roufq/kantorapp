@@ -8,7 +8,7 @@
             <p class="text-muted mb-0">Kirim permintaan pindah lokasi dengan alasan yang jelas.</p>
         </div>
         <div>
-            <a href="{{ route('location_change_requests.index') }}" class="text-decoration-none">Kembali</a>
+            <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">kembali</a>
         </div>
     </div>
 </div>
@@ -64,16 +64,16 @@
 
 @push('scripts')
 <script>
-  const filterInput = document.getElementById('userFilter');
-  const selectEl = document.getElementById('user_id');
-  if (filterInput && selectEl) {
-    filterInput.addEventListener('input', function() {
-      const term = this.value.toLowerCase();
-      for (const opt of selectEl.options) {
-        const txt = opt.textContent.toLowerCase();
-        opt.hidden = term && !txt.includes(term);
-      }
-    });
-  }
+    const filterInput = document.getElementById('userFilter');
+    const selectEl = document.getElementById('user_id');
+    if (filterInput && selectEl) {
+        filterInput.addEventListener('input', function() {
+            const term = this.value.toLowerCase();
+            for (const opt of selectEl.options) {
+                const txt = opt.textContent.toLowerCase();
+                opt.hidden = term && !txt.includes(term);
+            }
+        });
+    }
 </script>
 @endpush

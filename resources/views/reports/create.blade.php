@@ -12,17 +12,6 @@
         </div>
     </div>
 </div>
-<div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div>
-        <h1 class="m-0">Buat Laporan</h1>
-        <p class="text-secondary mb-0">Karyawan melapor ke admin lokasi, lanjut ke Super Admin</p>
-      </div>
-      <a href="{{ route('reports.index') }}" class="btn btn-link">Kembali</a>
-    </div>
-  </div>
-
   <div class="content">
     <div class="container-fluid">
       @if ($errors->any())

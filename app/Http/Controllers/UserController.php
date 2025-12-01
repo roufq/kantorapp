@@ -279,4 +279,33 @@ class UserController extends Controller
 
         return redirect()->route('profile.show')->with('success', 'Session logged out.');
     }
+
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+        $page = $request->get('page', 1);
+        $perPage = 10;
+
+        $users = User::role('Karyawan')
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('email', 'like', "%{$query}%");
+            })
+            ->with('location')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $results = $users->getCollection()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'text' => $user->name . ' (' . $user->email . ') - ' . ($user->location ? $user->location->name : 'No Location'),
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => $users->hasMorePages(),
+            ],
+        ]);
+    }
 }
