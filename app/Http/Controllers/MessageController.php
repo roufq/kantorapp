@@ -13,6 +13,12 @@ class MessageController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        // Mark all received messages as read when visiting the inbox
+        Message::where('receiver_id', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         $conversations = Message::where('sender_id', $user->id)
             ->orWhere('receiver_id', $user->id)
             ->with(['sender', 'receiver'])
@@ -70,6 +76,12 @@ class MessageController extends Controller
 
     public function show(User $user)
     {
+        // Mark thread messages addressed to the current user as read
+        Message::where('sender_id', $user->id)
+            ->where('receiver_id', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         $messages = Message::where(function ($query) use ($user) {
             $query->where('sender_id', Auth::id())->where('receiver_id', $user->id);
         })->orWhere(function ($query) use ($user) {

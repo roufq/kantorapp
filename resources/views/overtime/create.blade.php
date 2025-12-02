@@ -31,14 +31,14 @@
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="start_time" class="form-label">Start Time (WIB)</label>
-                                <input type="time" name="start_time" class="form-control" id="start_time" required step="60" pattern="[0-9]{2}:[0-9]{2}">
+                                <input type="time" name="start_time" class="form-control time-24" id="start_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
                                 <small class="form-text text-muted">Format: HH:MM (24-jam)</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="end_time" class="form-label">End Time (WIB)</label>
-                                <input type="time" name="end_time" class="form-control" id="end_time" required step="60" pattern="[0-9]{2}:[0-9]{2}">
+                                <input type="time" name="end_time" class="form-control time-24" id="end_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
                                 <small class="form-text text-muted">Format: HH:MM (24-jam)</small>
                             </div>
                         </div>

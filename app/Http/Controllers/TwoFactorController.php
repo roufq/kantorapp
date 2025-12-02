@@ -19,13 +19,17 @@ class TwoFactorController extends Controller
             return redirect()->route('dashboard')->with('info', 'Two-factor authentication is already enabled.');
         }
 
-        return view('auth.2fa.setup');
+        return view('auth.2fa.setup', [
+            'availableMethods' => $this->availableMethods(),
+        ]);
     }
 
     public function setup(Request $request)
     {
+        $availableMethods = $this->availableMethods();
+
         $request->validate([
-            'method' => 'required|in:sms,email,app',
+            'method' => 'required|in:' . implode(',', $availableMethods),
             'phone_number' => 'required_if:method,sms|nullable|string',
         ]);
 
@@ -54,7 +58,10 @@ class TwoFactorController extends Controller
         $user->save();
 
         // Send verification code
-        $this->sendVerificationCode($user);
+        $sendResult = $this->sendVerificationCode($user);
+        if ($sendResult !== true) {
+            return back()->withErrors(['method' => $sendResult ?: 'Unable to send verification code.']);
+        }
 
         return redirect()->route('2fa.verify')->with('success', 'Verification code sent. Please check your ' . $request->method . '.');
     }
@@ -150,16 +157,21 @@ class TwoFactorController extends Controller
 
         switch ($user->two_factor_method) {
             case 'sms':
-                $this->sendSmsCode($user->phone_number, $code);
-                break;
+                return $this->sendSmsCode($user->phone_number, $code);
             case 'email':
                 Mail::to($user->email)->send(new TwoFactorCode($code));
-                break;
+                return true;
         }
+
+        return 'Invalid two-factor method.';
     }
 
     private function sendSmsCode($phoneNumber, $code)
     {
+        if (!$this->isTwilioConfigured()) {
+            return 'SMS provider is not configured. Please choose another method.';
+        }
+
         $twilio = new Client(
             config('services.twilio.sid'),
             config('services.twilio.token')
@@ -172,6 +184,8 @@ class TwoFactorController extends Controller
                 'body' => "Your verification code is: $code"
             ]
         );
+
+        return true;
     }
 
     private function verifyCode($user, $code)
@@ -184,5 +198,25 @@ class TwoFactorController extends Controller
         }
 
         return $sessionCode == $code;
+    }
+
+    private function availableMethods(): array
+    {
+        $methods = ['email']; // Always available
+
+        if (class_exists(Google2FA::class)) {
+            $methods[] = 'app';
+        }
+
+        if ($this->isTwilioConfigured()) {
+            $methods[] = 'sms';
+        }
+
+        return $methods;
+    }
+
+    private function isTwilioConfigured(): bool
+    {
+        return config('services.twilio.sid') && config('services.twilio.token') && config('services.twilio.from');
     }
 }

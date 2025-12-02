@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AttendanceRecapExport;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Location;
@@ -13,6 +14,8 @@ use App\Models\EmployeeLeave;
 use App\Services\WorkdayService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelWriter;
 
 class AttendanceController extends Controller
 {
@@ -47,6 +50,7 @@ class AttendanceController extends Controller
             $approvedChangeRequest = LocationChangeRequest::where('user_id', $user->id)
                 ->whereDate('request_date', Carbon::today())
                 ->where('status', 'approved')
+                ->orderByDesc('id')
                 ->first();
             if ($approvedChangeRequest && $this->isWithinOfficeRadius($request->latitude, $request->longitude, $approvedChangeRequest->targetLocation, $request->accuracy)) {
                 $attendanceLocationId = $approvedChangeRequest->target_location_id;
@@ -177,6 +181,7 @@ class AttendanceController extends Controller
             $approvedChangeRequest = LocationChangeRequest::where('user_id', $user->id)
                 ->where('request_date', Carbon::today())
                 ->where('status', 'approved')
+                ->orderByDesc('id')
                 ->first();
 
             if ($approvedChangeRequest) {
@@ -248,6 +253,7 @@ class AttendanceController extends Controller
         $approvedChangeToday = LocationChangeRequest::where('user_id', $user->id)
             ->whereDate('request_date', Carbon::today())
             ->where('status', 'approved')
+            ->orderByDesc('id')
             ->first();
         if ($approvedChangeToday && $approvedChangeToday->targetLocation) {
             $effectiveLocation = $approvedChangeToday->targetLocation;
@@ -287,6 +293,7 @@ class AttendanceController extends Controller
         $approvedChangeToday = LocationChangeRequest::where('user_id', $user->id)
             ->whereDate('request_date', Carbon::today())
             ->where('status', 'approved')
+            ->orderByDesc('id')
             ->first();
         if ($approvedChangeToday && $approvedChangeToday->targetLocation) {
             $effectiveLocation = $approvedChangeToday->targetLocation;
@@ -326,14 +333,41 @@ class AttendanceController extends Controller
 
     public function recap(Request $request)
     {
+        $data = $this->buildRecapData($request);
+
+        return view('attendances.recap', [
+            'rows' => $data['rows'],
+            'start' => $data['start']->toDateString(),
+            'end' => $data['end']->toDateString(),
+            'locations' => $data['locations'],
+        ]);
+    }
+
+    public function exportRecap(Request $request)
+    {
+        $data = $this->buildRecapData($request);
+
+        $filename = sprintf(
+            'attendance_recap_%s_%s.xlsx',
+            $data['start']->format('Ymd'),
+            $data['end']->format('Ymd')
+        );
+
+        return Excel::download(
+            new AttendanceRecapExport($data['rows']),
+            $filename,
+            ExcelWriter::XLSX
+        );
+    }
+
+    private function buildRecapData(Request $request): array
+    {
         $auth = auth()->user();
 
-        // Determine date range
         $start = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
         $end = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
         if ($start->gt($end)) { [$start, $end] = [$end, $start]; }
 
-        // Scope users by role
         $usersQuery = \App\Models\User::query();
         if ($auth->hasRole('Admin Lokasi')) {
             $usersQuery->where('location_id', $auth->location_id);
@@ -348,8 +382,6 @@ class AttendanceController extends Controller
         }
         $users = $usersQuery->orderBy('name')->get();
 
-        $period = CarbonPeriod::create($start->toDateString(), $end->toDateString());
-
         $rows = [];
         foreach ($users as $u) {
             $totalDays = 0;
@@ -359,7 +391,7 @@ class AttendanceController extends Controller
             $workingDays = 0;
             $presentDays = 0;
 
-            foreach ($period as $date) {
+            foreach (CarbonPeriod::create($start->toDateString(), $end->toDateString()) as $date) {
                 $totalDays++;
                 $isHoliday = WorkdayService::isHolidayForUser($u, $date);
                 $isWO = WorkdayService::isWeeklyOff($u, $date);
@@ -369,10 +401,8 @@ class AttendanceController extends Controller
                 if ($isWO) { $weeklyOffDays++; }
                 if ($hasLeave) { $leaveDays++; }
 
-                // Working day excludes holiday/weekly off/leave
                 if (!$isHoliday && !$isWO && !$hasLeave) {
                     $workingDays++;
-                    // Present if attendance exists
                     $hasAtt = Attendance::where('user_id', $u->id)
                         ->whereDate('check_in_time', $date->toDateString())
                         ->exists();
@@ -395,16 +425,16 @@ class AttendanceController extends Controller
             ];
         }
 
-        // For filters UI
         $locations = $auth->hasRole('Super Admin') ? Location::orderBy('name')->get() : collect();
 
-        return view('attendances.recap', [
+        return [
             'rows' => $rows,
-            'start' => $start->toDateString(),
-            'end' => $end->toDateString(),
+            'start' => $start,
+            'end' => $end,
             'locations' => $locations,
-        ]);
+        ];
     }
+
     public function updateApproval(Request $request, $id)
     {
         $attendance = Attendance::findOrFail($id);

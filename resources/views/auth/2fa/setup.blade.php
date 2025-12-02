@@ -13,15 +13,27 @@
 
                     <form action="{{ route('2fa.setup.post') }}" method="POST">
                         @csrf
+                        @php
+                            $methods = $availableMethods ?? ['email', 'app'];
+                        @endphp
 
                         <div class="mb-3">
                             <label for="method" class="form-label">Authentication Method</label>
                             <select name="method" id="method" class="form-control" required>
                                 <option value="">Select a method</option>
-                                <option value="app">Authenticator App (Recommended)</option>
-                                <option value="email">Email</option>
-                                <option value="sms">SMS</option>
+                                @if(in_array('app', $methods))
+                                    <option value="app">Authenticator App (Recommended)</option>
+                                @endif
+                                @if(in_array('email', $methods))
+                                    <option value="email">Email</option>
+                                @endif
+                                @if(in_array('sms', $methods))
+                                    <option value="sms">SMS</option>
+                                @endif
                             </select>
+                            @if(!in_array('sms', $methods))
+                                <small class="text-muted">SMS is unavailable because SMS provider is not configured.</small>
+                            @endif
                         </div>
 
                         <div class="mb-3" id="phone-field" style="display: none;">

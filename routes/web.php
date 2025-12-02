@@ -265,6 +265,7 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
     Route::get('/attendance/absences', [AttendanceController::class, 'absences'])->name('attendance.absences');
     Route::get('/attendance/recap', [AttendanceController::class, 'recap'])->name('attendance.recap');
+    Route::get('/attendance/recap/export', [AttendanceController::class, 'exportRecap'])->name('attendance.recap.export');
     // Employees (Super Admin and Admin Lokasi)
     Route::resource('karyawans', App\Http\Controllers\EmployeeController::class)->middleware('role:Super Admin,Admin Lokasi');
 });

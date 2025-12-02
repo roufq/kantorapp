@@ -1,5 +1,5 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="id">
 <!--begin::Head-->
 
 <head>
@@ -267,7 +267,24 @@
               </li>
               <!--end::User Image-->
               <!--begin::Menu Body-->
-              
+              <li class="user-body">
+                @php $twoFactorEnabled = auth()->user()->hasTwoFactorEnabled(); @endphp
+                @if(!$twoFactorEnabled)
+                  <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Enable two-factor authentication">
+                    Enable Two-Factor Authentication
+                  </a>
+                @else
+                  <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Manage two-factor authentication">
+                    Manage Two-Factor Authentication
+                  </a>
+                  <form action="{{ route('2fa.disable') }}" method="POST" class="d-grid">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Disable two-factor authentication">
+                      Disable Two-Factor
+                    </button>
+                  </form>
+                @endif
+              </li>
               <!--end::Menu Body-->
               <!--begin::Menu Footer-->
               <li class="user-footer d-flex justify-content-between">
@@ -530,12 +547,6 @@
               <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-calendar3"></i>
                 <p>Shift Assignments</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{{ route('master-tasks.index') }}" class="nav-link {{ request()->routeIs('master-tasks.*') ? 'active' : '' }}">
-                <i class="nav-icon bi bi-check2-circle"></i>
-                <p>Master Tasks</p>
               </a>
             </li>
             @endif
@@ -1054,6 +1065,7 @@
   <script src="{{ $brandLocation->custom_js_url }}"></script>
   @endif
   @yield('scripts')
+  @stack('scripts')
   <!--end::Script-->
 </body>
 <!--end::Body-->

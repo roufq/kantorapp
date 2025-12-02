@@ -48,13 +48,14 @@
           <option value="">All</option>
           @foreach($users as $u)
             <option value="{{ $u->id }}" @selected(request('user_id')==$u->id)>{{ $u->name }}</option>
-          @endforeach
-        </select>
-      </div>
-      <div class="col-12 d-flex align-items-end">
-        <button class="btn btn-primary" type="submit">Apply</button>
-      </div>
-    </form>
+      @endforeach
+    </select>
+  </div>
+  <div class="col-12 d-flex align-items-end">
+    <button class="btn btn-primary" type="submit">Apply</button>
+    <button class="btn btn-success ms-2" type="submit" formaction="{{ route('attendance.recap.export') }}">Export Excel</button>
+  </div>
+</form>
   </div>
 </div>
 
@@ -96,4 +97,3 @@
   </div>
 </div>
 @endsection
-

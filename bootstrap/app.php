@@ -48,4 +48,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back()->with('forbidden', 'Anda tidak punya akses untuk halaman tersebut.');
             }
         });
+
+        // Redirect Page Expired (419) to login with a friendly message
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Sesi berakhir, silakan login kembali.'], 419);
+            }
+            return redirect()->route('login')->with('warning', 'Sesi berakhir, silakan login kembali.');
+        });
     })->create();
