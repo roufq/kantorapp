@@ -15,6 +15,7 @@ KantorApp is a comprehensive multi-location attendance management system built w
 
 - Security Hardening (Phase 1)
   - 2FA multi-metode (SMS/Email/App) dengan middleware verifikasi.
+  - Perbaikan loop redirect 2FA: hanya bypass verify jika sesi sudah `2fa_verified`.
   - Login lockout: setelah 5 gagal, akun dikunci 15 menit; throttle 5/menit tetap aktif.
   - Session timeout default 30 menit (atur via `SESSION_LIFETIME`).
   - Sanitasi input global (strip tags/trim) kecuali field file; pemasangan di web middleware.
@@ -22,6 +23,9 @@ KantorApp is a comprehensive multi-location attendance management system built w
 - Tasks & Forms
   - Semua form create/edit diberi header konsisten (judul, deskripsi singkat, link kembali).
   - Dropdown assign task dengan pencarian di dalam panel (custom combobox).
+- Messaging
+  - Halaman Messages tampil gaya WhatsApp Web (sidebar chat + area percakapan).
+  - Dropdown penerima dengan pencarian inline (mirip dropdown assign task).
 - Employees
   - Field `tanggal_masuk_kerja` (join date) ditambahkan; form create/edit/show/index sudah mendukung.
   - Admin Lokasi otomatis terikat `location_id`; Super Admin wajib pilih lokasi saat membuat admin lokasi/karyawan.
@@ -31,6 +35,8 @@ KantorApp is a comprehensive multi-location attendance management system built w
   - Rute/view verifikasi tersedia; aktifkan dengan `EMAIL_VERIFICATION_ENABLED=true` jika ingin enforce.
 - SMTP/Gmail
   - Gunakan TLS port 587 + App Password untuk Gmail (lihat bagian mail config).
+- Reporting
+  - Export Rekap Kehadiran ke Excel (filter mengikuti tabel recap).
 
 ### Key Features
 

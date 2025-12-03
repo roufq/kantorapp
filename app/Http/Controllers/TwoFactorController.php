@@ -70,11 +70,13 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
+        // If method not chosen, force setup flow
         if (!$user->two_factor_method) {
             return redirect()->route('2fa.setup');
         }
 
-        if ($user->hasTwoFactorEnabled()) {
+        // If 2FA already enabled, only bypass verification when session is verified
+        if ($user->hasTwoFactorEnabled() && session('2fa_verified')) {
             return redirect()->route('dashboard');
         }
 
