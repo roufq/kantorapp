@@ -16,61 +16,6 @@
 </div>
 @endsection
 
-@section('scripts')
-<script>
-function updateStatus(taskId, newStatus) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const url = `/master-tasks/${taskId}`;
-    const data = {
-        status: newStatus,
-        _method: 'PATCH'
-    };
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update the status badge in the main card
-            const statusBadge = document.querySelector('.card-body p .badge');
-            statusBadge.className = 'badge ';
-            switch (newStatus) {
-                case 'pending':
-                    statusBadge.classList.add('text-bg-warning');
-                    statusBadge.textContent = 'Pending';
-                    break;
-                case 'in_progress':
-                    statusBadge.classList.add('text-bg-info');
-                    statusBadge.textContent = 'In Progress';
-                    break;
-                case 'completed':
-                    statusBadge.classList.add('text-bg-success');
-                    statusBadge.textContent = 'Completed';
-                    break;
-            }
-            // Show success message
-            document.getElementById('status-message').innerHTML = '<div class="alert alert-success">Status updated successfully!</div>';
-            setTimeout(() => {
-                document.getElementById('status-message').innerHTML = '';
-            }, 3000);
-        } else {
-            document.getElementById('status-message').innerHTML = '<div class="alert alert-danger">Failed to update status.</div>';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('status-message').innerHTML = '<div class="alert alert-danger">An error occurred while updating status.</div>';
-    });
-}
-</script>
-@endsection
 @section('content')
 <div class="row">
     <div class="col-md-8">
@@ -94,22 +39,18 @@ function updateStatus(taskId, newStatus) {
                         <p>{{ $masterTask->description }}</p>
                     </div>
                     <div class="col-md-6">
-                        <h5>Status</h5>
-                        <p>
-                            @switch($masterTask->status)
-                                @case('pending')
-                                    <span class="badge text-bg-warning">Pending</span>
-                                    @break
-                                @case('in_progress')
-                                    <span class="badge text-bg-info">In Progress</span>
-                                    @break
-                                @case('completed')
-                                    <span class="badge text-bg-success">Completed</span>
-                                    @break
-                                @default
-                                    <span class="badge text-bg-secondary">{{ $masterTask->status }}</span>
-                            @endswitch
-                        </p>
+                        <h5>Status & Progress</h5>
+                        <p class="mb-1"><span class="badge text-bg-secondary">{{ ucfirst($masterTask->status) }}</span></p>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>Progress</span>
+                                <span>{{ $masterTask->progress ?? 0 }}%</span>
+                            </div>
+                            <div class="progress" style="height:10px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ $masterTask->progress ?? 0 }}%;" aria-valuenow="{{ $masterTask->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Update progres 0-100% dengan lampiran foto/dokumen.</small>
+                        </div>
                     </div>
                 </div>
                 <div class="row">
@@ -159,21 +100,36 @@ function updateStatus(taskId, newStatus) {
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+</div>
+
+<div class="row mt-3" id="progress-form">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title">Quick Actions</h5>
+                <h5 class="card-title mb-0">Update Progress (Super Admin)</h5>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label for="status" class="form-label">Update Status</label>
-                    <select name="status" id="status" class="form-select" onchange="updateStatus({{ $masterTask->id }}, this.value)">
-                        <option value="pending" {{ $masterTask->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="in_progress" {{ $masterTask->status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                        <option value="completed" {{ $masterTask->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                    </select>
-                </div>
-                <div id="status-message"></div>
+                <form action="{{ route('master-tasks.update', $masterTask) }}" method="POST" enctype="multipart/form-data" class="row g-3">
+                    @csrf
+                    @method('PATCH')
+                    <div class="col-md-4">
+                        <label class="form-label">Progress (%)</label>
+                        <input type="number" name="progress" class="form-control" min="0" max="100" value="{{ old('progress', $masterTask->progress) }}" required>
+                        <small class="text-muted">Status otomatis menyesuaikan progres.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Foto Bukti</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Dokumen Bukti</label>
+                        <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Simpan Progress</button>
+                        <small class="text-muted ms-2">Wajib melampirkan minimal satu file.</small>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -16,6 +16,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1>Tasks in My Location</h1>
   <div>
+    <a href="{{ route('tasks.progress.approvals') }}" class="btn btn-warning me-2">Approval Progress</a>
     <a href="{{ route('location-admin-tasks.create') }}" class="btn btn-primary">Assign Task</a>
   </div>
 </div>
@@ -39,7 +40,16 @@
         </div>
         <div class="card-body">
           <p>{{ $task->description }}</p>
-          <p><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
+          <p class="mb-1"><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
+          <div class="mb-2">
+            <div class="d-flex justify-content-between small">
+              <span>Progress</span>
+              <span>{{ $task->progress ?? 0 }}%</span>
+            </div>
+            <div class="progress" style="height:8px;">
+              <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%;" aria-valuenow="{{ $task->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
           <p><strong>Due:</strong> {{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
           <p><strong>Assigned to:</strong> {{ optional($task->assignee)->name }}</p>
         </div>
@@ -64,4 +74,3 @@
   </div>
 @endif
 @endsection
-

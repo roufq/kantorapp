@@ -19,7 +19,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
         <div>
             <h1 class="h3 mb-1">Edit Master Task</h1>
-            <p class="text-muted mb-0">Perbarui detail atau penugasan master task sesuai kebutuhan.</p>
+            <p class="text-muted mb-0">Perbarui detail dan progres (0-100%) dengan lampiran foto/dokumen.</p>
         </div>
         <div>
             <a href="{{ route('master-tasks.index') }}" class="text-decoration-none">Kembali</a>
@@ -64,13 +64,10 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
-                            <option value="pending" {{ old('status', $masterTask->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="in_progress" {{ old('status', $masterTask->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                            <option value="completed" {{ old('status', $masterTask->status) == 'completed' ? 'selected' : '' }}>Completed</option>
-                        </select>
-                        @error('status')
+                        <label for="progress" class="form-label">Progress (%)</label>
+                        <input type="number" class="form-control @error('progress') is-invalid @enderror" id="progress" name="progress" value="{{ old('progress', $masterTask->progress) }}" min="0" max="100" required>
+                        <small class="text-muted">Status akan mengikuti progres (0 = pending, 100 = completed).</small>
+                        @error('progress')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -82,7 +79,7 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="photo" class="form-label">Photo (Optional)</label>
+                        <label for="photo" class="form-label">Photo (Wajib pilih salah satu: foto atau dokumen)</label>
                         <input type="file" class="form-control @error('photo') is-invalid @enderror" id="photo" name="photo" accept="image/*">
                         @if($masterTask->photo_path)
                             <div class="mt-2">
@@ -94,8 +91,8 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="document" class="form-label">Document (Optional)</label>
-                        <input type="file" class="form-control @error('document') is-invalid @enderror" id="document" name="document" accept=".pdf,.doc,.docx,.txt">
+                        <label for="document" class="form-label">Document (opsional jika sudah upload foto)</label>
+                        <input type="file" class="form-control @error('document') is-invalid @enderror" id="document" name="document" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
                         @if($masterTask->document_path)
                             <div class="mt-2">
                                 <small class="text-muted">Current document: <a href="{{ route('master-tasks.download.document', $masterTask) }}" target="_blank">Download</a></small>

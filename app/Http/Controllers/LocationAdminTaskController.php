@@ -152,7 +152,6 @@ class LocationAdminTaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'assigned_to' => 'required|exists:users,id',
-            'status' => 'required|in:pending,in_progress,completed',
             'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
@@ -185,11 +184,12 @@ class LocationAdminTaskController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'assigned_to' => $request->assigned_to,
-            'status' => $request->status,
             'due_date' => $request->due_date,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,
         ]);
+
+        $task->applyProgress((int) $task->progress);
 
         return redirect()->route('location-admin-tasks.index')->with('success', 'Task updated!');
     }

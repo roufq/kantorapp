@@ -20,6 +20,7 @@
     <div>
         @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
             <a href="{{ route('tasks.create') }}" class="btn btn-primary me-2">Assign Task</a>
+            <a href="{{ route('tasks.progress.approvals') }}" class="btn btn-warning me-2">Approval Progress</a>
         @endif
         <a href="{{ route('tasks.create.self') }}" class="btn btn-outline-primary">Create Task for Myself</a>
     </div>
@@ -75,24 +76,25 @@
                 </div>
                 <div class="card-body">
                     <p>{{ $task->description }}</p>
-                    <p><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
+                    <p class="mb-1"><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between small">
+                            <span>Progress</span>
+                            <span>{{ $task->progress ?? 0 }}%</span>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%;" aria-valuenow="{{ $task->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
                     <p><strong>Due:</strong> {{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
                     <p><strong>Assigned by:</strong> {{ $task->assigner->name }}</p>
                     <p><strong>Assigned to:</strong> {{ optional($task->assignee)->name }}</p>
                 </div>
                 <div class="card-footer">
-                    <form action="{{ route('tasks.update', $task) }}" method="POST" style="display: inline;">
-                        @csrf
-                        @method('PATCH')
-                        <select name="status" class="form-select" onchange="this.form.submit()">
-                            <option value="pending" {{ $task->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="in_progress" {{ $task->status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                            <option value="completed" {{ $task->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                        </select>
-                    </form>
                     @php($me = auth()->user())
                     @if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id))
                         <div class="mt-2">
+                            <a href="{{ route('tasks.show', $task) }}#progress-form" class="btn btn-sm btn-primary me-1">Update Progress</a>
                             <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form action="{{ route('tasks.destroy', $task) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure?')">
                                 @csrf

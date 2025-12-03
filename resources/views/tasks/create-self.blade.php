@@ -41,6 +41,7 @@
                         <label for="document" class="form-label">Document (Optional)</label>
                         <input type="file" class="form-control" id="document" name="document" accept=".pdf,.doc,.docx,.txt">
                     </div>
+                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail dengan melampirkan foto atau dokumen.</p>
                     <button type="submit" class="btn btn-primary">Create Task</button>
                 </form>
             </div>

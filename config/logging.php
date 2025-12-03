@@ -5,6 +5,10 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
+$maskTap = class_exists(App\Logging\MaskSensitiveData::class)
+    ? [App\Logging\MaskSensitiveData::class]
+    : [];
+
 return [
 
     /*
@@ -56,7 +60,7 @@ return [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
             'ignore_exceptions' => false,
-            'tap' => [App\Logging\MaskSensitiveData::class],
+            'tap' => $maskTap,
         ],
 
         'single' => [
@@ -64,7 +68,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
-            'tap' => [App\Logging\MaskSensitiveData::class],
+            'tap' => $maskTap,
         ],
 
         'daily' => [
@@ -73,7 +77,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'tap' => [App\Logging\MaskSensitiveData::class],
+            'tap' => $maskTap,
         ],
 
         'slack' => [

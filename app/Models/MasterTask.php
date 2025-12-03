@@ -17,6 +17,7 @@ class MasterTask extends Model
         'assigned_by',
         'assigned_to',
         'status',
+        'progress',
         'due_date',
         'photo_path',
         'document_path',
@@ -26,6 +27,7 @@ class MasterTask extends Model
     {
         return [
             'due_date' => 'date',
+            'progress' => 'integer',
         ];
     }
 

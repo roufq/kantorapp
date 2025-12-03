@@ -5,7 +5,7 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
       <h1 class="h3 mb-1">Edit Tugas Lokasi</h1>
-      <p class="text-muted mb-0">Perbarui detail atau status tugas di lokasi Anda.</p>
+      <p class="text-muted mb-0">Perbarui detail tugas. Progres diperbarui lewat form progres dengan lampiran.</p>
     </div>
     <div>
       <a href="{{ route('location-admin-tasks.index') }}" class="text-decoration-none">Kembali</a>
@@ -40,15 +40,6 @@
             @error('assigned_to')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
           <div class="mb-3">
-            <label for="status" class="form-label">Status</label>
-            <select name="status" id="status" class="form-select" required>
-              <option value="pending" {{ old('status', $task->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-              <option value="in_progress" {{ old('status', $task->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-              <option value="completed" {{ old('status', $task->status) == 'completed' ? 'selected' : '' }}>Completed</option>
-            </select>
-            @error('status')<div class="text-danger">{{ $message }}</div>@enderror
-          </div>
-          <div class="mb-3">
             <label for="due_date" class="form-label">Due Date</label>
             <input type="date" name="due_date" id="due_date" value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}" class="form-control">
             @error('due_date')<div class="text-danger">{{ $message }}</div>@enderror
@@ -69,6 +60,7 @@
             @endif
             @error('document')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
+          <p class="text-muted">Untuk progres, gunakan form update progres di halaman detail tugas (dengan foto/dokumen).</p>
           <button type="submit" class="btn btn-primary">Update Task</button>
           <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-secondary">Cancel</a>
         </form>

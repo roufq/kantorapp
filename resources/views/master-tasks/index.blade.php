@@ -43,22 +43,23 @@
                     </div>
                     <div class="card-body">
                         <p>{{ $masterTask->description }}</p>
-                        <p><strong>Status:</strong> {{ ucfirst($masterTask->status) }}</p>
+                        <p class="mb-1"><strong>Status:</strong> {{ ucfirst($masterTask->status) }}</p>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>Progress</span>
+                                <span>{{ $masterTask->progress ?? 0 }}%</span>
+                            </div>
+                            <div class="progress" style="height:8px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ $masterTask->progress ?? 0 }}%;" aria-valuenow="{{ $masterTask->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
                         <p><strong>Due:</strong> {{ $masterTask->due_date ? $masterTask->due_date->format('d M Y') : 'No due date' }}</p>
                         <p><strong>Assigned by:</strong> {{ $masterTask->assigner->name }}</p>
                         <p><strong>Assigned to:</strong> {{ $masterTask->assignee ? $masterTask->assignee->name : 'Not assigned' }}</p>
                     </div>
                     <div class="card-footer">
-                        <form action="{{ route('master-tasks.update', $masterTask) }}" method="POST" style="display: inline;">
-                            @csrf
-                            @method('PATCH')
-                            <select name="status" class="form-select" onchange="this.form.submit()">
-                                <option value="pending" {{ $masterTask->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_progress" {{ $masterTask->status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                                <option value="completed" {{ $masterTask->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                            </select>
-                        </form>
                         <div class="mt-2">
+                            <a href="{{ route('master-tasks.show', $masterTask) }}#progress-form" class="btn btn-sm btn-primary">Update Progress</a>
                             <a href="{{ route('master-tasks.edit', $masterTask) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form action="{{ route('master-tasks.destroy', $masterTask) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure?')">
                                 @csrf

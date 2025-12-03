@@ -17,6 +17,15 @@
             <p><strong>Title:</strong> {{ $task->title }}</p>
             <p><strong>Description:</strong> {{ $task->description ?: 'No description' }}</p>
             <p><strong>Status:</strong> <span class="badge text-bg-secondary">{{ ucfirst($task->status) }}</span></p>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span>Progress</span>
+                <span>{{ $task->progress ?? 0 }}%</span>
+              </div>
+              <div class="progress" style="height:10px;">
+                <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%;" aria-valuenow="{{ $task->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
             <p><strong>Due Date:</strong> {{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
             <p><strong>Assigned By:</strong> {{ optional($task->assigner)->name }}</p>
             <p><strong>Assigned To:</strong> {{ optional($task->assignee)->name }}</p>
@@ -26,6 +35,7 @@
             @if($task->document_path)
               <p><strong>Document:</strong> <a href="{{ route('location-admin-tasks.download.document', $task) }}" target="_blank" class="btn btn-sm btn-outline-primary">Download Document</a></p>
             @endif
+            <p class="text-muted mt-2">Proses approval progres karyawan melalui halaman <a href="{{ route('tasks.progress.approvals') }}">Approval Progress</a>.</p>
           </div>
         </div>
       </div>
@@ -33,4 +43,3 @@
   </div>
 </div>
 @endsection
-

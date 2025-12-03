@@ -58,6 +58,7 @@ class DashboardController extends Controller
         $todayAssignmentsCount = 0;
         $recentAssignments = collect();
         $myUpcomingAssignments = collect();
+        $attendanceList = collect();
 
         // Get counts for dashboard (location-aware for non Super Admin)
         if ($user->hasRole('Super Admin')) {
@@ -94,6 +95,15 @@ class DashboardController extends Controller
                     ->whereDate('date', '>=', $today)
                     ->orderBy('date', 'asc')
                     ->limit(5)
+                    ->get();
+                $attendanceList = Attendance::with('user')
+                    ->where(function ($q) use ($today) {
+                        $q->whereDate('check_in_time', $today)->orWhereDate('check_out_time', $today);
+                    })
+                    ->whereHas('user', function ($q) use ($locationId) {
+                        $q->where('location_id', $locationId);
+                    })
+                    ->orderBy('check_in_time', 'desc')
                     ->get();
             }
         }
@@ -151,6 +161,13 @@ class DashboardController extends Controller
                 ->get();
             // Absence for today
             $absencesTodayCount = EmployeeAbsence::where('user_id', $user->id)->whereDate('date', $today)->count();
+            $attendanceList = Attendance::with('user')
+                ->where('user_id', $user->id)
+                ->where(function ($q) use ($today) {
+                    $q->whereDate('check_in_time', $today)->orWhereDate('check_out_time', $today);
+                })
+                ->orderBy('check_in_time', 'desc')
+                ->get();
         }
 
         // Notices for holidays/leaves relevant to the user (cached)
@@ -220,7 +237,7 @@ class DashboardController extends Controller
             return $list;
         });
 
-        // Get today's attendance for the user
+        // Get today's attendance for the user (and for Admin Lokasi themselves)
         $todayAttendance = Attendance::where('user_id', $user->id)
             ->whereDate('check_in_time', now()->toDateString())
             ->first();
@@ -229,6 +246,6 @@ class DashboardController extends Controller
             'user', 'tasks', 'unreadMessages',
             'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
             'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount'
-        ));
+        ))->with('attendanceList', $attendanceList);
     }
 }

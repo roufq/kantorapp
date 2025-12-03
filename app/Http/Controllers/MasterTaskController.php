@@ -64,6 +64,7 @@ class MasterTaskController extends Controller
             'assigned_by' => $user->id,
             'assigned_to' => $request->assigned_to,
             'due_date' => $request->due_date,
+            'progress' => 0,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,
         ]);
@@ -100,21 +101,66 @@ class MasterTaskController extends Controller
             abort(403);
         }
 
+        $isProgressOnly = $request->has('progress') && !$request->has('title');
+
+        if ($isProgressOnly) {
+            $request->validate([
+                'progress' => 'required|integer|min:0|max:100',
+                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'document' => 'nullable|file|mimes:pdf,doc,docx,txt,xls,xlsx|max:5120',
+            ]);
+
+            if (!$request->hasFile('photo') && !$request->hasFile('document')) {
+                return back()->withErrors(['photo' => 'Unggah foto atau dokumen untuk memvalidasi progres.'])->withInput();
+            }
+
+            $photoPath = $masterTask->photo_path;
+            $documentPath = $masterTask->document_path;
+
+            if ($request->hasFile('photo')) {
+                if ($photoPath) {
+                    Storage::disk('public')->delete($photoPath);
+                }
+                $photoPath = $request->file('photo')->store('master-tasks/photos', 'public');
+            }
+            if ($request->hasFile('document')) {
+                if ($documentPath) {
+                    Storage::disk('public')->delete($documentPath);
+                }
+                $documentPath = $request->file('document')->store('master-tasks/documents', 'public');
+            }
+
+            $progress = (int) $request->progress;
+            $status = $progress >= 100 ? 'completed' : ($progress > 0 ? 'in_progress' : 'pending');
+
+            $masterTask->update([
+                'progress' => $progress,
+                'status' => $status,
+                'photo_path' => $photoPath,
+                'document_path' => $documentPath,
+            ]);
+
+            return redirect()->route('master-tasks.show', $masterTask)->with('success', 'Progress berhasil diperbarui.');
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
-            'status' => 'required|in:pending,in_progress,completed',
+            'progress' => 'required|integer|min:0|max:100',
             'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
+            'document' => 'nullable|file|mimes:pdf,doc,docx,txt,xls,xlsx|max:5120',
         ]);
+
+        if (!$request->hasFile('photo') && !$request->hasFile('document')) {
+            return back()->withErrors(['photo' => 'Unggah foto atau dokumen untuk memvalidasi progres.'])->withInput();
+        }
 
         $photoPath = $masterTask->photo_path;
         $documentPath = $masterTask->document_path;
 
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
             if ($photoPath) {
                 Storage::disk('public')->delete($photoPath);
             }
@@ -122,18 +168,21 @@ class MasterTaskController extends Controller
         }
 
         if ($request->hasFile('document')) {
-            // Delete old document if exists
             if ($documentPath) {
                 Storage::disk('public')->delete($documentPath);
             }
             $documentPath = $request->file('document')->store('master-tasks/documents', 'public');
         }
 
+        $progress = (int) $request->progress;
+        $status = $progress >= 100 ? 'completed' : ($progress > 0 ? 'in_progress' : 'pending');
+
         $masterTask->update([
             'title' => $request->title,
             'description' => $request->description,
             'assigned_to' => $request->assigned_to,
-            'status' => $request->status,
+            'status' => $status,
+            'progress' => $progress,
             'due_date' => $request->due_date,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,

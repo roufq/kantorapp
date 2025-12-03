@@ -63,6 +63,7 @@
                         <label for="document" class="form-label">Document (Optional)</label>
                         <input type="file" name="document" id="document" class="form-control" accept=".pdf,.doc,.docx,.txt">
                     </div>
+                    <p class="text-muted">Setelah dibuat, progres 0-100% diupdate lewat halaman detail tugas dengan lampiran foto/dokumen.</p>
                     <button type="submit" class="btn btn-primary">{{ (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi')) ? 'Assign Task' : 'Create Task' }}</button>
                 </form>
             </div>

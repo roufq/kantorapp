@@ -157,6 +157,7 @@ class TaskController extends Controller
                 'assigned_by' => $user->id,
                 'assigned_to' => $request->assigned_to,
                 'status' => 'pending',
+                'progress' => 0,
                 'due_date' => $request->due_date,
                 'photo_path' => $photoPath,
                 'document_path' => $documentPath,
@@ -172,13 +173,15 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
+        $progressUpdates = $task->progressUpdates()->with(['user', 'approver'])->orderBy('created_at', 'desc')->get();
+
         if ($user->hasRole('Super Admin')) {
-            return view('tasks.show', compact('task'));
+            return view('tasks.show', compact('task', 'progressUpdates'));
         }
         if ($user->hasRole('Admin Lokasi')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
-                return view('tasks.show', compact('task'));
+                return view('tasks.show', compact('task', 'progressUpdates'));
             }
             abort(403, 'Not authorized for this task');
         }
@@ -186,7 +189,7 @@ class TaskController extends Controller
         if ($task->assigned_to !== $user->id) {
             abort(403, 'You can only access your own tasks');
         }
-        return view('tasks.show', compact('task'));
+        return view('tasks.show', compact('task', 'progressUpdates'));
     }
 
     public function edit(Task $task)
@@ -217,11 +220,11 @@ class TaskController extends Controller
             }
             abort(403, 'Not authorized to edit this task');
         } else {
-            // Employees can only edit their own tasks, but only status
+            // Employees tidak mengubah detail; gunakan form progres
             if ($task->assigned_to !== $user->id) {
                 abort(403, 'You can only edit your own tasks');
             }
-            return view('tasks.edit', compact('task'));
+            return redirect()->route('tasks.show', $task)->with('info', 'Gunakan form update progres di halaman detail tugas.');
         }
     }
 
@@ -229,119 +232,80 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        $isStatusOnly = $request->has('status')
-            && !$request->hasAny(['title', 'description', 'assigned_to', 'due_date'])
-            && !$request->hasFile('photo')
-            && !$request->hasFile('document');
-
-        if ($isStatusOnly) {
-            if ($user->hasRole('Super Admin')) {
-                // allowed
-            } elseif ($user->hasRole('Admin Lokasi')) {
-                if (optional($task->assignee)->location_id !== $user->location_id) {
-                    abort(403, 'Not authorized to update this task');
-                }
-            } else {
-                if ($task->assigned_to !== $user->id) {
-                    abort(403, 'You can only update your own tasks');
-                }
-            }
-
-            $request->validate([
-                'status' => 'required|in:pending,in_progress,completed',
-            ]);
-
-            $task->update([
-                'status' => $request->status,
-            ]);
-
-            return redirect()->route('tasks.index')->with('success', 'Task updated!');
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi')) {
+            abort(403, 'Perubahan detail tugas hanya oleh admin.');
         }
 
-        if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
-            // Super Admin/Admin Lokasi can update all fields (Admin Lokasi within location)
-            $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'assigned_to' => 'required|exists:users,id',
-                'status' => 'required|in:pending,in_progress,completed',
-                'due_date' => 'nullable|date|after_or_equal:today',
-                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
-            ]);
+        // Super Admin/Admin Lokasi can update task metadata (progress via progress updates)
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'assigned_to' => 'required|exists:users,id',
+            'due_date' => 'nullable|date|after_or_equal:today',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
+        ]);
 
-            if ($user->hasRole('Admin Lokasi')) {
-                // Ensure current task and target assignee are in the same location
-                $assignee = $task->assignee;
-                if (!$assignee || $assignee->location_id !== $user->location_id) {
-                    abort(403, 'Not authorized to update this task');
-                }
-                if ((int)$request->assigned_to !== (int)$user->id) {
-                    $valid = User::where('id', $request->assigned_to)
-                        ->where('location_id', $user->location_id)
-                        ->whereHas('roles', function ($q) {
-                            $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
-                        })
-                        ->exists();
-                    if (!$valid) {
-                        abort(403, 'You can only reassign within your location (employee or location admin) or to yourself');
-                    }
-                }
-            } elseif ($user->hasRole('Super Admin')) {
-                if ((int)$request->assigned_to !== (int)$user->id) {
-                    $valid = User::whereHas('roles', function ($q) {
+        if ($user->hasRole('Admin Lokasi')) {
+            // Ensure current task and target assignee are in the same location
+            $assignee = $task->assignee;
+            if (!$assignee || $assignee->location_id !== $user->location_id) {
+                abort(403, 'Not authorized to update this task');
+            }
+            if ((int)$request->assigned_to !== (int)$user->id) {
+                $valid = User::where('id', $request->assigned_to)
+                    ->where('location_id', $user->location_id)
+                    ->whereHas('roles', function ($q) {
                         $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
                     })
-                        ->where('id', $request->assigned_to)
-                        ->exists();
-                    if (!$valid) {
-                        abort(403, 'Target must be Karyawan/Admin Lokasi or yourself');
-                    }
+                    ->exists();
+                if (!$valid) {
+                    abort(403, 'You can only reassign within your location (employee or location admin) or to yourself');
                 }
             }
-
-            $photoPath = $task->photo_path;
-            $documentPath = $task->document_path;
-
-            if ($request->hasFile('photo')) {
-                // Delete old photo if exists
-                if ($photoPath) {
-                    Storage::disk('public')->delete($photoPath);
+        } elseif ($user->hasRole('Super Admin')) {
+            if ((int)$request->assigned_to !== (int)$user->id) {
+                $valid = User::whereHas('roles', function ($q) {
+                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                })
+                    ->where('id', $request->assigned_to)
+                    ->exists();
+                if (!$valid) {
+                    abort(403, 'Target must be Karyawan/Admin Lokasi or yourself');
                 }
-                $photoPath = $request->file('photo')->store('tasks/photos', 'public');
             }
-
-            if ($request->hasFile('document')) {
-                // Delete old document if exists
-                if ($documentPath) {
-                    Storage::disk('public')->delete($documentPath);
-                }
-                $documentPath = $request->file('document')->store('tasks/documents', 'public');
-            }
-
-            $task->update([
-                'title' => $request->title,
-                'description' => $request->description,
-                'assigned_to' => $request->assigned_to,
-                'status' => $request->status,
-                'due_date' => $request->due_date,
-                'photo_path' => $photoPath,
-                'document_path' => $documentPath,
-            ]);
-        } else {
-            // Employees can only update status
-            if ($task->assigned_to !== $user->id) {
-                abort(403, 'You can only update your own tasks');
-            }
-
-            $request->validate([
-                'status' => 'required|in:pending,in_progress,completed',
-            ]);
-
-            $task->update([
-                'status' => $request->status,
-            ]);
         }
+
+        $photoPath = $task->photo_path;
+        $documentPath = $task->document_path;
+
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($photoPath) {
+                Storage::disk('public')->delete($photoPath);
+            }
+            $photoPath = $request->file('photo')->store('tasks/photos', 'public');
+        }
+
+        if ($request->hasFile('document')) {
+            // Delete old document if exists
+            if ($documentPath) {
+                Storage::disk('public')->delete($documentPath);
+            }
+            $documentPath = $request->file('document')->store('tasks/documents', 'public');
+        }
+
+        $task->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'assigned_to' => $request->assigned_to,
+            'due_date' => $request->due_date,
+            'photo_path' => $photoPath,
+            'document_path' => $documentPath,
+        ]);
+
+        // Pastikan status mengikuti progres terkini
+        $task->applyProgress((int) $task->progress);
 
         return redirect()->route('tasks.index')->with('success', 'Task updated!');
     }
@@ -359,6 +323,14 @@ class TaskController extends Controller
             if ($task->document_path) {
                 Storage::disk('public')->delete($task->document_path);
             }
+            foreach ($task->progressUpdates as $update) {
+                if ($update->photo_path) {
+                    Storage::disk('public')->delete($update->photo_path);
+                }
+                if ($update->document_path) {
+                    Storage::disk('public')->delete($update->document_path);
+                }
+            }
             $task->delete();
         } elseif ($user->hasRole('Admin Lokasi')) {
             $assignee = $task->assignee;
@@ -368,6 +340,14 @@ class TaskController extends Controller
                 }
                 if ($task->document_path) {
                     Storage::disk('public')->delete($task->document_path);
+                }
+                foreach ($task->progressUpdates as $update) {
+                    if ($update->photo_path) {
+                        Storage::disk('public')->delete($update->photo_path);
+                    }
+                    if ($update->document_path) {
+                        Storage::disk('public')->delete($update->document_path);
+                    }
                 }
                 $task->delete();
             } else {
@@ -384,6 +364,14 @@ class TaskController extends Controller
             }
             if ($task->document_path) {
                 Storage::disk('public')->delete($task->document_path);
+            }
+            foreach ($task->progressUpdates as $update) {
+                if ($update->photo_path) {
+                    Storage::disk('public')->delete($update->photo_path);
+                }
+                if ($update->document_path) {
+                    Storage::disk('public')->delete($update->document_path);
+                }
             }
             $task->delete();
         }
@@ -425,6 +413,7 @@ class TaskController extends Controller
             'assigned_by' => $user->id,
             'assigned_to' => $user->id,
             'status' => 'pending',
+            'progress' => 0,
             'due_date' => $request->due_date,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,

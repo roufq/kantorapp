@@ -61,17 +61,6 @@
                     </div>
                     @endif
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" name="status" required>
-                            <option value="pending" {{ old('status', $task->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="in_progress" {{ old('status', $task->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                            <option value="completed" {{ old('status', $task->status) == 'completed' ? 'selected' : '' }}>Completed</option>
-                        </select>
-                        @error('status')
-                            <div class="text-danger">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" class="form-control" id="due_date" name="due_date" value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}">
                         @error('due_date')
@@ -102,6 +91,7 @@
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
+                    <p class="text-muted">Ubah progres menggunakan form "Update Progress" di halaman detail tugas, dengan lampiran foto/dokumen.</p>
                     <button type="submit" class="btn btn-primary">Update Task</button>
                     <a href="{{ route('tasks.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>

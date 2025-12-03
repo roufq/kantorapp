@@ -23,9 +23,6 @@ KantorApp is a comprehensive multi-location attendance management system built w
 - Tasks & Forms
   - Semua form create/edit diberi header konsisten (judul, deskripsi singkat, link kembali).
   - Dropdown assign task dengan pencarian di dalam panel (custom combobox).
-- Messaging
-  - Halaman Messages tampil gaya WhatsApp Web (sidebar chat + area percakapan).
-  - Dropdown penerima dengan pencarian inline (mirip dropdown assign task).
 - Employees
   - Field `tanggal_masuk_kerja` (join date) ditambahkan; form create/edit/show/index sudah mendukung.
   - Admin Lokasi otomatis terikat `location_id`; Super Admin wajib pilih lokasi saat membuat admin lokasi/karyawan.
@@ -37,6 +34,15 @@ KantorApp is a comprehensive multi-location attendance management system built w
   - Gunakan TLS port 587 + App Password untuk Gmail (lihat bagian mail config).
 - Reporting
   - Export Rekap Kehadiran ke Excel (filter mengikuti tabel recap).
+- Tasks Progress & Approval
+  - Progress wajib 0–100% dengan lampiran foto/dokumen di setiap update.
+  - Alur approve/reject: Karyawan → Admin Lokasi (fallback ke Super Admin jika tidak ada admin lokasi), Admin Lokasi → Super Admin. Super Admin update tanpa approval, tetap wajib lampiran.
+  - Form reject kini memakai textarea lebar; alasan reject wajib diisi.
+  - Halaman show task sudah null-safe untuk assigner/assignee dan punya tombol kembali ke index.
+- Dashboard & Peran
+  - Kartu clock in/out ditampilkan untuk Admin Lokasi dan disembunyikan untuk Karyawan di bagian tabel ringkasan.
+  - Grid kartu menggunakan `row g-3` agar jarak antar kartu konsisten di semua role.
+  - Karyawan tidak lagi melihat panel “Monthly Recap Report”; tabel attendance harian hanya untuk Admin Lokasi.
 
 ### Key Features
 
