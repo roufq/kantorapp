@@ -94,7 +94,7 @@
                     @php($me = auth()->user())
                     @if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id))
                         <div class="mt-2">
-                            <a href="{{ route('tasks.show', $task) }}#progress-form" class="btn btn-sm btn-primary me-1">Update Progress</a>
+                            <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-sm btn-primary me-1">Update Progress</a>
                             <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form action="{{ route('tasks.destroy', $task) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure?')">
                                 @csrf

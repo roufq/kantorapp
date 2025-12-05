@@ -176,6 +176,7 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.destroy');
     Route::get('/tasks/{task}/download-photo', [TaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.download.photo');
     Route::get('/tasks/{task}/download-document', [TaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.download.document');
+    Route::get('/tasks/{task}/progress/create', [TaskProgressController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.create');
     Route::post('/tasks/{task}/progress', [TaskProgressController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.store');
     Route::get('/task-progress/approvals', [TaskProgressController::class, 'approvals'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approvals');
     Route::post('/task-progress/{progressUpdate}/approve', [TaskProgressController::class, 'approve'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approve');
