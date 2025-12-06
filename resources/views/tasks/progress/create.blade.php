@@ -19,8 +19,8 @@
 @endsection
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-8">
+<div class="row">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h4 class="card-title">Update Progress for "{{ $task->title }}"</h4>
@@ -75,8 +75,8 @@
     </div>
 </div>
 
-<div class="row justify-content-center mt-4">
-    <div class="col-md-8">
+<div class="row mt-4">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">Riwayat Progres & Approval</h5>

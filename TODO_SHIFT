@@ -1,0 +1,51 @@
+Rework Rencana Sistem Shift (baru)
+==================================
+
+Tujuan
+- Menyederhanakan alur shift Office vs Non Office agar mudah di-set dan dipakai per lokasi dan per karyawan.
+- Menghilangkan kebingungan multi-lokasi, multi-slot, serta pemetaan libur mingguan/holiday.
+- Memastikan role Super Admin/Admin Lokasi dapat mengelola sesuai batas wewenang.
+
+Masalah Saat Ini
+- Shift master bisa terhubung ke banyak lokasi sehingga UI membingungkan (satu baris menampilkan banyak lokasi).
+- Pivot `location_shifts` memuat kategori dan time slot, tapi UI belum jelas dan tidak sinkron dengan penggunaan di attendance/assignment.
+- Kategori Office/Non Office belum terintegrasi penuh ke alur assign (karyawan/attendance) dan per-lokasi.
+- Form edit shift dan location-shifts masih rawan error (middleware cache, form multi-slot, dsb).
+
+Rencana Perombakan (tingkat tinggi)
+1) Model & Data
+   - Tetapkan satu shift master tidak perlu membawa daftar lokasi; gunakan pivot `location_shifts` sebagai sumber kebenaran lokasi + jadwal + kategori.
+   - Kategorikan pivot: Office (single slot), Non Office (multi slot). Simpan time slot per pivot (wajib) agar jadwal per lokasi jelas.
+   - Tambah flag `is_default` per lokasi (opsional) untuk Office default; Non Office pilih shift per karyawan/assignment.
+
+2) Form & UI
+   - Halaman Location Shifts: tab Office vs Non Office; builder slot per lokasi (Office: 1 slot; Non Office: multi slot, bisa preset 3/4 shift).
+   - Halaman Shift master: hanya metadata (nama, deskripsi, kode, kategori default), tanpa daftar lokasi; tampilkan daftar lokasi terkait dengan link ke edit pivot.
+   - Halaman daftar Shift: jika tidak difilter lokasi, tampilkan ringkasan lokasi pertama + badge “+N lokasi”. Jika difilter lokasi, hanya tampilkan lokasi itu.
+
+3) Assignment & Attendance
+   - Shift Assignment per karyawan harus refer ke pivot (location + shift_id + slot pilihan jika multi). Validasi: admin lokasi hanya untuk lokasi sendiri.
+   - Attendance: gunakan time slot dari pivot (atau assignment) dengan fallback default lokasi Office jika ada.
+   - Weekly off/holiday: Office mengikuti weekly off + holiday. Non Office: weekly off dari shift (opsional), tetap hormati holiday nasional/lokasi.
+
+4) Validasi & Guard
+   - Super Admin: CRUD shift master; kelola semua lokasi.
+   - Admin Lokasi: kelola pivot lokasi sendiri; assign karyawan di lokasi sendiri; tidak boleh mengubah shift master.
+   - Form: pastikan waktu valid (start < end, dukung overnight), minimal satu slot untuk Non Office, satu slot untuk Office.
+
+5) Migrasi & Transisi
+   - Migrasi: pastikan pivot `time_slots` wajib, `category` wajib; tambahkan `is_default` pada `location_shifts` atau `locations`.
+   - Script cleanup: set kategori benar (Office/Non Office) untuk shift master; set ulang pivot per lokasi dengan slot default; migrasi assignment untuk pakai pivot.
+
+6) Testing & QA
+   - Unit: parser/validator time slot, attendance check with pivot slots, role guard.
+   - Feature: CRUD shift master, CRUD location shift (office/non-office), assign shift ke karyawan, attendance check in/out menggunakan pivot slot.
+   - Manual: kasus overnight, multi slot, holiday + weekly off.
+
+Langkah Implementasi (fase pendek)
+1) Data: wajibkan `location_shifts.time_slots` + `category`, tambah `is_default` (office) per lokasi. Seeder/preset untuk 3/4 shift Non Office.
+2) UI Location Shifts: tab Office/Non Office, builder slot per lokasi, aksi set default Office.
+3) Shift master: hilangkan checklist lokasi; hanya metadata + daftar lokasi terhubung (read-only link ke edit pivot).
+4) Assignment: simpan ref pivot (location_shift_id) atau (location_id + shift_id) dengan validasi lokasi; gunakan slot pivot.
+5) Attendance: pakai slot pivot/assignment; fallback ke default office lokasi.
+6) Cleanup: perbaiki listing Shifts (ringkas lokasi), logging/middleware cache clear, uji end-to-end.

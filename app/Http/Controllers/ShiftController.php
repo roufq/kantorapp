@@ -31,6 +31,17 @@ class ShiftController extends Controller
             $query->where('is_active', $request->status === 'active');
         }
 
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('location_id')) {
+            $locationId = $request->location_id;
+            $query->whereHas('locations', function ($q) use ($locationId) {
+                $q->where('locations.id', $locationId);
+            });
+        }
+
         $shifts = $query->orderBy('created_at', 'desc')->paginate(15);
         $locations = Location::active()->orderBy('name')->get();
 
@@ -54,6 +65,7 @@ class ShiftController extends Controller
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:10|unique:shifts,code',
             'day' => 'nullable|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'category' => 'required|in:office,non_office',
             'shift_type' => 'required|in:single,multiple',
             'time_slots' => 'required|array',
             'is_active' => 'boolean',
@@ -93,6 +105,7 @@ class ShiftController extends Controller
             'name' => $request->name,
             'code' => strtoupper($request->code),
             'day' => $request->day,
+            'category' => $request->category,
             'shift_type' => $request->shift_type,
             'time_slots' => $request->time_slots,
             'is_active' => $request->has('is_active'),
@@ -136,6 +149,7 @@ class ShiftController extends Controller
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:10|unique:shifts,code,' . $shift->id,
             'day' => 'nullable|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'category' => 'required|in:office,non_office',
             'shift_type' => 'required|in:single,multiple',
             'time_slots' => 'required|array',
             'is_active' => 'boolean',
@@ -175,6 +189,7 @@ class ShiftController extends Controller
             'name' => $request->name,
             'code' => strtoupper($request->code),
             'day' => $request->day,
+            'category' => $request->category,
             'shift_type' => $request->shift_type,
             'time_slots' => $request->time_slots,
             'is_active' => $request->has('is_active'),

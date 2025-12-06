@@ -11,10 +11,10 @@
     </div>
   </div>
 
-  <div class="content">
-    <div class="container-fluid">
-      <div class="row g-3">
-        <div class="col-lg-4">
+      <div class="content">
+        <div class="container-fluid">
+          <div class="row g-3">
+        <div class="col-12">
           <div class="card text-center">
             <div class="card-body">
               @php
@@ -57,7 +57,7 @@
             </div>
           </div>
         </div>
-        <div class="col-lg-8">
+        <div class="col-12">
           <div class="card">
             <div class="card-header bg-primary text-white">
               <h5 class="mb-0">Informasi Akun</h5>

@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="row">
-  <div class="col-md-8">
+  <div class="col-12">
     <style>
       .leaflet-control-geocoder {
         max-width: 420px
@@ -364,5 +364,4 @@
   }
 </script>
 @endsection
-
 

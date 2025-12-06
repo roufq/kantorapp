@@ -41,7 +41,7 @@
       @endif
 
       <div class="row g-3">
-        <div class="col-lg-8">
+        <div class="col-12">
           <div class="card">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start mb-3">
@@ -117,7 +117,7 @@
           </div>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-12">
           <div class="card">
             <div class="card-header">
               <h6 class="mb-0">Log Approval</h6>

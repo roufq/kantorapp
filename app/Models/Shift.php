@@ -12,6 +12,7 @@ class Shift extends Model
     protected $fillable = [
         'name',
         'code',
+        'category',
         'day',
         'shift_type',
         'time_slots',

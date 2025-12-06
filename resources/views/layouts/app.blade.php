@@ -510,11 +510,11 @@
                 <p>Divisions</p>
               </a>
             </li>
-            <li class="nav-item {{ request()->routeIs('locations.*') || request()->routeIs('shifts.*') || request()->routeIs('location-shifts.*') ? 'menu-open' : '' }}">
-              <a href="#" class="nav-link">
-                <i class="nav-icon bi bi-geo-alt"></i>
-                <p>Locations</p>
-                <i class="nav-arrow bi bi-chevron-right"></i>
+                <li class="nav-item {{ request()->routeIs('locations.*') || request()->routeIs('shifts.*') || request()->routeIs('location-shifts.*') ? 'menu-open' : '' }}">
+                  <a href="#" class="nav-link">
+                    <i class="nav-icon bi bi-geo-alt"></i>
+                    <p>Locations</p>
+                    <i class="nav-arrow bi bi-chevron-right"></i>
               </a>
               <ul class="nav nav-treeview">
                 <li class="nav-item">
@@ -524,9 +524,9 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
+                  <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.*') && !request()->get('category') ? 'active' : '' }}">
                     <i class="nav-icon bi bi-dot"></i>
-                    <p>Shifts</p>
+                    <p>Shifts (Semua)</p>
                   </a>
                 </li>
                 <li class="nav-item">

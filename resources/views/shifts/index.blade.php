@@ -6,8 +6,13 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
+                <div class="col-sm-6 d-flex flex-wrap align-items-center gap-2">
                     <h1 class="m-0">Shifts</h1>
+                    <div class="btn-group ms-2">
+                        <a href="{{ route('shifts.index', array_merge(request()->query(), ['category' => 'office'])) }}" class="btn btn-sm {{ request('category') === 'office' ? 'btn-primary' : 'btn-outline-primary' }}">Office</a>
+                        <a href="{{ route('shifts.index', array_merge(request()->query(), ['category' => 'non_office'])) }}" class="btn btn-sm {{ request('category') === 'non_office' ? 'btn-primary' : 'btn-outline-primary' }}">Non Office</a>
+                        <a href="{{ route('shifts.index', array_merge(request()->query(), ['category' => null])) }}" class="btn btn-sm {{ request('category') ? 'btn-outline-secondary' : 'btn-secondary' }}">Semua</a>
+                    </div>
                 </div><!-- /.col -->
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
@@ -28,10 +33,18 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Shifts Management</h3>
-                            <div class="card-tools">
-                                <a href="{{ route('shifts.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Add Shift
-                                </a>
+                            <div class="card-tools d-flex gap-2">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-plus"></i> Add Shift
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ route('shifts.create', ['category' => 'office']) }}">Office Shift</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('shifts.create', ['category' => 'non_office']) }}">Non Office Shift</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="{{ route('shifts.create') }}">Tanpa preset</a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                         <!-- /.card-header -->
@@ -51,6 +64,13 @@
                                 </div>
                                 <div class="form-group mr-3">
                                     <input type="text" name="search" class="form-control" placeholder="Search by name or code" value="{{ request('search') }}">
+                                </div>
+                                <div class="form-group mr-3">
+                                    <select name="category" class="form-control">
+                                        <option value="">Kategori: Semua</option>
+                                        <option value="office" {{ request('category') === 'office' ? 'selected' : '' }}>Office</option>
+                                        <option value="non_office" {{ request('category') === 'non_office' ? 'selected' : '' }}>Non Office</option>
+                                    </select>
                                 </div>
                                 <div class="form-group mr-3">
                                     <select name="status" class="form-control">
@@ -73,11 +93,12 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Location</th>
+                                        <th>Locations</th>
                                         <th>Name</th>
                                         <th>Code</th>
+                                        <th>Category</th>
                                         <th>Day</th>
-                                        <th>Time</th>
+                                        <th>Time Slot</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -86,13 +107,28 @@
                                     @forelse($shifts as $shift)
                                     <tr>
                                         <td>{{ $shift->id }}</td>
+                                        @php $locs = $shift->locations; $filterLoc = request('location_id'); @endphp
                                         <td>
-                                            <span class="text-muted">-</span>
+                                            @if($locs->isEmpty())
+                                                <span class="text-muted">-</span>
+                                            @else
+                                                <div class="d-flex flex-column gap-1">
+                                                    @foreach($locs as $loc)
+                                                        @if(!$filterLoc || (string)$loc->id === (string)$filterLoc)
+                                                            <span class="badge text-bg-light border align-self-start">{{ $loc->name }}</span>
+                                                        @endif
+                                                    @endforeach
+                                                    @if($filterLoc && !$locs->pluck('id')->contains((int) $filterLoc))
+                                                        <span class="badge text-bg-secondary align-self-start">Tidak di lokasi ini</span>
+                                                    @endif
+                                                </div>
+                                            @endif
                                         </td>
                                         <td>{{ $shift->name }}</td>
                                         <td><span class="badge badge-light code-badge border">{{ $shift->code }}</span></td>
+                                        <td><span class="badge {{ $shift->category === 'office' ? 'badge-primary' : 'badge-info' }}">{{ ucfirst(str_replace('_',' ', $shift->category)) }}</span></td>
                                         <td>{{ $shift->getDayName() }}</td>
-                                        <td>{{ $shift->start_time }} - {{ $shift->end_time }}</td>
+                                        <td>{{ $shift->getFormattedSchedule() }}</td>
                                         <td>
                                             @if($shift->is_active)
                                                 <span class="badge badge-success">Active</span>

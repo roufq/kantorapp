@@ -61,7 +61,9 @@ class Location extends Model
 
     public function shifts(): BelongsToMany
     {
-        return $this->belongsToMany(Shift::class, 'location_shifts');
+        return $this->belongsToMany(Shift::class, 'location_shifts')
+            ->withPivot(['category', 'time_slots', 'is_default'])
+            ->withTimestamps();
     }
 
     public function getSetting(string $key, $default = null)

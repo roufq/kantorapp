@@ -59,6 +59,9 @@ class LocationShiftController extends Controller
             'location_id' => 'required|exists:locations,id',
             'shift_ids' => 'required|array|min:1',
             'shift_ids.*' => 'exists:shifts,id',
+            'shift_category' => 'array',
+            'shift_category.*' => 'nullable|in:office,non_office',
+            'shift_times' => 'array',
         ]);
 
         if ($validator->fails()) {
@@ -68,9 +71,8 @@ class LocationShiftController extends Controller
         }
 
         $location = Location::findOrFail($request->location_id);
-
-        // Sync shifts for this location
-        $location->shifts()->sync($request->shift_ids);
+        $syncData = $this->buildPivotSyncData($request);
+        $location->shifts()->sync($syncData);
 
         return redirect()->route('location-shifts.index')
             ->with('success', 'Location shifts updated successfully!');
@@ -99,8 +101,17 @@ class LocationShiftController extends Controller
 
         $allShifts = Shift::active()->orderBy('name')->get();
         $assignedShiftIds = $location->shifts->pluck('id')->toArray();
+        $pivotCategories = $location->shifts->mapWithKeys(function ($shift) {
+            return [$shift->id => $shift->pivot->category ?? $shift->category];
+        });
+        $pivotSlots = $location->shifts->mapWithKeys(function ($shift) {
+            return [$shift->id => $shift->pivot->time_slots ?? []];
+        });
+        $pivotDefaults = $location->shifts->mapWithKeys(function ($shift) {
+            return [$shift->id => (bool) ($shift->pivot->is_default ?? false)];
+        });
 
-        return view('location-shifts.edit', compact('location', 'allShifts', 'assignedShiftIds'));
+        return view('location-shifts.edit', compact('location', 'allShifts', 'assignedShiftIds', 'pivotCategories', 'pivotSlots', 'pivotDefaults'));
     }
 
     /**
@@ -111,6 +122,9 @@ class LocationShiftController extends Controller
         $validator = Validator::make($request->all(), [
             'shift_ids' => 'required|array|min:1',
             'shift_ids.*' => 'exists:shifts,id',
+            'shift_category' => 'array',
+            'shift_category.*' => 'nullable|in:office,non_office',
+            'shift_times' => 'array',
         ]);
 
         if ($validator->fails()) {
@@ -119,8 +133,10 @@ class LocationShiftController extends Controller
                 ->withInput();
         }
 
+        $syncData = $this->buildPivotSyncData($request);
+
         // Sync shifts for this location
-        $location->shifts()->sync($request->shift_ids);
+        $location->shifts()->sync($syncData);
 
         return redirect()->route('location-shifts.index')
             ->with('success', 'Location shifts updated successfully!');
@@ -167,5 +183,77 @@ class LocationShiftController extends Controller
         }
 
         return response()->json(['message' => 'Shift added to location successfully']);
+    }
+
+    /**
+     * Build pivot sync payload for location_shifts with category and time slots.
+     */
+    private function buildPivotSyncData(Request $request): array
+    {
+        $syncData = [];
+        $categoryInput = $request->input('shift_category', []);
+        $timesInput = $request->input('shift_times', []);
+        $defaultShiftId = $request->input('default_shift_id');
+
+        foreach ($request->shift_ids as $shiftId) {
+            /** @var Shift $shift */
+            $shift = Shift::find($shiftId);
+
+            // Determine category per shift (fallback to master)
+            $category = $categoryInput[$shiftId] ?? ($shift->category ?? 'office');
+
+            // Collect time slots per shift (fallback to master shift slots)
+            $slots = $timesInput[$shiftId] ?? [];
+            $normalizedSlots = [];
+            if (is_array($slots)) {
+                foreach ($slots as $slot) {
+                    if (!empty($slot['start']) && !empty($slot['end'])) {
+                        $days = [];
+                        if (isset($slot['days']) && is_array($slot['days'])) {
+                            $days = array_values(array_filter($slot['days'], fn($d) => !empty($d)));
+                        } elseif (!empty($slot['day'])) {
+                            $days = [$slot['day']];
+                        }
+                        $normalizedSlots[] = [
+                            'start' => $slot['start'],
+                            'end' => $slot['end'],
+                            'days' => $days,
+                        ];
+                    }
+                }
+            }
+            if (empty($normalizedSlots)) {
+                $rawSlots = $shift->time_slots ?? [];
+                // Normalize master slots to ensure array of slots
+                if (is_array($rawSlots) && isset($rawSlots['start'])) {
+                    $rawSlots = [ $rawSlots ];
+                }
+                if (is_array($rawSlots)) {
+                    foreach ($rawSlots as $slot) {
+                        if (!empty($slot['start']) && !empty($slot['end'])) {
+                            $days = [];
+                            if (isset($slot['days']) && is_array($slot['days'])) {
+                                $days = array_values(array_filter($slot['days'], fn($d) => !empty($d)));
+                            } elseif (!empty($slot['day'])) {
+                                $days = [$slot['day']];
+                            }
+                            $normalizedSlots[] = [
+                                'start' => $slot['start'],
+                                'end' => $slot['end'],
+                                'days' => $days,
+                            ];
+                        }
+                    }
+                }
+            }
+
+            $syncData[$shiftId] = [
+                'category' => $category,
+                'time_slots' => $normalizedSlots,
+                'is_default' => ($category === 'office' && (string) $defaultShiftId === (string) $shiftId),
+            ];
+        }
+
+        return $syncData;
     }
 }

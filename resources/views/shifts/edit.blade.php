@@ -63,7 +63,7 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label for="code">Code <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control @error('code') is-invalid @enderror" id="code" name="code" value="{{ old('code', $shift->code) }}" required maxlength="10">
@@ -75,7 +75,7 @@
                                             <small class="form-text text-muted">Unique code for the shift (max 10 characters)</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label for="day">Day</label>
                                             <select class="form-control @error('day') is-invalid @enderror" id="day" name="day">
@@ -96,31 +96,81 @@
                                             <small class="form-text text-muted">Optional: Specify the day of the week for this shift</small>
                                         </div>
                                     </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="category">Kategori Shift <span class="text-danger">*</span></label>
+                                            <select class="form-control @error('category') is-invalid @enderror" id="category" name="category" required>
+                                                <option value="">Pilih kategori</option>
+                                                <option value="office" {{ old('category', $shift->category) === 'office' ? 'selected' : '' }}>Office (jam pasti, libur mingguan)</option>
+                                                <option value="non_office" {{ old('category', $shift->category) === 'non_office' ? 'selected' : '' }}>Non Office (3-4 shift fleksibel)</option>
+                                            </select>
+                                            @error('category')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                            <small class="form-text text-muted">Office: 1 jam masuk pasti. Non Office: multi slot/shift.</small>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="start_time">Start Time <span class="text-danger">*</span></label>
-                                            <input type="time" class="form-control @error('start_time') is-invalid @enderror" id="start_time" name="start_time" value="{{ old('start_time', $shift->start_time) }}" required>
-                                            @error('start_time')
+                                            <label for="shift_type">Shift Type <span class="text-danger">*</span></label>
+                                            <select class="form-control @error('shift_type') is-invalid @enderror" id="shift_type" name="shift_type" required>
+                                                <option value="">Select Shift Type</option>
+                                                <option value="single" {{ old('shift_type', $shift->shift_type) == 'single' ? 'selected' : '' }}>Single Shift (Office)</option>
+                                                <option value="multiple" {{ old('shift_type', $shift->shift_type) == 'multiple' ? 'selected' : '' }}>Multiple Shifts (Factory)</option>
+                                            </select>
+                                            @error('shift_type')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
                                             @enderror
+                                            <small class="form-text text-muted">Pilih tipe berdasarkan kebutuhan lokasi/karyawan.</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="end_time">End Time <span class="text-danger">*</span></label>
-                                            <input type="time" class="form-control @error('end_time') is-invalid @enderror" id="end_time" name="end_time" value="{{ old('end_time', $shift->end_time) }}" required>
-                                            @error('end_time')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
+                                </div>
+
+                                <!-- Single Shift Form -->
+                                <div id="singleShiftForm" style="display: none;">
+                                    <h5 class="mt-4 mb-3">Single Shift Schedule</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="single_start">Start Time <span class="text-danger">*</span></label>
+                                                <input type="time" class="form-control @error('time_slots.start') is-invalid @enderror" id="single_start" name="time_slots[start]" value="{{ old('time_slots.start', $shift->time_slots['start'] ?? '') }}">
+                                                @error('time_slots.start')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="single_end">End Time <span class="text-danger">*</span></label>
+                                                <input type="time" class="form-control @error('time_slots.end') is-invalid @enderror" id="single_end" name="time_slots[end]" value="{{ old('time_slots.end', $shift->time_slots['end'] ?? '') }}">
+                                                @error('time_slots.end')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                @enderror
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- Multiple Shifts Form -->
+                                <div id="multipleShiftsForm" style="display: none;">
+                                    <h5 class="mt-4 mb-3">Multiple Shifts Schedule</h5>
+                                    <div id="timeSlotsContainer">
+                                        <!-- Time slots will be added here dynamically -->
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addTimeSlot">
+                                        <i class="fas fa-plus"></i> Add Time Slot
+                                    </button>
                                 </div>
 
                                 <div class="form-group">
@@ -168,5 +218,101 @@
     <!-- /.content -->
 </div>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const shiftTypeSelect = document.getElementById('shift_type');
+    const singleShiftForm = document.getElementById('singleShiftForm');
+    const multipleShiftsForm = document.getElementById('multipleShiftsForm');
+    const addTimeSlotBtn = document.getElementById('addTimeSlot');
+    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+    const categorySelect = document.getElementById('category');
+
+    let timeSlotIndex = 0;
+
+    function addTimeSlot(start = '', end = '') {
+        const timeSlotHtml = `
+            <div class="time-slot-item card mb-3" data-index="${timeSlotIndex}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <label>Start Time <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" name="time_slots[${timeSlotIndex}][start]" value="${start}" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label>End Time <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" name="time_slots[${timeSlotIndex}][end]" value="${end}" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-time-slot">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        timeSlotsContainer.insertAdjacentHTML('beforeend', timeSlotHtml);
+        timeSlotIndex++;
+    }
+
+    shiftTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        if (selectedType === 'single' && categorySelect.value === 'non_office') {
+            categorySelect.value = 'office';
+        } else if (selectedType === 'multiple' && categorySelect.value === 'office') {
+            categorySelect.value = 'non_office';
+        }
+
+        if (selectedType === 'single') {
+            singleShiftForm.style.display = 'block';
+            multipleShiftsForm.style.display = 'none';
+        } else if (selectedType === 'multiple') {
+            singleShiftForm.style.display = 'none';
+            multipleShiftsForm.style.display = 'block';
+            if (timeSlotsContainer.children.length === 0) {
+                addTimeSlot();
+            }
+        } else {
+            singleShiftForm.style.display = 'none';
+            multipleShiftsForm.style.display = 'none';
+        }
+    });
+
+    addTimeSlotBtn.addEventListener('click', function() {
+        addTimeSlot();
+    });
+
+    timeSlotsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-time-slot') || e.target.closest('.remove-time-slot')) {
+            e.target.closest('.time-slot-item').remove();
+        }
+    });
+
+    function syncCategoryToType() {
+        if (categorySelect.value === 'office') {
+            shiftTypeSelect.value = 'single';
+        } else if (categorySelect.value === 'non_office') {
+            shiftTypeSelect.value = 'multiple';
+        }
+        shiftTypeSelect.dispatchEvent(new Event('change'));
+    }
+    if (categorySelect) {
+        categorySelect.addEventListener('change', syncCategoryToType);
+    }
+
+    // Preload existing slots for multiple shift
+    const existingSlots = @json(old('time_slots', $shift->isMultipleShift() ? $shift->time_slots : []));
+    if (Array.isArray(existingSlots) && existingSlots.length > 0) {
+        existingSlots.forEach((slot) => addTimeSlot(slot.start || '', slot.end || ''));
+    }
+
+    if (categorySelect.value) {
+        syncCategoryToType();
+    } else if (shiftTypeSelect.value) {
+        shiftTypeSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
 
 @endsection

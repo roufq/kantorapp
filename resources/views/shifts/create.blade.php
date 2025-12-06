@@ -74,7 +74,7 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label for="day">Day</label>
                                             <select class="form-control @error('day') is-invalid @enderror" id="day" name="day">
@@ -95,7 +95,23 @@
                                             <small class="form-text text-muted">Optional: Specify the day of the week for this shift</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="category">Kategori Shift <span class="text-danger">*</span></label>
+                                            <select class="form-control @error('category') is-invalid @enderror" id="category" name="category" required>
+                                                <option value="">Pilih kategori</option>
+                                                <option value="office" {{ old('category', request('category')) === 'office' ? 'selected' : '' }}>Office (jam pasti, libur mingguan)</option>
+                                                <option value="non_office" {{ old('category', request('category')) === 'non_office' ? 'selected' : '' }}>Non Office (3-4 shift fleksibel)</option>
+                                            </select>
+                                            @error('category')
+                                                <span class="invalid-feedback" role="alert">
+                                                    <strong>{{ $message }}</strong>
+                                                </span>
+                                            @enderror
+                                            <small class="form-text text-muted">Office: 1 jam masuk pasti. Non Office: multi slot/shift.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label for="shift_type">Shift Type <span class="text-danger">*</span></label>
                                             <select class="form-control @error('shift_type') is-invalid @enderror" id="shift_type" name="shift_type" required>
@@ -200,12 +216,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const multipleShiftsForm = document.getElementById('multipleShiftsForm');
     const addTimeSlotBtn = document.getElementById('addTimeSlot');
     const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+    const categorySelect = document.getElementById('category');
 
     let timeSlotIndex = 0;
 
     // Handle shift type change
     shiftTypeSelect.addEventListener('change', function() {
         const selectedType = this.value;
+        if (selectedType === 'single' && categorySelect.value === 'non_office') {
+            categorySelect.value = 'office';
+        } else if (selectedType === 'multiple' && categorySelect.value === 'office') {
+            categorySelect.value = 'non_office';
+        }
 
         if (selectedType === 'single') {
             singleShiftForm.style.display = 'block';
@@ -266,6 +288,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize form based on existing value
     if (shiftTypeSelect.value) {
         shiftTypeSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Keep category and shift type in sync (office -> single, non-office -> multiple)
+    function syncCategoryToType() {
+        if (categorySelect.value === 'office') {
+            shiftTypeSelect.value = 'single';
+        } else if (categorySelect.value === 'non_office') {
+            shiftTypeSelect.value = 'multiple';
+        }
+        shiftTypeSelect.dispatchEvent(new Event('change'));
+    }
+    if (categorySelect) {
+        categorySelect.addEventListener('change', syncCategoryToType);
+        if (categorySelect.value) {
+            syncCategoryToType();
+        }
     }
 
     // Load existing time slots if editing

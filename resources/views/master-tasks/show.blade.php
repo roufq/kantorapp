@@ -18,7 +18,7 @@
 
 @section('content')
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">{{ $masterTask->title }}</h3>
@@ -103,7 +103,7 @@
 </div>
 
 <div class="row mt-3" id="progress-form">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">Update Progress (Super Admin)</h5>
