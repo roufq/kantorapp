@@ -51,6 +51,17 @@
                                 <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date') }}">
                             </div>
                             <div class="col-md-3">
+                                <label for="shift_id" class="form-label">Shift</label>
+                                <select name="shift_id" id="shift_id" class="form-control">
+                                    <option value="">All Shifts</option>
+                                    @foreach(\App\Models\Shift::active()->orderBy('name')->get() as $shift)
+                                        <option value="{{ $shift->id }}" {{ request('shift_id') == $shift->id ? 'selected' : '' }}>
+                                            {{ $shift->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label">&nbsp;</label>
                                 <button type="submit" class="btn btn-primary form-control">Filter</button>
                             </div>
@@ -70,6 +81,9 @@
                             <tr>
                                 <th>User</th>
                                 <th>Employee Name</th>
+                                <th>Shift</th>
+                                <th>Roster (Slot)</th>
+                                <th>Roster Status</th>
                                 <th>Check In</th>
                                 <th>Check Out</th>
                                 <th>Location</th>
@@ -82,6 +96,44 @@
                                 <tr>
                                     <td>{{ $attendance->user->name }}</td>
                                     <td>{{ $attendance->user->employee->nama ?? 'N/A' }}</td>
+                                    <td>{{ optional($attendance->shift)->name ?? '-' }}</td>
+                                    @php
+                                        $rKey = $attendance->user_id . '|' . $attendance->check_in_time->toDateString();
+                                        $rCollection = $rosterEntries[$rKey] ?? collect();
+                                        // pilih entri yang match shift_assignment jika ada, else pertama
+                                        $rEntry = $rCollection->firstWhere('shift_assignment_id', $attendance->shift_assignment_id) ?? $rCollection->first();
+                                        $slot = $rEntry?->slot_index;
+                                        $slotRange = null;
+                                        if ($rEntry && $rEntry->roster && $rEntry->roster->locationShift) {
+                                            $slots = $rEntry->roster->locationShift->time_slots ?? [];
+                                            if (isset($slots['start'], $slots['end'])) {
+                                                $slots = [ $slots ];
+                                            }
+                                            if (isset($slots[$slot])) {
+                                                $slotRange = ($slots[$slot]['start'] ?? '?') . ' - ' . ($slots[$slot]['end'] ?? '?');
+                                            }
+                                        }
+                                    @endphp
+                                    <td>
+                                        @if($slotRange)
+                                            Slot {{ ($slot ?? 0)+1 }}<br><small class="text-muted">{{ $slotRange }}</small>
+                                        @elseif($rEntry)
+                                            Slot {{ ($slot ?? 0)+1 }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($rEntry)
+                                            @if($rEntry->status === 'off')
+                                                <span class="badge bg-secondary">OFF</span>
+                                            @else
+                                                <span class="badge bg-success">Scheduled</span>
+                                            @endif
+                                        @else
+                                            <span class="badge bg-light text-muted">No roster</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $attendance->check_in_time->format('Y-m-d H:i:s') }}</td>
                                     <td>{{ $attendance->check_out_time ? $attendance->check_out_time->format('Y-m-d H:i:s') : 'Not checked out' }}</td>
                                     <td>

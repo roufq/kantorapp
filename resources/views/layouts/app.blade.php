@@ -47,7 +47,7 @@
   @if($primaryColor || $secondaryColor)
   <style>
     :root {
-      @if($primaryColor)--brand-primary: {
+      @if($primaryColor) --brand-primary: {
           {
           $primaryColor
         }
@@ -55,7 +55,7 @@
 
       ;
 
-      @endif @if($secondaryColor)--brand-secondary: {
+      @endif @if($secondaryColor) --brand-secondary: {
           {
           $secondaryColor
         }
@@ -110,18 +110,54 @@
   <!--begin::Legacy Badge Compatibility (BS4 -> BS5)-->
   <style>
     /* Ensure old Bootstrap 4 badge classes render correctly on BS5 */
-    .badge.badge-primary { background-color: var(--bs-primary); color: #fff; }
-    .badge.badge-secondary { background-color: var(--bs-secondary); color: #fff; }
-    .badge.badge-success { background-color: var(--bs-success); color: #fff; }
-    .badge.badge-danger { background-color: var(--bs-danger); color: #fff; }
-    .badge.badge-warning { background-color: var(--bs-warning); color: #212529; }
-    .badge.badge-info { background-color: var(--bs-info); color: #fff; }
-    .badge.badge-light { background-color: var(--bs-light); color: #212529; }
-    .badge.badge-dark { background-color: var(--bs-dark); color: #fff; }
+    .badge.badge-primary {
+      background-color: var(--bs-primary);
+      color: #fff;
+    }
+
+    .badge.badge-secondary {
+      background-color: var(--bs-secondary);
+      color: #fff;
+    }
+
+    .badge.badge-success {
+      background-color: var(--bs-success);
+      color: #fff;
+    }
+
+    .badge.badge-danger {
+      background-color: var(--bs-danger);
+      color: #fff;
+    }
+
+    .badge.badge-warning {
+      background-color: var(--bs-warning);
+      color: #212529;
+    }
+
+    .badge.badge-info {
+      background-color: var(--bs-info);
+      color: #fff;
+    }
+
+    .badge.badge-light {
+      background-color: var(--bs-light);
+      color: #212529;
+    }
+
+    .badge.badge-dark {
+      background-color: var(--bs-dark);
+      color: #fff;
+    }
 
     /* Table helpers */
-    .table .code-badge { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .table-actions .dropdown-toggle::after { display: none; }
+    .table .code-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .table-actions .dropdown-toggle::after {
+      display: none;
+    }
   </style>
   <!--end::Legacy Badge Compatibility (BS4 -> BS5)-->
   <!-- apexcharts -->
@@ -161,14 +197,14 @@
           <!--end::Navbar Search-->
           <!--begin::Messages Dropdown Menu-->
           @php
-            $authUser = auth()->user();
-            $unreadMessagesCount = \App\Models\Message::where('receiver_id', $authUser->id)->whereNull('read_at')->count();
+          $authUser = auth()->user();
+          $unreadMessagesCount = \App\Models\Message::where('receiver_id', $authUser->id)->whereNull('read_at')->count();
           @endphp
           <li class="nav-item dropdown">
             <a class="nav-link" data-bs-toggle="dropdown" href="#">
               <i class="bi bi-chat-text"></i>
               @if($unreadMessagesCount > 0)
-                <span class="navbar-badge badge text-bg-danger">{{ $unreadMessagesCount }}</span>
+              <span class="navbar-badge badge text-bg-danger">{{ $unreadMessagesCount }}</span>
               @endif
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
@@ -182,31 +218,31 @@
           <!--end::Messages Dropdown Menu-->
           <!--begin::Notifications Dropdown Menu-->
           @php
-            $pendingOvertimeCount = \App\Models\OvertimeApproval::where('master_id', $authUser->id)->where('status', 'pending')->count();
-            $pendingReportCount = 0;
-            if ($authUser->hasRole('Super Admin')) {
-              $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'super_admin')
-                ->where('status', 'pending')
-                ->count();
-            } elseif ($authUser->hasRole('Admin Lokasi')) {
-              $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'admin_lokasi')
-                ->where('status', 'pending')
-                ->where(function ($q) use ($authUser) {
-                  $q->whereNull('approver_id')->orWhere('approver_id', $authUser->id);
-                })
-                ->whereHas('report', function ($r) use ($authUser) {
-                  $r->where('location_id', $authUser->location_id)
-                    ->orWhere('assigned_admin_id', $authUser->id);
-                })
-                ->count();
-            }
-            $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount;
+          $pendingOvertimeCount = \App\Models\OvertimeApproval::where('master_id', $authUser->id)->where('status', 'pending')->count();
+          $pendingReportCount = 0;
+          if ($authUser->hasRole('Super Admin')) {
+          $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'super_admin')
+          ->where('status', 'pending')
+          ->count();
+          } elseif ($authUser->hasRole('Admin Lokasi')) {
+          $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'admin_lokasi')
+          ->where('status', 'pending')
+          ->where(function ($q) use ($authUser) {
+          $q->whereNull('approver_id')->orWhere('approver_id', $authUser->id);
+          })
+          ->whereHas('report', function ($r) use ($authUser) {
+          $r->where('location_id', $authUser->location_id)
+          ->orWhere('assigned_admin_id', $authUser->id);
+          })
+          ->count();
+          }
+          $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount;
           @endphp
           <li class="nav-item dropdown">
             <a class="nav-link" data-bs-toggle="dropdown" href="#">
               <i class="bi bi-bell-fill"></i>
               @if($totalNotifications > 0)
-                <span class="navbar-badge badge text-bg-warning">{{ $totalNotifications }}</span>
+              <span class="navbar-badge badge text-bg-warning">{{ $totalNotifications }}</span>
               @endif
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
@@ -238,14 +274,14 @@
           <!--end::Fullscreen Toggle-->
           <!--begin::User Menu Dropdown-->
           @php
-            $avatarPath = auth()->user()->profile_photo_path;
-            $avatarUrl = asset('assets/img/user2-160x160.jpg');
-            if ($avatarPath) {
-              $normalized = str_replace('\\','/',$avatarPath);
-              if (\Illuminate\Support\Facades\Storage::disk('public')->exists($normalized)) {
-                $avatarUrl = asset('storage/' . ltrim($normalized, '/'));
-              }
-            }
+          $avatarPath = auth()->user()->profile_photo_path;
+          $avatarUrl = asset('assets/img/user2-160x160.jpg');
+          if ($avatarPath) {
+          $normalized = str_replace('\\','/',$avatarPath);
+          if (\Illuminate\Support\Facades\Storage::disk('public')->exists($normalized)) {
+          $avatarUrl = asset('storage/' . ltrim($normalized, '/'));
+          }
+          }
           @endphp
           <li class="nav-item dropdown user-menu">
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
@@ -270,19 +306,19 @@
               <li class="user-body">
                 @php $twoFactorEnabled = auth()->user()->hasTwoFactorEnabled(); @endphp
                 @if(!$twoFactorEnabled)
-                  <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Enable two-factor authentication">
-                    Enable Two-Factor Authentication
-                  </a>
+                <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Enable two-factor authentication">
+                  Enable Two-Factor Authentication
+                </a>
                 @else
-                  <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Manage two-factor authentication">
-                    Manage Two-Factor Authentication
-                  </a>
-                  <form action="{{ route('2fa.disable') }}" method="POST" class="d-grid">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Disable two-factor authentication">
-                      Disable Two-Factor
-                    </button>
-                  </form>
+                <a href="{{ route('2fa.setup') }}" class="btn btn-outline-primary btn-sm w-100 mb-2" aria-label="Manage two-factor authentication">
+                  Manage Two-Factor Authentication
+                </a>
+                <form action="{{ route('2fa.disable') }}" method="POST" class="d-grid">
+                  @csrf
+                  <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Disable two-factor authentication">
+                    Disable Two-Factor
+                  </button>
+                </form>
                 @endif
               </li>
               <!--end::Menu Body-->
@@ -363,6 +399,14 @@
                 <p>Tasks</p>
               </a>
             </li>
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            <li class="nav-item">
+              <a href="{{ route('shift-assignments.calendar') }}" class="nav-link {{ request()->routeIs('shift-assignments.calendar') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-calendar-week"></i>
+                <p>Shift Calendar</p>
+              </a>
+            </li>
+            @endif
             @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
             <li class="nav-item">
               <a href="{{ route('karyawans.index') }}" class="nav-link {{ request()->routeIs('karyawans.*') ? 'active' : '' }}">
@@ -481,9 +525,21 @@
               </a>
             </li>
             <li class="nav-item">
+              <a href="{{ route('shifts.rosters.index') }}" class="nav-link {{ request()->routeIs('shifts.rosters.*') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-dot"></i>
+                <p>Weekly Rosters</p>
+              </a>
+            </li>
+            <li class="nav-item">
               <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-calendar3"></i>
                 <p>Shift Assignments</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('shift-assignments.calendar') }}" class="nav-link {{ request()->routeIs('shift-assignments.calendar') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-calendar-week"></i>
+                <p>Shift Calendar</p>
               </a>
             </li>
             @if(auth()->user()->location_id)
@@ -495,7 +551,6 @@
             </li>
             @endif
             @endif
-
             @if(auth()->user()->hasRole('Super Admin'))
             <li class="nav-header">Administration</li>
             <li class="nav-item">
@@ -510,11 +565,11 @@
                 <p>Divisions</p>
               </a>
             </li>
-                <li class="nav-item {{ request()->routeIs('locations.*') || request()->routeIs('shifts.*') || request()->routeIs('location-shifts.*') ? 'menu-open' : '' }}">
-                  <a href="#" class="nav-link">
-                    <i class="nav-icon bi bi-geo-alt"></i>
-                    <p>Locations</p>
-                    <i class="nav-arrow bi bi-chevron-right"></i>
+            <li class="nav-item {{ request()->routeIs('locations.*') || request()->routeIs('shifts.scheduler') || request()->routeIs('shifts.rosters.*') || request()->routeIs('location-shifts.*') ? 'menu-open' : '' }}">
+              <a href="#" class="nav-link">
+                <i class="nav-icon bi bi-geo-alt"></i>
+                <p>Locations</p>
+                <i class="nav-arrow bi bi-chevron-right"></i>
               </a>
               <ul class="nav nav-treeview">
                 <li class="nav-item">
@@ -523,12 +578,14 @@
                     <p>All Locations</p>
                   </a>
                 </li>
+                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
                 <li class="nav-item">
-                  <a href="{{ route('shifts.index') }}" class="nav-link {{ request()->routeIs('shifts.*') && !request()->get('category') ? 'active' : '' }}">
+                  <a href="{{ route('shifts.rosters.index') }}" class="nav-link {{ request()->routeIs('shifts.rosters.*') ? 'active' : '' }}">
                     <i class="nav-icon bi bi-dot"></i>
-                    <p>Shifts (Semua)</p>
+                    <p>Weekly Rosters</p>
                   </a>
                 </li>
+                @endif
                 <li class="nav-item">
                   <a href="{{ route('location-shifts.index') }}" class="nav-link {{ request()->routeIs('location-shifts.*') ? 'active' : '' }}">
                     <i class="nav-icon bi bi-dot"></i>
@@ -983,80 +1040,80 @@
     }
   </script>
   @unless(request()->routeIs('messages.*'))
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @if(session('forbidden'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'error',
-          title: 'Akses ditolak',
-          text: @json(session('forbidden')),
-          confirmButtonText: 'OK'
-        });
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  @if(session('forbidden'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'error',
+        title: 'Akses ditolak',
+        text: @json(session('forbidden')),
+        confirmButtonText: 'OK'
       });
-    </script>
-    @endif
-    @if(session('success'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'success',
-          title: 'Berhasil',
-          text: @json(session('success')),
-          timer: 2200,
-          showConfirmButton: false
-        });
+    });
+  </script>
+  @endif
+  @if(session('success'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: @json(session('success')),
+        timer: 2200,
+        showConfirmButton: false
       });
-    </script>
-    @endif
-    @if(session('error'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal',
-          text: @json(session('error')),
-          confirmButtonText: 'OK'
-        });
+    });
+  </script>
+  @endif
+  @if(session('error'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: @json(session('error')),
+        confirmButtonText: 'OK'
       });
-    </script>
-    @endif
-    @if(session('warning'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Peringatan',
-          text: @json(session('warning')),
-          confirmButtonText: 'OK'
-        });
+    });
+  </script>
+  @endif
+  @if(session('warning'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Peringatan',
+        text: @json(session('warning')),
+        confirmButtonText: 'OK'
       });
-    </script>
-    @endif
-    @if(session('info'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'info',
-          title: 'Informasi',
-          text: @json(session('info')),
-          confirmButtonText: 'OK'
-        });
+    });
+  </script>
+  @endif
+  @if(session('info'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'info',
+        title: 'Informasi',
+        text: @json(session('info')),
+        confirmButtonText: 'OK'
       });
-    </script>
-    @endif
-    @if(session('status'))
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        Swal.fire({
-          icon: 'info',
-          title: 'Status',
-          text: @json(session('status')),
-          confirmButtonText: 'OK'
-        });
+    });
+  </script>
+  @endif
+  @if(session('status'))
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      Swal.fire({
+        icon: 'info',
+        title: 'Status',
+        text: @json(session('status')),
+        confirmButtonText: 'OK'
       });
-    </script>
-    @endif
+    });
+  </script>
+  @endif
   @endunless
   @php
   $brandLocation = auth()->check() ? auth()->user()->location : null;

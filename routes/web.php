@@ -115,7 +115,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/2fa/setup', [App\Http\Controllers\TwoFactorController::class, 'setup'])->name('2fa.setup.post');
     Route::get('/2fa/verify', [App\Http\Controllers\TwoFactorController::class, 'showVerify'])->name('2fa.verify');
     Route::post('/2fa/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])->name('2fa.verify.post');
+    Route::get('/2fa/verify-app', [App\Http\Controllers\TwoFactorController::class, 'showVerifyApp'])->name('2fa.verify-app');
     Route::post('/2fa/disable', [App\Http\Controllers\TwoFactorController::class, 'disable'])->name('2fa.disable');
+    Route::delete('/2fa/disable', [App\Http\Controllers\TwoFactorController::class, 'disable']);
 
     // Profile
     Route::get('/profile', [App\Http\Controllers\UserController::class, 'profile'])->name('profile.show');
@@ -209,7 +211,18 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     // Location Settings (Super Admin and Admin Lokasi for own location)
     Route::get('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'settings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings');
     Route::patch('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'updateSettings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings.update');
-    Route::resource('shifts', App\Http\Controllers\ShiftController::class)->middleware('role:Super Admin');
+    Route::get('/shifts/scheduler', [App\Http\Controllers\ShiftController::class, 'schedulerForm'])->middleware('role:Super Admin')->name('shifts.scheduler');
+    Route::post('/shifts/scheduler', [App\Http\Controllers\ShiftController::class, 'schedulerGenerate'])->middleware('role:Super Admin')->name('shifts.scheduler.generate');
+
+    // Weekly Rosters (didefinisikan sebelum resource shifts untuk menghindari bentrok shifts/{shift})
+    Route::prefix('shifts')->name('shifts.')->middleware('role:Super Admin,Admin Lokasi')->group(function () {
+        Route::resource('rosters', App\Http\Controllers\ShiftRosterController::class);
+    });
+
+    // Legacy routes redirect ke scheduler (batasi parameter agar tidak menelan '/rosters')
+    Route::resource('shifts', App\Http\Controllers\ShiftController::class, [
+        'except' => ['index']
+    ])->middleware('role:Super Admin')->whereNumber('shift');
 
     // Location Shifts Management
     Route::resource('location-shifts', App\Http\Controllers\LocationShiftController::class, [
@@ -264,9 +277,17 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.store');
     Route::patch('/location-change-requests/{locationChangeRequest}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('location-change-requests.updateStatus');
 
-    // Shift Assignments (Super Admin and Admin Lokasi)
+    // Shift Assignments & Calendar
+    Route::get('/shift-assignments/calendar', [App\Http\Controllers\ShiftAssignmentController::class, 'calendar'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('shift-assignments.calendar');
     Route::resource('shift-assignments', App\Http\Controllers\ShiftAssignmentController::class)->middleware('role:Super Admin,Admin Lokasi');
     Route::get('/shift-assignments-export', [App\Http\Controllers\ShiftAssignmentController::class, 'export'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.export');
+    Route::post('/shift-assignments/rotate', [App\Http\Controllers\ShiftAssignmentController::class, 'rotate'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.rotate');
+
+    // Super Admin location selection (session-scoped)
+    Route::middleware('role:Super Admin')->group(function () {
+        Route::get('/location-selection', [App\Http\Controllers\LocationSelectionController::class, 'index'])->name('location-selection.index');
+        Route::post('/location-selection', [App\Http\Controllers\LocationSelectionController::class, 'store'])->name('location-selection.store');
+    });
 
     // Attendance reports
     Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');

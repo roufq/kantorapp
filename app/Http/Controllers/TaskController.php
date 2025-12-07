@@ -43,6 +43,14 @@ class TaskController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        // Filter range tanggal (due_date)
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('due_date', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('start_date')) {
+            $query->whereDate('due_date', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->whereDate('due_date', '<=', $request->end_date);
+        }
         // Super Admin can filter by location and role
         if ($user->hasRole('Super Admin')) {
             if ($request->filled('location_id')) {

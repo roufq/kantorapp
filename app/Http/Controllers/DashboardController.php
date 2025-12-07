@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\Attendance;
 use App\Models\ShiftAssignment;
+use App\Models\LocationShift;
 use App\Models\Overtime;
 use App\Models\Holiday;
 use App\Models\EmployeeLeave;
@@ -87,11 +88,11 @@ class DashboardController extends Controller
             $totalKaryawans = Employee::where('location_id', $locationId)->count();
             if ($user->hasRole('Admin Lokasi')) {
                 $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)
-                    ->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); })
+                    ->where('location_id', $locationId)
                     ->count();
                 $absencesTodayCount = EmployeeAbsence::whereDate('date', $today)->where('location_id', $locationId)->count();
                 $recentAssignments = ShiftAssignment::with(['user','shift'])
-                    ->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); })
+                    ->where('location_id', $locationId)
                     ->whereDate('date', '>=', $today)
                     ->orderBy('date', 'asc')
                     ->limit(5)
@@ -153,6 +154,29 @@ class DashboardController extends Controller
                 ->where('user_id', $user->id)
                 ->whereDate('date', $today)
                 ->first();
+            $todayRosterEntry = \App\Models\WeeklyRosterEntry::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->first();
+            $isOffToday = $todayRosterEntry && $todayRosterEntry->status === 'off';
+            $todayAssignmentTime = $this->formatAssignmentTime($todayAssignment);
+            // Fallback: jika belum ada assignment hari ini, gunakan default shift lokasi
+            if (!$todayAssignmentTime && $user->location_id) {
+                $fallbackShift = LocationShift::with('shift')
+                    ->where('location_id', $user->location_id)
+                    ->where(function ($q) {
+                        $q->where('is_default', true)->orWhereNotNull('time_slots');
+                    })
+                    ->orderByDesc('is_default')
+                    ->orderBy('id')
+                    ->first();
+                if ($fallbackShift) {
+                    $todayAssignmentTime = $this->formatLocationShiftTime($fallbackShift);
+                }
+            }
+            if ($isOffToday) {
+                $todayAssignmentTime = 'Hari libur Anda';
+                $todayAssignment = null;
+            }
             $myUpcomingAssignments = ShiftAssignment::with('shift')
                 ->where('user_id', $user->id)
                 ->whereDate('date', '>=', $today)
@@ -168,6 +192,8 @@ class DashboardController extends Controller
                 })
                 ->orderBy('check_in_time', 'desc')
                 ->get();
+        } else {
+            $todayAssignmentTime = null;
         }
 
         // Notices for holidays/leaves relevant to the user (cached)
@@ -242,10 +268,53 @@ class DashboardController extends Controller
             ->whereDate('check_in_time', now()->toDateString())
             ->first();
 
+        $userLocationName = $user->location->name ?? '-';
+
         return view('dashboard', compact(
             'user', 'tasks', 'unreadMessages',
             'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
             'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount'
-        ))->with('attendanceList', $attendanceList);
+        ))->with('attendanceList', $attendanceList)
+          ->with('todayAssignmentTime', $todayAssignmentTime)
+          ->with('userLocationName', $userLocationName);
+    }
+
+    private function formatAssignmentTime(?ShiftAssignment $assignment): ?string
+    {
+        if (!$assignment) {
+            return null;
+        }
+        $slots = $assignment->locationShift?->time_slots ?? [];
+        if (empty($slots)) {
+            $slots = $assignment->shift?->normalizedSlots() ?? [];
+        }
+        if (isset($slots['start']) && isset($slots['end'])) {
+            $slots = [ $slots ];
+        }
+        if (!is_array($slots) || empty($slots)) {
+            return null;
+        }
+        // Ambil slot pertama untuk display singkat
+        $first = $slots[0];
+        return ($first['start'] ?? '?') . ' - ' . ($first['end'] ?? '?');
+    }
+
+    private function formatLocationShiftTime(?LocationShift $locationShift): ?string
+    {
+        if (!$locationShift) {
+            return null;
+        }
+        $slots = $locationShift->time_slots ?? [];
+        if (empty($slots)) {
+            $slots = $locationShift->shift?->normalizedSlots() ?? [];
+        }
+        if (isset($slots['start']) && isset($slots['end'])) {
+            $slots = [ $slots ];
+        }
+        if (!is_array($slots) || empty($slots)) {
+            return null;
+        }
+        $first = $slots[0];
+        return ($first['start'] ?? '?') . ' - ' . ($first['end'] ?? '?');
     }
 }

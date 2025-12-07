@@ -26,6 +26,7 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
         return [
             'User Name',
             'Employee Name',
+            'Shift',
             'Check In Time',
             'Check Out Time',
             'Location',
@@ -39,6 +40,7 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
         return [
             $attendance->user->name,
             $attendance->user->employee->nama ?? 'N/A',
+            optional($attendance->shift)->name ?? '-',
             $attendance->check_in_time ? $attendance->check_in_time->format('Y-m-d H:i:s') : 'N/A',
             $attendance->check_out_time ? $attendance->check_out_time->format('Y-m-d H:i:s') : 'Not checked out',
             $attendance->location ?? 'N/A',

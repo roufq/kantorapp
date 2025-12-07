@@ -45,11 +45,11 @@
 
 ---
 
-## Minggu 5 — - [ ] Rotasi shift sederhana (pola mingguan per tim)
-- [ ] Handover (catatan serah terima antar shift)
-- [ ] Break management (durasi istirahat per shift)
-- [ ] Deteksi konflik lintas hari (overnight) dan multi-slot
-- [ ] Peningkatan UI (kalender mingguan/per user)
+## Minggu 5 - - [x] Rotasi shift sederhana (pola mingguan per tim)
+- [x] Handover (catatan serah terima antar shift)
+- [x] Break management (durasi istirahat per shift)
+- [x] Deteksi konflik lintas hari (overnight) dan multi-slot
+- [x] Peningkatan UI (kalender mingguan/per user)
 
 ---
 
@@ -60,11 +60,11 @@
 
 ### Laporan
 - [x] Report assignment per user/periode (XLSX export)
-- [ ] Report kehadiran berbasis shift
+- [x] Report kehadiran berbasis shift
 
 ### Notifikasi (opsional)
-- [ ] Reminder sebelum shift mulai (email/WA push, per lokasi)
-- [ ] Alert ketidakhadiran terhadap assignment
+- [x] Reminder sebelum shift mulai (email/WA push, per lokasi)
+- [x] Alert ketidakhadiran terhadap assignment
 
 ---
 
@@ -73,7 +73,7 @@
 - [ ] Unit: gates/policies (manage di lokasi sendiri)
 - [x] Integrasi: CRUD assignment (role Admin Lokasi/Super Admin), scoping lokasi
 - [x] Integrasi: Attendance terhubung ke assignment (kasus ada/tidak ada assignment)
-- [ ] Data isolation: Admin Lokasi tidak bisa akses lokasi lain
+- [x] Data isolation: Admin Lokasi tidak bisa akses lokasi lain
 
 ---
 

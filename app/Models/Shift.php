@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\LocationShift;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,7 +30,10 @@ class Shift extends Model
 
     public function locations(): BelongsToMany
     {
-        return $this->belongsToMany(Location::class, 'location_shifts');
+        return $this->belongsToMany(Location::class, 'location_shifts')
+            ->using(LocationShift::class)
+            ->withPivot(['id', 'category', 'time_slots', 'is_default'])
+            ->withTimestamps();
     }
 
     public function attendances(): HasMany
@@ -107,28 +111,26 @@ class Shift extends Model
 
     public function isCurrentlyActive(?string $timezone = null): bool
     {
-        if ($this->isMultipleShift()) {
-            // For multiple shifts, check if any slot is active
-            $now = Carbon::now($timezone ?? 'Asia/Jakarta');
-            $currentTime = $now->format('H:i');
-
-            foreach ($this->time_slots as $slot) {
-                if (isset($slot['start']) && isset($slot['end'])) {
-                    if ($currentTime >= $slot['start'] && $currentTime <= $slot['end']) {
-                        return true;
-                    }
-                }
-            }
+        $slots = $this->normalizedSlots();
+        if (empty($slots)) {
             return false;
-        } else {
-            // For single shifts, use existing logic
-            $now = Carbon::now($timezone ?? 'Asia/Jakarta');
-            $currentTime = $now->format('H:i');
-
-            return isset($this->time_slots['start']) && isset($this->time_slots['end']) &&
-                   $currentTime >= $this->time_slots['start'] &&
-                   $currentTime <= $this->time_slots['end'];
         }
+
+        $now = Carbon::now($timezone ?? 'Asia/Jakarta');
+        $currentTime = $now->format('H:i');
+
+        foreach ($slots as $slot) {
+            if (!isset($slot['start'], $slot['end'])) {
+                continue;
+            }
+            $start = $slot['start'];
+            $end = $slot['end'];
+            if ($currentTime >= $start && $currentTime <= $end) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getDurationInMinutes(): int
@@ -188,5 +190,49 @@ class Shift extends Model
                 ? $this->time_slots['start'] . ' - ' . $this->time_slots['end']
                 : 'Not specified';
         }
+    }
+
+    /**
+     * Normalize master shift slots into uniform array of slots.
+     */
+    public function normalizedSlots(): array
+    {
+        $slots = $this->time_slots ?? [];
+        if ($this->isSingleShift() && isset($slots['start'], $slots['end'])) {
+            $slots = [ $slots ];
+        }
+
+        $normalized = [];
+        foreach ((array) $slots as $slot) {
+            if (empty($slot['start']) || empty($slot['end'])) {
+                continue;
+            }
+            $normalized[] = [
+                'start' => $slot['start'],
+                'end' => $slot['end'],
+                'days' => isset($slot['days']) && is_array($slot['days'])
+                    ? array_values(array_filter($slot['days']))
+                    : [],
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Get normalized slots scoped to a location pivot (fallback to master slots).
+     */
+    public function slotsForLocation(?int $locationId = null): array
+    {
+        if ($locationId) {
+            $locationShift = LocationShift::where('location_id', $locationId)
+                ->where('shift_id', $this->id)
+                ->first();
+            if ($locationShift) {
+                return $locationShift->normalizedSlots();
+            }
+        }
+
+        return $this->normalizedSlots();
     }
 }

@@ -171,21 +171,28 @@
       </div>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-info shadow-sm">
-          <i class="bi bi-calendar3"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Today's Shift</span>
-          <span class="info-box-number">
-            @if($todayAssignment && $todayAssignment->shift)
-              {{ $todayAssignment->shift->name }}
-            @else
-              --
-            @endif
+        <div class="info-box">
+          <span class="info-box-icon text-bg-info shadow-sm">
+            <i class="bi bi-calendar3"></i>
           </span>
-        </div>
-      </div>
+          <div class="info-box-content">
+           <span class="info-box-text">Today's Shift</span>
+           <span class="info-box-number">
+              @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
+                <div>{{ $todayAssignmentTime }}</div>
+              @elseif($todayAssignment && $todayAssignment->shift)
+                {{ $todayAssignment->shift->name }}
+                @if(!empty($todayAssignmentTime))
+                  <div class="text-muted small">{{ $todayAssignmentTime }}</div>
+                @endif
+              @elseif(!empty($todayAssignmentTime))
+                <div class="text-muted small">{{ $todayAssignmentTime }}</div>
+              @else
+                --
+              @endif
+           </span>
+         </div>
+       </div>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
       <div class="info-box">
@@ -218,6 +225,49 @@
               --
             @endif
           </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lokasi & Jadwal Hari Ini -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Lokasi & Jadwal Hari Ini</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="fw-semibold">Lokasi</div>
+              <div class="text-muted">{{ $userLocationName ?? '-' }}</div>
+            </div>
+           <div class="col-md-4">
+             <div class="fw-semibold">Shift (rencana)</div>
+             <div class="text-muted">
+                @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
+                  {{ $todayAssignmentTime }}
+                @elseif($todayAssignment && $todayAssignment->shift)
+                  {{ $todayAssignment->shift->name }} @if(!empty($todayAssignmentTime)) ({{ $todayAssignmentTime }}) @endif
+                @elseif(!empty($todayAssignmentTime))
+                  {{ $todayAssignmentTime }}
+                @else
+                  --
+                @endif
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="fw-semibold">Clock In / Clock Out</div>
+              <div class="text-muted">
+                @php
+                  $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
+                  $co = $todayAttendance && $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : '--';
+                @endphp
+                {{ $ci }} / {{ $co }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

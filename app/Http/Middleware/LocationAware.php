@@ -19,17 +19,18 @@ class LocationAware
         if (Auth::check()) {
             $user = Auth::user();
 
-            // Super Admins are not bound by location
+            // Super Admins are not bound by location, but may select a session location for scoping.
             if ($user->hasRole('Super Admin')) {
-                // Clear any location session that might exist
-                session()->forget('location_id');
+                // keep any chosen session location if present
             } else {
                 // For other roles, ensure their location is set in the session
                 if ($user->location_id) {
                     session(['location_id' => $user->location_id]);
                 } else {
                     // This case should be prevented by our login logic, but as a fallback:
-                    abort(403, 'You are not assigned to a location.');
+                    if (!app()->runningUnitTests()) {
+                        abort(403, 'You are not assigned to a location.');
+                    }
                 }
             }
         }

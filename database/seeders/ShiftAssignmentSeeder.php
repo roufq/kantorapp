@@ -38,12 +38,18 @@ class ShiftAssignmentSeeder extends Seeder
                     $date = $today->copy()->addDays($i);
                     // Rotasi shift berdasarkan index
                     $shift = $shifts[$i % $shifts->count()];
+                    $pivot = $shift->pivot ?? $loc->shifts()->where('shifts.id', $shift->id)->first()?->pivot;
+                    if (!$pivot) {
+                        continue;
+                    }
 
                     // Hindari duplikat (unique user_id+date)
                     if (!ShiftAssignment::where('user_id', $u->id)->whereDate('date', $date->toDateString())->exists()) {
                         ShiftAssignment::create([
                             'user_id' => $u->id,
+                            'location_id' => $loc->id,
                             'shift_id' => $shift->id,
+                            'location_shift_id' => $pivot->id,
                             'date' => $date->toDateString(),
                             'status' => 'scheduled',
                             'notes' => 'Seeded assignment',
@@ -54,4 +60,3 @@ class ShiftAssignmentSeeder extends Seeder
         }
     }
 }
-

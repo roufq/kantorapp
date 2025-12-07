@@ -11,6 +11,11 @@
     <link rel="stylesheet" href="{{ asset('css/adminlte.css') }}">
     <!-- Theme style -->
     <link rel="stylesheet" href="{{ asset('css/adminlte.min.css') }}">
+    <style>
+      /* Pastikan halaman login tidak terblokir overlay */
+      body.login-page { pointer-events: auto; filter: none; }
+      .sidebar-overlay, .modal-backdrop { display: none !important; }
+    </style>
 </head>
 <body class="hold-transition login-page">
 <div class="login-box">

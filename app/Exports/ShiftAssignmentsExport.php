@@ -23,17 +23,24 @@ class ShiftAssignmentsExport implements FromQuery, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        return ['Date', 'User ID', 'User Name', 'Shift ID', 'Shift Name', 'Status', 'Notes'];
+        return ['Date', 'Location', 'User ID', 'User Name', 'Shift ID', 'Shift Name', 'Slots', 'Status', 'Notes'];
     }
 
     public function map($row): array
     {
+        $slots = $row->locationShift ? $row->locationShift->normalizedSlots() : (optional($row->shift) ? $row->shift->normalizedSlots() : []);
+        $slotText = collect($slots)->map(function ($s) {
+            return $s['start'] . ' - ' . $s['end'] . (!empty($s['days']) ? ' (' . implode(',', $s['days']) . ')' : '');
+        })->implode('; ');
+
         return [
             optional($row->date)->format('Y-m-d'),
+            optional($row->location)->name,
             $row->user_id,
             optional($row->user)->name,
             $row->shift_id,
             optional($row->shift)->name,
+            $slotText,
             $row->status,
             $row->notes,
         ];

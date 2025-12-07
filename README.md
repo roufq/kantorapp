@@ -13,6 +13,22 @@ KantorApp is a comprehensive multi-location attendance management system built w
 
 ## Recent Updates
 
+- Shift Roster & Calendar
+  - Weekly Rosters (Factory/Non Office): kalender hanya menampilkan data dari roster; jika belum ada, tampil “Shift belum ada”.
+  - Status OFF ditampilkan sebagai hari libur; cuti/izin (Leaves) muncul sebagai baris “Leave” di kalender mingguannya.
+  - Akses kalender: Karyawan/Admin Lokasi hanya lokasi sendiri, Super Admin bisa pilih semua lokasi via dropdown.
+  - Rolling roster berbasis nama karyawan (bukan nomor slot) dan jam slot tampil di tabel.
+- Attendance + Roster Sync
+  - Check-in/out divalidasi terhadap slot jadwal (grace early 30 menit), menolak jika OFF atau di luar jam.
+  - Check-out menolak sebelum akhir slot (kecuali overtime). Absensi menyimpan `shift_assignment_id`.
+- Dashboard
+  - Hari OFF menampilkan “Hari libur Anda” (tanpa jam) di kartu shift karyawan.
+  - Detail shift lokasi menampilkan slot per hari (hari + jam) di Location Shift Details.
+- Shift Calendar
+  - Super Admin/Admin Lokasi/Karyawan dapat melihat kalender per lokasi; default office fallback dihilangkan untuk mencegah jadwal fiktif di luar roster.
+  - Halaman kalender menampilkan pesan “Shift belum ada / Belum ada jadwal” bila minggu belum dibuat roster.
+- Tasks
+  - Filter baru rentang tanggal due date (start/end) di index tasks dengan tata letak form lebih rapi.
 - Security Hardening (Phase 1)
   - 2FA multi-metode (SMS/Email/App) dengan middleware verifikasi.
   - Perbaikan loop redirect 2FA: hanya bypass verify jika sesi sudah `2fa_verified`.

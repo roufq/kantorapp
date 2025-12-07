@@ -3,16 +3,35 @@
 namespace App\Logging;
 
 use App\Support\Security\DataMasker;
+use Monolog\LogRecord;
 
 class MaskSensitiveDataProcessor
 {
-    public function __invoke(array $record): array
+    /**
+     * Handle Monolog record (supports array for Monolog v2 and LogRecord for v3).
+     */
+    public function __invoke($record)
     {
-        $record['context'] = DataMasker::mask($record['context'] ?? []);
-        $record['extra'] = DataMasker::mask($record['extra'] ?? []);
+        $isObject = $record instanceof LogRecord;
 
-        if (isset($record['message'])) {
-            $record['message'] = DataMasker::maskString($record['message']);
+        $context = $isObject ? $record->context : ($record['context'] ?? []);
+        $extra = $isObject ? $record->extra : ($record['extra'] ?? []);
+        $message = $isObject ? $record->message : ($record['message'] ?? null);
+
+        $context = DataMasker::mask($context ?? []);
+        $extra = DataMasker::mask($extra ?? []);
+        if ($message !== null) {
+            $message = DataMasker::maskString($message);
+        }
+
+        if ($isObject) {
+            return $record->with(context: $context, extra: $extra, message: $message ?? '');
+        }
+
+        $record['context'] = $context;
+        $record['extra'] = $extra;
+        if ($message !== null) {
+            $record['message'] = $message;
         }
 
         return $record;

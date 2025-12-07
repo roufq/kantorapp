@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Location;
 use App\Models\Shift;
+use App\Models\LocationShift;
+use App\Models\ShiftAssignment;
+use App\Models\WeeklyRosterEntry;
 use App\Models\Overtime;
 use App\Models\LocationChangeRequest;
 use App\Models\EmployeeAbsence;
@@ -61,97 +64,91 @@ class AttendanceController extends Controller
         }
 
         $now = now();
-        $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
+        $tz = $user->location->timezone ?? config('app.timezone', 'UTC');
+        $nowInLocation = $now->copy()->setTimezone($tz);
+        $dayOfWeek = $nowInLocation->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
         $isLate = false;
         $shiftId = null;
+        $shiftAssignmentId = null;
         $usedAssignment = false;
+        $slotIntervals = [];
 
         // Prefer shift assignment for today
         if (class_exists(\App\Models\ShiftAssignment::class)) {
             $assignment = \App\Models\ShiftAssignment::where('user_id', $user->id)
-                ->whereDate('date', $now->setTimezone($user->location->timezone ?? 'UTC')->toDateString())
-                ->with('shift')
+                ->whereDate('date', $nowInLocation->toDateString())
+                ->with(['locationShift.location', 'locationShift.shift', 'shift', 'location'])
                 ->first();
-            if ($assignment && $assignment->shift) {
-                $assignedShift = $assignment->shift;
-                if ($assignedShift->isSingleShift()) {
-                    $shiftStartTime = Carbon::createFromFormat('H:i', $assignedShift->time_slots['start']);
-                    $isLate = $now->gt($shiftStartTime);
-                } else {
-                    foreach ($assignedShift->time_slots as $slot) {
-                        $slotStart = Carbon::createFromFormat('H:i', $slot['start']);
-                        if ($now->gt($slotStart)) { $isLate = true; break; }
+            if ($assignment) {
+                $pivot = $assignment->locationShift;
+                if (!$pivot && $assignment->shift) {
+                    $pivot = $this->buildPivotFromShift($assignment->shift, $assignment->location);
+                }
+
+                if ($pivot) {
+                    $intervals = $pivot->slotIntervalsForDate($nowInLocation);
+                    $slotIntervals = $intervals;
+                    $shiftId = $pivot->shift_id;
+                    $shiftAssignmentId = $assignment->id;
+                    $isLate = $this->isLateFromIntervals($intervals, $nowInLocation);
+                    $usedAssignment = true;
+                    // override attendance location to match assignment if available
+                    if ($assignment->location_id) {
+                        $attendanceLocationId = $assignment->location_id;
                     }
                 }
-                $shiftId = $assignedShift->id;
-                $usedAssignment = true;
             }
         }
-
-        
 
         // Find active shift for user's location at check-in time (fallback when no assignment)
         if (!$usedAssignment && $user->location_id) {
-            $location = Location::find($user->location_id);
+            $location = Location::with(['shifts' => function ($q) {
+                $q->where('is_active', true);
+            }])->find($user->location_id);
             if ($location && $location->shift_enabled) {
-                $activeShift = $location->shifts()
-                    ->where('is_active', true)
-                    ->where(function ($query) use ($now) {
-                        $currentTime = $now->format('H:i');
-                        $query->where(function ($q) use ($currentTime) {
-                            // For single shifts
-                            $q->where('shift_type', 'single')
-                              ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(time_slots, '$.start')) <= ?", [$currentTime])
-                              ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(time_slots, '$.end')) >= ?", [$currentTime]);
-                        })->orWhere(function ($q) use ($currentTime) {
-                            // For multiple shifts - check if any slot is active
-                            $q->where('shift_type', 'multiple')
-                              ->whereRaw("EXISTS (
-                                  SELECT 1 FROM JSON_TABLE(time_slots, '$[*]' COLUMNS (
-                                      start_time VARCHAR(5) PATH '$.start',
-                                      end_time VARCHAR(5) PATH '$.end'
-                                  )) slots
-                                  WHERE slots.start_time <= ? AND slots.end_time >= ?
-                              )", [$currentTime, $currentTime]);
-                        });
-                    })
-                    ->first();
-
-                if ($activeShift) {
-                    // Use shift's start time for late calculation
-                    if ($activeShift->isSingleShift()) {
-                        $shiftStartTime = Carbon::createFromFormat('H:i', $activeShift->time_slots['start']);
-                        $isLate = $now->gt($shiftStartTime);
-                    } else {
-                        // For multiple shifts, check if current time is after any start time
-                        $isLate = false;
-                        foreach ($activeShift->time_slots as $slot) {
-                            $slotStart = Carbon::createFromFormat('H:i', $slot['start']);
-                            if ($now->gt($slotStart)) {
-                                $isLate = true;
-                                break;
-                            }
-                        }
-                    }
-                    $shiftId = $activeShift->id;
+                $active = $this->findActiveLocationShift($location, $nowInLocation);
+                if ($active) {
+                    $shiftId = $active['shift']->id;
+                    $slotIntervals = $active['intervals'] ?? [];
+                    $isLate = $active['start'] ? $nowInLocation->gt($active['start']) : false;
                 }
             }
         }
 
-        // Fallback to day-based rules if no active shift found
-        if (!$shiftId) {
-            if ($dayOfWeek >= 1 && $dayOfWeek <= 5) { // Monday to Friday
-                $isLate = $now->hour > 9 || ($now->hour == 9 && $now->minute > 0);
-            } elseif ($dayOfWeek == 6) { // Saturday
-                $isLate = $now->hour > 8 || ($now->hour == 8 && $now->minute > 0);
+        // Cek roster OFF
+        $rosterEntry = \App\Models\WeeklyRosterEntry::where('user_id', $user->id)
+            ->whereDate('date', $nowInLocation->toDateString())
+            ->first();
+        if ($rosterEntry && $rosterEntry->status === 'off') {
+            return back()->withErrors(['message' => 'Anda sedang OFF pada tanggal ini.']);
+        }
+
+        // Wajib ada jadwal slot
+        if (empty($slotIntervals)) {
+            return back()->withErrors(['message' => 'Jadwal shift untuk hari ini tidak ditemukan. Hubungi admin.']);
+        }
+
+        // Pastikan masih dalam jendela jam kerja (grace early 30 menit)
+        $graceEarlyMinutes = 30;
+        $insideSlot = false;
+        foreach ($slotIntervals as [$start, $end]) {
+            $startWithGrace = $start->copy()->subMinutes($graceEarlyMinutes);
+            if ($nowInLocation->betweenIncluded($startWithGrace, $end)) {
+                $insideSlot = true;
+                $isLate = $nowInLocation->gt($start);
+                break;
             }
-            // Sunday: no late check
+        }
+        if (!$insideSlot) {
+            $ranges = collect($slotIntervals)->map(fn($i) => $i[0]->format('H:i') . ' - ' . $i[1]->format('H:i'))->implode(', ');
+            return back()->withErrors(['message' => 'Di luar jam kerja. Jadwal hari ini: ' . $ranges]);
         }
 
         Attendance::create([
             'user_id' => $user->id,
             'location_id' => $attendanceLocationId,
             'shift_id' => $shiftId,
+            'shift_assignment_id' => $shiftAssignmentId,
             'check_in_time' => $now,
             'location' => $request->latitude . ',' . $request->longitude,
             'is_late' => $isLate,
@@ -195,6 +192,7 @@ class AttendanceController extends Controller
 
 
         $now = now();
+        $nowInLocation = $now->copy()->setTimezone($user->location->timezone ?? config('app.timezone', 'UTC'));
 
         // Check for approved overtime
         $approvedOvertime = Overtime::where('user_id', $user->id)
@@ -213,6 +211,50 @@ class AttendanceController extends Controller
 
         if (!$canCheckOut) {
             return back()->withErrors(['message' => 'You cannot check out before your approved overtime ends.']);
+        }
+
+        // Validasi jam sesuai shift/roster
+        $slotIntervals = [];
+        $assignment = null;
+        if ($attendance->shift_assignment_id) {
+            $assignment = \App\Models\ShiftAssignment::with(['locationShift.location'])->find($attendance->shift_assignment_id);
+        }
+        if (!$assignment) {
+            $assignment = \App\Models\ShiftAssignment::with(['locationShift.location'])
+                ->where('user_id', $user->id)
+                ->whereDate('date', $nowInLocation->toDateString())
+                ->first();
+        }
+        if ($assignment && $assignment->locationShift) {
+            $slotIntervals = $assignment->locationShift->slotIntervalsForDate($nowInLocation);
+        }
+        if (empty($slotIntervals) && $attendance->shift_id && $user->location) {
+            // fallback pakai master shift
+            $pivot = $this->buildPivotFromShift(Shift::find($attendance->shift_id), $user->location);
+            $slotIntervals = $pivot->slotIntervalsForDate($nowInLocation);
+        }
+
+        // Tentukan slot yang dipakai (berdasarkan waktu check-in jika memungkinkan)
+        $targetInterval = null;
+        if (!empty($slotIntervals)) {
+            foreach ($slotIntervals as $intv) {
+                if ($attendance->check_in_time->betweenIncluded($intv[0], $intv[1])) {
+                    $targetInterval = $intv;
+                    break;
+                }
+            }
+            if (!$targetInterval) {
+                // pilih interval paling awal sebagai fallback
+                usort($slotIntervals, fn($a,$b) => $a[0]->gt($b[0]) ? 1 : -1);
+                $targetInterval = $slotIntervals[0];
+            }
+        }
+
+        if ($targetInterval) {
+            $plannedEnd = $targetInterval[1];
+            if ($nowInLocation->lt($plannedEnd)) {
+                return back()->withErrors(['message' => 'Belum waktunya check-out. Shift berakhir: ' . $plannedEnd->format('H:i')]);
+            }
         }
 
         $dayOfWeek = $now->dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
@@ -268,7 +310,7 @@ class AttendanceController extends Controller
         $this->authorize('viewAny', Attendance::class);
 
         $user = auth()->user();
-        $query = Attendance::with('user.employee');
+        $query = Attendance::with(['user.employee', 'shift', 'location', 'shiftAssignment']);
 
         // Filter by role
         if ($user->hasRole('Admin Lokasi')) {
@@ -280,12 +322,35 @@ class AttendanceController extends Controller
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
         }
+        if ($request->filled('shift_id')) {
+            $query->where('shift_id', $request->shift_id);
+        }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('check_in_time', [$request->start_date, $request->end_date]);
         }
 
         $attendances = $query->orderBy('check_in_time', 'desc')->paginate(20);
+
+        // Ambil roster untuk baris yang ditampilkan agar sinkron dengan jadwal Weekly Rosters
+        $mapKeys = $attendances->getCollection()->map(function ($a) {
+            return [
+                'user_id' => $a->user_id,
+                'date' => $a->check_in_time->toDateString(),
+            ];
+        });
+        $rosterEntries = collect();
+        if ($mapKeys->isNotEmpty()) {
+            $userIds = $mapKeys->pluck('user_id')->unique();
+            $dates = $mapKeys->pluck('date')->unique();
+            $rosterEntries = \App\Models\WeeklyRosterEntry::with(['roster.locationShift.shift'])
+                ->whereIn('user_id', $userIds)
+                ->whereIn('date', $dates)
+                ->get()
+                ->groupBy(function ($e) {
+                    return $e->user_id . '|' . $e->date->toDateString();
+                });
+        }
 
         // For header notice: effective location for current user today
         $effectiveLocation = $user->location;
@@ -300,7 +365,12 @@ class AttendanceController extends Controller
             $effectiveTemporary = !$approvedChangeToday->is_permanent;
         }
 
-        return view('attendances.report', compact('attendances', 'effectiveLocation', 'effectiveTemporary'));
+        return view('attendances.report', [
+            'attendances' => $attendances,
+            'effectiveLocation' => $effectiveLocation,
+            'effectiveTemporary' => $effectiveTemporary,
+            'rosterEntries' => $rosterEntries,
+        ]);
     }
 
     public function absences(Request $request)
@@ -382,6 +452,15 @@ class AttendanceController extends Controller
         }
         $users = $usersQuery->orderBy('name')->get();
 
+        // Ambil roster non-office (Weekly Rosters) dalam rentang tanggal, dikelompokkan per user|date
+        $rosterEntries = \App\Models\WeeklyRosterEntry::with('roster')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get()
+            ->groupBy(function ($e) {
+                return $e->user_id . '|' . $e->date->toDateString();
+            });
+
         $rows = [];
         foreach ($users as $u) {
             $totalDays = 0;
@@ -393,9 +472,19 @@ class AttendanceController extends Controller
 
             foreach (CarbonPeriod::create($start->toDateString(), $end->toDateString()) as $date) {
                 $totalDays++;
-                $isHoliday = WorkdayService::isHolidayForUser($u, $date);
-                $isWO = WorkdayService::isWeeklyOff($u, $date);
-                $hasLeave = WorkdayService::hasApprovedLeave($u, $date);
+                $key = $u->id . '|' . $date->toDateString();
+                $roster = $rosterEntries->get($key)?->first();
+
+                // Jika ada roster Weekly Roster, gunakan status roster sebagai dasar
+                if ($roster) {
+                    $isHoliday = false;
+                    $isWO = $roster->status === 'off';
+                    $hasLeave = false;
+                } else {
+                    $isHoliday = WorkdayService::isHolidayForUser($u, $date);
+                    $isWO = WorkdayService::isWeeklyOff($u, $date);
+                    $hasLeave = WorkdayService::hasApprovedLeave($u, $date);
+                }
 
                 if ($isHoliday) { $holidayDays++; }
                 if ($isWO) { $weeklyOffDays++; }
@@ -456,7 +545,7 @@ class AttendanceController extends Controller
         $this->authorize('viewAny', Attendance::class);
 
         $user = auth()->user();
-        $query = Attendance::with('user.employee');
+        $query = Attendance::with(['user.employee', 'shift', 'location']);
 
         // Filter by role
         if ($user->hasRole('Admin Lokasi')) {
@@ -467,6 +556,9 @@ class AttendanceController extends Controller
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
+        }
+        if ($request->filled('shift_id')) {
+            $query->where('shift_id', $request->shift_id);
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
@@ -504,6 +596,82 @@ class AttendanceController extends Controller
             $filename = 'attendance_report.csv';
         }
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AttendanceExport($query), $filename, $writer);
+    }
+
+    private function buildPivotFromShift(Shift $shift, ?Location $location = null): LocationShift
+    {
+        $pivot = new LocationShift([
+            'location_id' => $location?->id,
+            'shift_id' => $shift->id,
+            'category' => $shift->category,
+            'time_slots' => $shift->time_slots ?? [],
+            'is_default' => false,
+        ]);
+        $pivot->setRelation('shift', $shift);
+        if ($location) {
+            $pivot->setRelation('location', $location);
+        }
+
+        return $pivot;
+    }
+
+    private function isLateFromIntervals(array $intervals, Carbon $now): bool
+    {
+        if (empty($intervals)) {
+            return false;
+        }
+
+        usort($intervals, fn ($a, $b) => $a[0]->gt($b[0]) ? 1 : -1);
+
+        return $now->gt($intervals[0][0]);
+    }
+
+    private function findActiveLocationShift(Location $location, Carbon $now): ?array
+    {
+        $shifts = $location->relationLoaded('shifts')
+            ? $location->shifts
+            : $location->shifts()->where('is_active', true)->get();
+
+        $defaultCandidate = null;
+
+        foreach ($shifts as $shift) {
+            if (!$shift->is_active) {
+                continue;
+            }
+
+            $pivot = $shift->pivot instanceof LocationShift ? $shift->pivot : null;
+            if (!$pivot) {
+                continue;
+            }
+
+            if ($pivot->is_default && !$defaultCandidate) {
+                $defaultCandidate = [$pivot, $shift];
+            }
+
+            $intervals = $pivot->slotIntervalsForDate($now);
+            foreach ($intervals as [$start, $end]) {
+                if ($now->between($start, $end)) {
+                    return [
+                        'pivot' => $pivot,
+                        'shift' => $shift,
+                        'start' => $start,
+                        'intervals' => $intervals,
+                    ];
+                }
+            }
+        }
+
+        if ($defaultCandidate) {
+            [$pivot, $shift] = $defaultCandidate;
+            return [
+                'pivot' => $pivot,
+                'shift' => $shift,
+                'start' => $pivot->earliestStartForDate($now),
+                'intervals' => $pivot->slotIntervalsForDate($now),
+            ];
+        }
+
+        return null;
     }
 
     private function isWithinOfficeRadius($latitude, $longitude, ?Location $location, $accuracy = null)

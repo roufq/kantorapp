@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Location;
 use App\Models\User;
-use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Models\LocationShift;
 use Carbon\Carbon;
 
 class GenerateShiftRotation extends Command
@@ -31,8 +31,17 @@ class GenerateShiftRotation extends Command
             return self::SUCCESS;
         }
 
-        $shifts = $location->shifts()->active()->orderBy('id')->get();
-        if ($shifts->isEmpty()) {
+        $locationShifts = $location->shifts()
+            ->withPivot(['id', 'time_slots'])
+            ->active()
+            ->orderBy('location_shifts.id')
+            ->get()
+            ->map(function ($shift) {
+                $shift->pivot_model = $shift->pivot;
+                return $shift;
+            });
+
+        if ($locationShifts->isEmpty()) {
             $this->warn('No active shifts linked to this location.');
             return self::SUCCESS;
         }
@@ -41,11 +50,20 @@ class GenerateShiftRotation extends Command
         for ($d = 0; $d < $days; $d++) {
             $date = $today->copy()->addDays($d)->toDateString();
             foreach ($users as $idx => $u) {
-                $shift = $shifts[($idx + $d) % $shifts->count()];
+                $shift = $locationShifts[($idx + $d) % $locationShifts->count()];
+                $pivot = $shift->pivot_model;
+
+                if (!$pivot || !$pivot->id) {
+                    $this->warn("Skip user {$u->id} on {$date}: missing pivot for shift {$shift->id}");
+                    continue;
+                }
+
                 if (!ShiftAssignment::where('user_id', $u->id)->whereDate('date', $date)->exists()) {
                     ShiftAssignment::create([
                         'user_id' => $u->id,
+                        'location_id' => $location->id,
                         'shift_id' => $shift->id,
+                        'location_shift_id' => $pivot->id,
                         'date' => $date,
                         'status' => 'scheduled',
                         'notes' => 'Generated rotation',
@@ -57,4 +75,3 @@ class GenerateShiftRotation extends Command
         return self::SUCCESS;
     }
 }
-

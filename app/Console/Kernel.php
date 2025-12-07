@@ -27,4 +27,15 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+
+    /**
+     * The Artisan commands provided by your application.
+     *
+     * @var array
+     */
+    protected $commands = [
+        Commands\GenerateShiftRotation::class,
+        Commands\SendShiftReminders::class,
+        Commands\SeedShiftTemplates::class,
+    ];
 }

@@ -27,45 +27,57 @@
 </div>
 
 <!-- Search Form -->
-<div class="mb-4">
-    <form method="GET" action="{{ route('tasks.index') }}" class="row g-2 align-items-end">
+<div class="mb-4 card">
+  <div class="card-body">
+    <form method="GET" action="{{ route('tasks.index') }}">
+      <div class="row g-3 align-items-end">
         <div class="col-md-4">
-            <label class="form-label">Search</label>
-            <input type="text" name="search" class="form-control" placeholder="Title or assignee name" value="{{ request('search') }}">
+          <label class="form-label fw-semibold">Search</label>
+          <input type="text" name="search" class="form-control" placeholder="Title or assignee name" value="{{ request('search') }}">
         </div>
         <div class="col-md-3">
-            <label class="form-label">Status</label>
-            <select name="status" class="form-select">
-                <option value="">All</option>
-                <option value="pending" {{ request('status')=='pending' ? 'selected' : '' }}>Pending</option>
-                <option value="in_progress" {{ request('status')=='in_progress' ? 'selected' : '' }}>In Progress</option>
-                <option value="completed" {{ request('status')=='completed' ? 'selected' : '' }}>Completed</option>
-            </select>
+          <label class="form-label fw-semibold">Status</label>
+          <select name="status" class="form-select">
+            <option value="">All</option>
+            <option value="pending" {{ request('status')=='pending' ? 'selected' : '' }}>Pending</option>
+            <option value="in_progress" {{ request('status')=='in_progress' ? 'selected' : '' }}>In Progress</option>
+            <option value="completed" {{ request('status')=='completed' ? 'selected' : '' }}>Completed</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Start Date (Due)</label>
+          <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">End Date (Due)</label>
+          <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
         </div>
         @if(auth()->user()->hasRole('Super Admin'))
-        <div class="col-md-2">
-            <label class="form-label">Role</label>
-            <select name="assignee_role" class="form-select">
-                <option value="">All</option>
-                <option value="Karyawan" {{ request('assignee_role')=='Karyawan' ? 'selected' : '' }}>Karyawan</option>
-                <option value="Admin Lokasi" {{ request('assignee_role')=='Admin Lokasi' ? 'selected' : '' }}>Admin Lokasi</option>
-            </select>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Role</label>
+          <select name="assignee_role" class="form-select">
+            <option value="">All</option>
+            <option value="Karyawan" {{ request('assignee_role')=='Karyawan' ? 'selected' : '' }}>Karyawan</option>
+            <option value="Admin Lokasi" {{ request('assignee_role')=='Admin Lokasi' ? 'selected' : '' }}>Admin Lokasi</option>
+          </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label">Location</label>
-            <select name="location_id" class="form-select">
-                <option value="">All</option>
-                @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
-                    <option value="{{ $loc->id }}" {{ (string)request('location_id')===(string)$loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
-                @endforeach
-            </select>
+          <label class="form-label fw-semibold">Location</label>
+          <select name="location_id" class="form-select">
+            <option value="">All</option>
+            @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
+              <option value="{{ $loc->id }}" {{ (string)request('location_id')===(string)$loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
+            @endforeach
+          </select>
         </div>
         @endif
-        <div class="col-md-12 d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-outline-primary">Apply</button>
-            <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary">Clear</a>
-        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary">Clear</a>
+      </div>
     </form>
+  </div>
 </div>
 <div class="row">
     @foreach($tasks as $task)

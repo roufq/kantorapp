@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\LocationShift;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -62,8 +63,14 @@ class Location extends Model
     public function shifts(): BelongsToMany
     {
         return $this->belongsToMany(Shift::class, 'location_shifts')
-            ->withPivot(['category', 'time_slots', 'is_default'])
+            ->using(LocationShift::class)
+            ->withPivot(['id', 'category', 'time_slots', 'is_default'])
             ->withTimestamps();
+    }
+
+    public function defaultLocationShift(): ?LocationShift
+    {
+        return $this->shifts()->wherePivot('is_default', true)->first()?->pivot;
     }
 
     public function getSetting(string $key, $default = null)

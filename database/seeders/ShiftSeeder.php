@@ -51,16 +51,10 @@ class ShiftSeeder extends Seeder
                 'is_active' => true,
                 'description' => 'Factory shifts: morning, afternoon, and night',
             ],
-            [
-                'name' => 'Weekend Office Shift',
-                'code' => 'WKND_OFF',
-                'day' => 'saturday',
-                'shift_type' => 'single',
-                'time_slots' => ['start' => '08:00', 'end' => '14:00'],
-                'is_active' => true,
-                'description' => 'Weekend office shift from 8 AM to 2 PM',
-            ],
         ];
+
+        // Cleanup deprecated shifts if present
+        Shift::where('code', 'WKND_OFF')->delete();
 
         foreach ($shifts as $shiftData) {
             // Idempotent insert by unique code

@@ -82,11 +82,46 @@
                                                         </div>
                                                         <div class="card-body p-2">
                                                             <small>
+                                                                @php
+                                                                    $slots = $shift->pivot->time_slots ?? [];
+                                                                    if (isset($slots['start'], $slots['end'])) { $slots = [ $slots ]; }
+                                                                    $dayNames = [
+                                                                        0 => 'Minggu',
+                                                                        1 => 'Senin',
+                                                                        2 => 'Selasa',
+                                                                        3 => 'Rabu',
+                                                                        4 => 'Kamis',
+                                                                        5 => 'Jumat',
+                                                                        6 => 'Sabtu',
+                                                                    ];
+                                                                @endphp
                                                                 <strong>Schedule:</strong> {{ $shift->getFormattedSchedule() }}<br>
+                                                                @if(!empty($slots))
+                                                                    <strong>Detail per Hari:</strong>
+                                                                    <ul class="mb-1 ps-3">
+                                                                        @foreach($slots as $slot)
+                                                                            @php
+                                                                    $days = isset($slot['days']) && is_array($slot['days']) && count($slot['days']) > 0
+                                                                                    ? collect($slot['days'])->map(function($d) use ($dayNames) {
+                                                                                        // support numeric index (0-6) atau string nama hari
+                                                                                        if (is_numeric($d)) {
+                                                                                            return $dayNames[(int)$d] ?? '';
+                                                                                        }
+                                                                                        return ucfirst($d);
+                                                                                    })->filter()->implode(', ')
+                                                                                    : 'Semua hari';
+                                                                                $start = $slot['start'] ?? '?';
+                                                                                $end = $slot['end'] ?? '?';
+                                                                            @endphp
+                                                                            <li>{{ $days }}: {{ $start }} - {{ $end }}</li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                @endif
                                                                 @if($shift->day)
                                                                     <strong>Day:</strong> {{ $shift->getDayName() }}<br>
                                                                 @endif
                                                                 <strong>Type:</strong> {{ ucfirst($shift->shift_type) }}<br>
+                                                                <strong>Category:</strong> {{ strtoupper(str_replace('_',' ', $shift->pivot->category ?? $shift->category)) }}<br>
                                                                 <strong>Status:</strong>
                                                                 @if($shift->is_active)
                                                                     <span class="badge badge-success">Active</span>

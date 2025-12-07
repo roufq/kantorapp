@@ -16,9 +16,9 @@
 - [x] Create `locations` table dengan fields: id, name, code, address, timezone, settings
 - [x] Create `location_settings` table untuk konfigurasi per lokasi
 - [x] Implement location-based middleware (LocationAware)
-- [ ] Create location selection UI untuk admin
-- [ ] Setup location-specific database connections (separate schema per location) (N/A – menggunakan single DB + row-level isolation via `location_id`)
-- [ ] Test data isolation antar lokasi
+- [x] Create location selection UI untuk admin
+- [x] Setup location-specific database connections (separate schema per location) (N/A – menggunakan single DB + row-level isolation via `location_id`)
+- [x] Test data isolation antar lokasi
 
 ### **MINGGU 2: LOCATION-SPECIFIC USER MANAGEMENT**
 **Target:** User management yang terpisah per lokasi
@@ -27,16 +27,16 @@
 - [x] Implement user transfer antar lokasi
 - [x] Create location admin roles
 - [x] Setup location-specific permissions (Gates + Policies)
-- [ ] Test user access control per lokasi
+- [x] Test user access control per lokasi
 
 ### **MINGGU 3: LOCATION DASHBOARD & CONFIGURATION**
 **Target:** Dashboard terpisah per lokasi
 - [x] Create location-specific dashboard (menggunakan DashboardController location-aware)
 - [x] Implement location settings management (UI + CRUD + validasi)
 - [x] Add location branding customization (brand name/logo/primary/secondary color, custom CSS/JS)
-- [ ] Create location performance metrics
-- [ ] Setup location-specific notifications
-- [ ] Test location configuration features
+- [x] Create location performance metrics
+- [x] Setup location-specific notifications
+- [x] Test location configuration features
 
 ---
 
@@ -45,28 +45,28 @@
 ### **MINGGU 4: SHIFT MANAGEMENT CORE**
 **Target:** Sistem shift yang flexible per lokasi
 - [x] Create `shifts` table (tanpa `location_id`, menggunakan pivot `location_shifts`)
-- [ ] Create `shift_assignments` table: user_id, shift_id, date, status
-- [ ] Implement shift creation via dashboard per lokasi (UI tersedia, perlu assignment per user/tanggal)
-- [ ] Add shift templates (pagi, siang, malam, 24jam)
-- [ ] Create shift scheduling logic
-- [ ] Test basic shift assignment
+- [x] Create `shift_assignments` table: user_id, shift_id, date, status
+- [x] Implement shift creation via dashboard per lokasi (UI tersedia, perlu assignment per user/tanggal)
+- [x] Add shift templates (pagi, siang, malam, 24jam)
+- [x] Create shift scheduling logic
+- [x] Test basic shift assignment
 
 ### **MINGGU 5: ADVANCED SHIFT FEATURES**
 **Target:** Shift management advanced untuk 24 jam operation
-- [ ] Implement shift rotation system
-- [ ] Add shift handover procedures
-- [ ] Create shift break management
+- [x] Implement shift rotation system
+- [x] Add shift handover procedures
+- [x] Create shift break management
 - [ ] Implement shift overtime calculation
-- [ ] Add shift conflict detection
+- [x] Add shift conflict detection
 - [ ] Test 24-hour shift operations
 
 ### **MINGGU 6: SHIFT-BASED ATTENDANCE**
 **Target:** Attendance system yang terintegrasi dengan shift
-- [ ] Modify attendance logic untuk shift-based check-in/out
-- [ ] Implement shift time validation
-- [ ] Create shift attendance reports
+- [x] Modify attendance logic untuk shift-based check-in/out
+- [x] Implement shift time validation
+- [x] Create shift attendance reports
 - [ ] Add shift performance tracking
-- [ ] Setup shift-based notifications
+- [x] Setup shift-based notifications
 - [ ] Test shift attendance accuracy
 
 ---

@@ -21,19 +21,17 @@
           @csrf
           <div class="mb-3">
             <label class="form-label">User</label>
-            <select name="user_id" class="form-control" required>
+            <select name="user_id" id="user_id" class="form-control" required>
               @foreach($users as $u)
-                <option value="{{ $u->id }}">{{ $u->name }} (ID: {{ $u->id }})</option>
+                <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>{{ $u->name }} (ID: {{ $u->id }})</option>
               @endforeach
             </select>
+            <div class="form-text" id="location_hint">Pilih user untuk melihat lokasi & shift yang tersedia.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Shift</label>
-            <select name="shift_id" class="form-control" required>
-              @foreach($shifts as $s)
-                <option value="{{ $s->id }}">{{ $s->name }}</option>
-              @endforeach
-            </select>
+            <select name="location_shift_id" id="location_shift_id" class="form-control" required></select>
+            <div class="form-text" id="shift_slots_hint">Hanya shift yang terhubung ke lokasi user yang akan tampil.</div>
             <div class="mt-2">
               <small class="text-muted me-2">Quick Templates:</small>
               <button type="button" class="btn btn-sm btn-outline-primary" onclick="pickShiftByName('Pagi')">Pagi</button>
@@ -74,13 +72,77 @@
   </div>
 </div>
 <script>
+  const shiftOptions = @json($shiftOptions);
+  const userLocations = @json($userLocations);
+  const locationNames = @json($locationNames);
+  const previousLocationShiftId = @json(old('location_shift_id'));
+
+  const userSelect = document.getElementById('user_id');
+  const shiftSelect = document.getElementById('location_shift_id');
+  const locationHint = document.getElementById('location_hint');
+  const shiftHint = document.getElementById('shift_slots_hint');
+
+  function renderSlotsHint(option) {
+    if (!option) {
+      shiftHint.textContent = 'Pilih user untuk menampilkan shift.';
+      return;
+    }
+    const slots = option.dataset.slots ? JSON.parse(option.dataset.slots) : [];
+    if (!slots.length) {
+      shiftHint.textContent = 'Shift belum memiliki slot waktu di lokasi ini.';
+      return;
+    }
+    const parts = slots.map(s => {
+      const dayLabel = s.days && s.days.length ? ` (${s.days.join(', ')})` : '';
+      return `${s.start} - ${s.end}${dayLabel}`;
+    });
+    shiftHint.textContent = `Slot: ${parts.join('; ')}`;
+  }
+
+  function refreshShiftOptions() {
+    const userId = userSelect.value;
+    const locId = userLocations[userId] ?? null;
+    const locationName = locId ? (locationNames[locId] ?? `Lokasi #${locId}`) : 'Tidak ada lokasi';
+    locationHint.textContent = locId ? `Lokasi: ${locationName}` : 'User belum memiliki lokasi.';
+
+    shiftSelect.innerHTML = '';
+    if (!locId || !shiftOptions[locId] || shiftOptions[locId].length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = locId ? 'Tidak ada shift aktif untuk lokasi ini' : 'Pilih user dengan lokasi';
+      shiftSelect.appendChild(opt);
+      shiftSelect.disabled = true;
+      renderSlotsHint(null);
+      return;
+    }
+
+    shiftSelect.disabled = false;
+    shiftOptions[locId].forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.location_shift_id;
+      opt.textContent = item.name;
+      opt.dataset.slots = JSON.stringify(item.slots || []);
+      if (previousLocationShiftId && String(previousLocationShiftId) === String(item.location_shift_id)) {
+        opt.selected = true;
+      }
+      shiftSelect.appendChild(opt);
+    });
+    renderSlotsHint(shiftSelect.selectedOptions[0] || shiftSelect.options[0]);
+  }
+
   function pickShiftByName(keyword) {
-    const sel = document.querySelector('select[name="shift_id"]');
-    if (!sel) return;
     const kw = keyword.toLowerCase();
-    for (const opt of sel.options) {
-      if (opt.text.toLowerCase().includes(kw)) { sel.value = opt.value; break; }
+    for (const opt of shiftSelect.options) {
+      if (opt.text.toLowerCase().includes(kw)) {
+        shiftSelect.value = opt.value;
+        renderSlotsHint(opt);
+        break;
+      }
     }
   }
+
+  userSelect.addEventListener('change', refreshShiftOptions);
+  shiftSelect.addEventListener('change', () => renderSlotsHint(shiftSelect.selectedOptions[0]));
+  refreshShiftOptions();
 </script>
 @endsection

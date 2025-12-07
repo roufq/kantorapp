@@ -107,7 +107,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasTwoFactorEnabled()
     {
-        return $this->two_factor_enabled && $this->two_factor_secret;
+        return (bool) $this->two_factor_enabled;
     }
 
     /**
