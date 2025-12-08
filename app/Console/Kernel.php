@@ -37,5 +37,6 @@ class Kernel extends ConsoleKernel
         Commands\GenerateShiftRotation::class,
         Commands\SendShiftReminders::class,
         Commands\SeedShiftTemplates::class,
+        Commands\ShiftRosterHealthCheck::class,
     ];
 }

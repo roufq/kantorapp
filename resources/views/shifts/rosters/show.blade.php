@@ -43,7 +43,13 @@
               @forelse($roster->entries->sortBy(['date','slot_index']) as $e)
                 <tr>
                   <td>{{ $e->date->toDateString() }}</td>
-                  <td>{{ $e->slot_index + 1 }}</td>
+                  <td>
+                    @if($e->status === 'off')
+                      <span class="text-muted">OFF</span>
+                    @else
+                      {{ $e->slot_index + 1 }}
+                    @endif
+                  </td>
                   <td>
                     @if($e->status === 'off')
                       <span class="text-muted">Hari libur</span>

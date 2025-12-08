@@ -243,10 +243,10 @@
         </div>
         <div class="card-body">
           <div class="row">
-            <div class="col-md-4">
-              <div class="fw-semibold">Lokasi</div>
-              <div class="text-muted"><?php echo e($userLocationName ?? '-'); ?></div>
-            </div>
+           <div class="col-md-4">
+             <div class="fw-semibold">Lokasi</div>
+             <div class="text-muted"><?php echo e($userLocationName ?? '-'); ?></div>
+           </div>
            <div class="col-md-4">
              <div class="fw-semibold">Shift (rencana)</div>
              <div class="text-muted">
@@ -261,6 +261,9 @@
                 <?php else: ?>
                   --
                 <?php endif; ?>
+                <?php if(!empty($todayPlannedDate)): ?>
+                  <div class="text-muted small">Tanggal: <?php echo e($todayPlannedDate); ?></div>
+                <?php endif; ?>
               </div>
             </div>
             <div class="col-md-4">
@@ -270,6 +273,9 @@
                   $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
                   $co = $todayAttendance && $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : '--';
                 ?>
+                <?php if(!empty($todayPlannedDate)): ?>
+                  <div class="text-muted small"><?php echo e($todayPlannedDate); ?></div>
+                <?php endif; ?>
                 <?php echo e($ci); ?> / <?php echo e($co); ?>
 
               </div>

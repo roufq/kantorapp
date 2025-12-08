@@ -10,6 +10,7 @@ use App\Models\WeeklyRoster;
 use App\Models\WeeklyRosterEntry;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class ShiftRosterController extends Controller
 {
@@ -105,25 +106,33 @@ class ShiftRosterController extends Controller
             'meta' => ['weekly_off_every' => $weeklyOffEvery, 'weekly_off_label' => $weeklyOffLabel],
         ]);
 
-        // Ambil slot dari pivot; fallback ke shift->normalizedSlots()
-        $slots = $locationShift->time_slots ?? [];
+        // Ambil slot ter-normalisasi dari pivot; fallback ke shift->normalizedSlots()
+        $slots = $locationShift->normalizedSlots();
         if (empty($slots)) {
-            $slots = $locationShift->shift?->normalizedSlots() ?? [];
-        }
-        if (isset($slots['start']) && isset($slots['end'])) {
-            $slots = [ $slots ];
-        }
-        if (!is_array($slots) || empty($slots)) {
             return back()->withErrors(['location_shift_id' => 'Shift lokasi ini belum memiliki slot waktu.'])->withInput();
+        }
+        // Pastikan slot memiliki start/end valid dan reindex
+        $slots = collect($slots)
+            ->filter(fn ($slot) => !empty($slot['start']) && !empty($slot['end']))
+            ->values()
+            ->all();
+        if (empty($slots)) {
+            return back()->withErrors(['location_shift_id' => 'Slot shift tidak valid (start/end kosong).'])->withInput();
         }
 
         $userIndex = 0;
         $userCount = $users->count();
+        $rotationPointer = 0;
+        $weeklyCounts = [];
+        $lastSlotByUser = [];
+        $lastNightMetaByUser = [];
+        $assignmentLog = [];
 
         $period = new \DatePeriod($weekStart, new \DateInterval('P1D'), $weekEnd->copy()->addDay());
         foreach ($period as $day) {
             $dateStr = $day->format('Y-m-d');
             $dayNumber = Carbon::parse($day)->diffInDays($weekStart) + 1;
+            $maxPerSlot = 2; // kapasitas per slot per hari (boleh 2 orang per slot)
 
             // OFF day per user tiap weekly_off_every hari (round robin)
             $offUsers = [];
@@ -147,14 +156,73 @@ class ShiftRosterController extends Controller
                 continue;
             }
             $workCount = $workingUsers->count();
-            foreach ($slots as $slotIdx => $slot) {
-                $user = $workingUsers[$userIndex % $workCount];
-                $userIndex++;
 
-                // Buat / ambil shift assignment aktual
+            // Putar antrean berdasarkan pointer (carry-over antar hari)
+            $rotationOffset = $rotationPointer % $workCount;
+            $rotated = $workingUsers->slice($rotationOffset)->concat($workingUsers->take($rotationOffset))->values();
+            $rotationIndex = [];
+            foreach ($rotated as $idx => $u) {
+                $rotationIndex[$u->id] = $idx;
+            }
+
+            // Urutkan kandidat berdasar fairness (jumlah shift) + posisi rotasi
+            $candidates = $rotated->sortBy(function ($u) use ($weeklyCounts, $rotationIndex) {
+                $cnt = $weeklyCounts[$u->id] ?? 0;
+                $rot = $rotationIndex[$u->id] ?? 0;
+                return sprintf('%05d-%05d', $cnt, $rot);
+            })->values();
+
+            $assignedToday = [];
+            $slotUsage = array_fill(0, count($slots), 0);
+            $slotCursor = 0;
+
+            foreach ($candidates as $candidate) {
+                if (isset($assignedToday[$candidate->id])) {
+                    continue;
+                }
+                // cari slot yang belum penuh
+                $chosenSlotIdx = null;
+                for ($i = 0; $i < count($slots); $i++) {
+                    $idx = ($slotCursor + $i) % count($slots);
+                    if (!isset($slots[$idx])) {
+                        continue;
+                    }
+                    if ($slotUsage[$idx] >= $maxPerSlot) {
+                        continue;
+                    }
+                    $slot = $slots[$idx];
+                    $prevSlot = $lastSlotByUser[$candidate->id] ?? null;
+                    $nightMeta = $lastNightMetaByUser[$candidate->id] ?? ['count' => 0, 'last_date' => null];
+                    $nightCount = $nightMeta['count'] ?? 0;
+                    $nightLastDate = $nightMeta['last_date'] ?? null;
+                    $isNightSlot = $this->isNightSlot($slot);
+                    if ($isNightSlot && $nightLastDate) {
+                        $diff = Carbon::parse($dateStr)->diffInDays(Carbon::parse($nightLastDate));
+                        if ($diff > 1) {
+                            $nightCount = 0;
+                        }
+                    }
+                    if ($isNightSlot && $nightCount >= 2) {
+                        continue;
+                    }
+                    if ($this->isNightToMorningTransition($prevSlot, $slot)) {
+                        continue;
+                    }
+                    $chosenSlotIdx = $idx;
+                    $slotCursor = $idx + 1;
+                    break;
+                }
+
+                if ($chosenSlotIdx === null) {
+                    continue; // tidak ada slot tersedia
+                }
+
+                $slot = $slots[$chosenSlotIdx];
+
+                // Buat / ambil shift assignment aktual (deduplikasi per user+date)
                 $assignment = ShiftAssignment::updateOrCreate(
                     [
-                        'user_id' => $user->id,
+                        'user_id' => $candidate->id,
                         'date' => $dateStr,
                         'location_id' => $locationShift->location_id,
                         'location_shift_id' => $locationShift->id,
@@ -166,17 +234,60 @@ class ShiftRosterController extends Controller
                     ]
                 );
 
-                WeeklyRosterEntry::create([
-                    'weekly_roster_id' => $roster->id,
-                    'shift_assignment_id' => $assignment->id,
-                    'user_id' => $user->id,
+                // Deduplikasi entri roster per user+date+slot_index
+                WeeklyRosterEntry::updateOrCreate(
+                    [
+                        'weekly_roster_id' => $roster->id,
+                        'user_id' => $candidate->id,
+                        'date' => $dateStr,
+                        'slot_index' => $chosenSlotIdx,
+                    ],
+                    [
+                        'shift_assignment_id' => $assignment->id,
+                        'status' => 'scheduled',
+                        'notes' => null,
+                    ]
+                );
+
+                $weeklyCounts[$candidate->id] = ($weeklyCounts[$candidate->id] ?? 0) + 1;
+                $lastSlotByUser[$candidate->id] = $slot;
+                $assignedToday[$candidate->id] = true;
+                $slotUsage[$chosenSlotIdx] += 1;
+
+                $prevNightMeta = $lastNightMetaByUser[$candidate->id] ?? ['count' => 0, 'last_date' => null];
+                $nightCount = 0;
+                if ($isNightSlot) {
+                    $prevDate = $prevNightMeta['last_date'] ?? null;
+                    $prevCount = $prevNightMeta['count'] ?? 0;
+                    if ($prevDate && Carbon::parse($dateStr)->diffInDays(Carbon::parse($prevDate)) <= 1) {
+                        $nightCount = $prevCount + 1;
+                    } else {
+                        $nightCount = 1;
+                    }
+                    $lastNightMetaByUser[$candidate->id] = ['count' => $nightCount, 'last_date' => $dateStr];
+                } else {
+                    $lastNightMetaByUser[$candidate->id] = ['count' => 0, 'last_date' => $prevNightMeta['last_date'] ?? null];
+                }
+
+                $assignmentLog[] = [
                     'date' => $dateStr,
-                    'slot_index' => $slotIdx,
-                    'status' => 'scheduled',
-                    'notes' => null,
-                ]);
+                    'slot_index' => $chosenSlotIdx,
+                    'user_id' => $candidate->id,
+                    'reason' => 'fair_rotation',
+                ];
             }
+
+            // Pointer bergeser sebanyak slot valid yang digunakan hari ini
+            $rotationPointer += count($slots);
         }
+
+        // Simpan meta distribusi untuk audit
+        $roster->meta = array_merge($roster->meta ?? [], [
+            'rotation_pointer' => $rotationPointer,
+            'weekly_shift_counts' => $weeklyCounts,
+            'assignment_log' => $assignmentLog,
+        ]);
+        $roster->save();
 
         return redirect()->route('shifts.rosters.show', $roster)->with('success', 'Roster minggu dibuat.');
     }
@@ -189,13 +300,7 @@ class ShiftRosterController extends Controller
         }
         $roster->load(['location', 'locationShift.shift', 'entries.user']);
         $slotMap = [];
-        $slots = $roster->locationShift->time_slots ?? [];
-        if (empty($slots)) {
-            $slots = $roster->locationShift->shift?->normalizedSlots() ?? [];
-        }
-        if (isset($slots['start']) && isset($slots['end'])) {
-            $slots = [ $slots ];
-        }
+        $slots = $roster->locationShift->normalizedSlots();
         foreach ($slots as $idx => $slot) {
             $slotMap[$idx] = $slot;
         }
@@ -210,13 +315,7 @@ class ShiftRosterController extends Controller
         }
         $roster->load(['location', 'locationShift.shift', 'entries.user']);
         $slotMap = [];
-        $slots = $roster->locationShift->time_slots ?? [];
-        if (empty($slots)) {
-            $slots = $roster->locationShift->shift?->normalizedSlots() ?? [];
-        }
-        if (isset($slots['start']) && isset($slots['end'])) {
-            $slots = [ $slots ];
-        }
+        $slots = $roster->locationShift->normalizedSlots();
         foreach ($slots as $idx => $slot) {
             $slotMap[$idx] = $slot;
         }
@@ -284,5 +383,41 @@ class ShiftRosterController extends Controller
         }
         $roster->delete();
         return redirect()->route('shifts.rosters.index')->with('success', 'Roster dihapus.');
+    }
+
+    private function slotCrossesMidnight(array $slot): bool
+    {
+        $start = Arr::get($slot, 'start');
+        $end = Arr::get($slot, 'end');
+        if (!$start || !$end) {
+            return false;
+        }
+        return $end < $start;
+    }
+
+    private function isNightToMorningTransition(?array $prevSlot, array $currentSlot): bool
+    {
+        if (!$prevSlot) {
+            return false;
+        }
+        $prevNight = $this->slotCrossesMidnight($prevSlot) || (Arr::get($prevSlot, 'start') >= '21:00');
+        if (!$prevNight) {
+            return false;
+        }
+        $currentStart = Arr::get($currentSlot, 'start');
+        if (!$currentStart) {
+            return false;
+        }
+        // Lindungi transisi malam ke shift pagi (<= 08:00)
+        return $currentStart <= '08:00';
+    }
+
+    private function isNightSlot(array $slot): bool
+    {
+        $start = Arr::get($slot, 'start');
+        if (!$start) {
+            return false;
+        }
+        return $this->slotCrossesMidnight($slot) || $start >= '22:00';
     }
 }

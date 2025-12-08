@@ -239,10 +239,10 @@
         </div>
         <div class="card-body">
           <div class="row">
-            <div class="col-md-4">
-              <div class="fw-semibold">Lokasi</div>
-              <div class="text-muted">{{ $userLocationName ?? '-' }}</div>
-            </div>
+           <div class="col-md-4">
+             <div class="fw-semibold">Lokasi</div>
+             <div class="text-muted">{{ $userLocationName ?? '-' }}</div>
+           </div>
            <div class="col-md-4">
              <div class="fw-semibold">Shift (rencana)</div>
              <div class="text-muted">
@@ -255,6 +255,9 @@
                 @else
                   --
                 @endif
+                @if(!empty($todayPlannedDate))
+                  <div class="text-muted small">Tanggal: {{ $todayPlannedDate }}</div>
+                @endif
               </div>
             </div>
             <div class="col-md-4">
@@ -264,6 +267,9 @@
                   $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
                   $co = $todayAttendance && $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : '--';
                 @endphp
+                @if(!empty($todayPlannedDate))
+                  <div class="text-muted small">{{ $todayPlannedDate }}</div>
+                @endif
                 {{ $ci }} / {{ $co }}
               </div>
             </div>

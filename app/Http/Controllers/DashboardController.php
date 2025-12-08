@@ -150,15 +150,36 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole('Karyawan')) {
-            $todayAssignment = ShiftAssignment::with('shift')
+            $todayAssignment = ShiftAssignment::with(['shift', 'locationShift.shift'])
                 ->where('user_id', $user->id)
                 ->whereDate('date', $today)
                 ->first();
-            $todayRosterEntry = \App\Models\WeeklyRosterEntry::where('user_id', $user->id)
-                ->whereDate('date', $today)
-                ->first();
+            $todayRosterEntry = null;
+            if ($todayAssignment) {
+                $todayRosterEntry = \App\Models\WeeklyRosterEntry::where('user_id', $user->id)
+                    ->whereDate('date', $today)
+                    ->where('shift_assignment_id', $todayAssignment->id)
+                    ->orderByDesc('id') // use the latest roster entry if duplicates exist
+                    ->first();
+            }
+            if (!$todayRosterEntry) {
+                $todayRosterEntry = \App\Models\WeeklyRosterEntry::where('user_id', $user->id)
+                    ->whereDate('date', $today)
+                    ->orderByDesc('id') // prefer the newest roster entry
+                    ->first();
+            }
             $isOffToday = $todayRosterEntry && $todayRosterEntry->status === 'off';
-            $todayAssignmentTime = $this->formatAssignmentTime($todayAssignment);
+            $slotIndex = $isOffToday ? null : ($todayRosterEntry->slot_index ?? null);
+            $todayAssignmentTime = $this->formatAssignmentTime($todayAssignment, $slotIndex);
+            $todayPlannedDate = $isOffToday
+                ? null
+                : ($todayRosterEntry?->date ?? $todayAssignment?->date);
+            if (!$isOffToday && WorkdayService::isWorkingDay($user, now()) === false) {
+                $isOffToday = true;
+                $todayAssignmentTime = 'Hari libur Anda';
+                $todayAssignment = null;
+                $slotIndex = null;
+            }
             // Fallback: jika belum ada assignment hari ini, gunakan default shift lokasi
             if (!$todayAssignmentTime && $user->location_id) {
                 $fallbackShift = LocationShift::with('shift')
@@ -170,7 +191,8 @@ class DashboardController extends Controller
                     ->orderBy('id')
                     ->first();
                 if ($fallbackShift) {
-                    $todayAssignmentTime = $this->formatLocationShiftTime($fallbackShift);
+                    $todayAssignmentTime = $this->formatLocationShiftTime($fallbackShift, $slotIndex);
+                    $todayPlannedDate = $todayPlannedDate ?? now();
                 }
             }
             if ($isOffToday) {
@@ -273,48 +295,49 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'user', 'tasks', 'unreadMessages',
             'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
-            'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount'
+          'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount'
         ))->with('attendanceList', $attendanceList)
           ->with('todayAssignmentTime', $todayAssignmentTime)
+          ->with('todayPlannedDate', optional($todayPlannedDate)->format('Y-m-d'))
           ->with('userLocationName', $userLocationName);
     }
 
-    private function formatAssignmentTime(?ShiftAssignment $assignment): ?string
+    private function formatAssignmentTime(?ShiftAssignment $assignment, ?int $slotIndex = null): ?string
     {
         if (!$assignment) {
             return null;
         }
-        $slots = $assignment->locationShift?->time_slots ?? [];
+        $slots = $assignment->locationShift?->normalizedSlots() ?? [];
         if (empty($slots)) {
             $slots = $assignment->shift?->normalizedSlots() ?? [];
         }
-        if (isset($slots['start']) && isset($slots['end'])) {
-            $slots = [ $slots ];
-        }
-        if (!is_array($slots) || empty($slots)) {
+        if (empty($slots)) {
             return null;
         }
-        // Ambil slot pertama untuk display singkat
-        $first = $slots[0];
-        return ($first['start'] ?? '?') . ' - ' . ($first['end'] ?? '?');
+        $slot = $slotIndex !== null && isset($slots[$slotIndex])
+            ? $slots[$slotIndex]
+            : $slots[0];
+        if (empty($slot['start']) || empty($slot['end'])) {
+            return null;
+        }
+        return $slot['start'] . ' - ' . $slot['end'];
     }
 
-    private function formatLocationShiftTime(?LocationShift $locationShift): ?string
+    private function formatLocationShiftTime(?LocationShift $locationShift, ?int $slotIndex = null): ?string
     {
         if (!$locationShift) {
             return null;
         }
-        $slots = $locationShift->time_slots ?? [];
+        $slots = $locationShift->normalizedSlots();
         if (empty($slots)) {
-            $slots = $locationShift->shift?->normalizedSlots() ?? [];
-        }
-        if (isset($slots['start']) && isset($slots['end'])) {
-            $slots = [ $slots ];
-        }
-        if (!is_array($slots) || empty($slots)) {
             return null;
         }
-        $first = $slots[0];
-        return ($first['start'] ?? '?') . ' - ' . ($first['end'] ?? '?');
+        $slot = $slotIndex !== null && isset($slots[$slotIndex])
+            ? $slots[$slotIndex]
+            : $slots[0];
+        if (empty($slot['start']) || empty($slot['end'])) {
+            return null;
+        }
+        return $slot['start'] . ' - ' . $slot['end'];
     }
 }

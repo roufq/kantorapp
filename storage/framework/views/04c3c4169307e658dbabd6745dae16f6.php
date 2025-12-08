@@ -41,7 +41,14 @@
               <?php $__empty_1 = true; $__currentLoopData = $roster->entries->sortBy(['date','slot_index']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $e): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <tr>
                   <td><?php echo e($e->date->toDateString()); ?></td>
-                  <td><?php echo e($e->slot_index + 1); ?></td>
+                  <td>
+                    <?php if($e->status === 'off'): ?>
+                      <span class="text-muted">OFF</span>
+                    <?php else: ?>
+                      <?php echo e($e->slot_index + 1); ?>
+
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <?php if($e->status === 'off'): ?>
                       <span class="text-muted">Hari libur</span>

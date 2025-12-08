@@ -73,30 +73,18 @@ class AttendanceController extends Controller
         $usedAssignment = false;
         $slotIntervals = [];
 
-        // Prefer shift assignment for today
-        if (class_exists(\App\Models\ShiftAssignment::class)) {
-            $assignment = \App\Models\ShiftAssignment::where('user_id', $user->id)
-                ->whereDate('date', $nowInLocation->toDateString())
-                ->with(['locationShift.location', 'locationShift.shift', 'shift', 'location'])
-                ->first();
-            if ($assignment) {
-                $pivot = $assignment->locationShift;
-                if (!$pivot && $assignment->shift) {
-                    $pivot = $this->buildPivotFromShift($assignment->shift, $assignment->location);
-                }
-
-                if ($pivot) {
-                    $intervals = $pivot->slotIntervalsForDate($nowInLocation);
-                    $slotIntervals = $intervals;
-                    $shiftId = $pivot->shift_id;
-                    $shiftAssignmentId = $assignment->id;
-                    $isLate = $this->isLateFromIntervals($intervals, $nowInLocation);
-                    $usedAssignment = true;
-                    // override attendance location to match assignment if available
-                    if ($assignment->location_id) {
-                        $attendanceLocationId = $assignment->location_id;
-                    }
-                }
+        // Prefer shift assignment (today, fallback overnight dari hari sebelumnya)
+        $resolvedAssignment = $this->resolveAssignmentForNow($user, $nowInLocation);
+        if ($resolvedAssignment) {
+            $assignment = $resolvedAssignment['assignment'];
+            $pivot = $resolvedAssignment['pivot'] ?? null;
+            $slotIntervals = $resolvedAssignment['intervals'];
+            $shiftId = $pivot?->shift_id ?? $assignment?->shift_id;
+            $shiftAssignmentId = $assignment?->id;
+            $isLate = $this->isLateFromIntervals($slotIntervals, $nowInLocation);
+            $usedAssignment = true;
+            if ($assignment && $assignment->location_id) {
+                $attendanceLocationId = $assignment->location_id;
             }
         }
 
@@ -477,14 +465,14 @@ class AttendanceController extends Controller
 
                 // Jika ada roster Weekly Roster, gunakan status roster sebagai dasar
                 if ($roster) {
-                    $isHoliday = false;
+                    $isHoliday = WorkdayService::isHolidayForUser($u, $date);
                     $isWO = $roster->status === 'off';
-                    $hasLeave = false;
                 } else {
                     $isHoliday = WorkdayService::isHolidayForUser($u, $date);
                     $isWO = WorkdayService::isWeeklyOff($u, $date);
-                    $hasLeave = WorkdayService::hasApprovedLeave($u, $date);
                 }
+                // Leave dihitung per hari, meskipun ada roster
+                $hasLeave = WorkdayService::hasApprovedLeave($u, $date);
 
                 if ($isHoliday) { $holidayDays++; }
                 if ($isWO) { $weeklyOffDays++; }
@@ -709,5 +697,68 @@ class AttendanceController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    /**
+     * Resolve shift assignment and slot intervals for current time (includes overnight from previous day).
+     */
+    private function resolveAssignmentForNow($user, Carbon $nowInLocation): ?array
+    {
+        $dates = [
+            $nowInLocation->toDateString() => 'today',
+            $nowInLocation->copy()->subDay()->toDateString() => 'yesterday',
+        ];
+
+        $fallback = null;
+        foreach ($dates as $dateStr => $label) {
+            $assignment = ShiftAssignment::with(['locationShift.location', 'locationShift.shift', 'shift', 'location'])
+                ->where('user_id', $user->id)
+                ->whereDate('date', $dateStr)
+                ->orderByDesc('id')
+                ->first();
+            if (!$assignment) {
+                continue;
+            }
+
+            $pivot = $assignment->locationShift;
+            if (!$pivot && $assignment->shift) {
+                $pivot = $this->buildPivotFromShift($assignment->shift, $assignment->location);
+            }
+            if (!$pivot) {
+                if (!$fallback) {
+                    $fallback = ['assignment' => $assignment, 'pivot' => null, 'intervals' => []];
+                }
+                continue;
+            }
+
+            $baseDate = Carbon::parse($dateStr, $nowInLocation->timezone);
+            $intervals = $pivot->slotIntervalsForDate($baseDate);
+            $coversNow = false;
+            foreach ($intervals as [$start, $end]) {
+                $startWithGrace = $start->copy()->subMinutes(60);
+                if ($nowInLocation->betweenIncluded($startWithGrace, $end)) {
+                    $coversNow = true;
+                    break;
+                }
+            }
+
+            if ($coversNow) {
+                return [
+                    'assignment' => $assignment,
+                    'pivot' => $pivot,
+                    'intervals' => $intervals,
+                ];
+            }
+
+            if (!$fallback) {
+                $fallback = [
+                    'assignment' => $assignment,
+                    'pivot' => $pivot,
+                    'intervals' => $intervals,
+                ];
+            }
+        }
+
+        return $fallback;
     }
 }
