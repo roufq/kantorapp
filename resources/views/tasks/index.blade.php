@@ -87,6 +87,13 @@
                     <h5 class="card-title"><a href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a></h5>
                 </div>
                 <div class="card-body">
+                    @php
+                        $me = auth()->user();
+                        $needsApproval = ($me->hasAnyRole(['Super Admin','Admin Lokasi']) && ($task->pending_slots_count ?? 0) > 0);
+                    @endphp
+                    @if($needsApproval)
+                        <span class="badge text-bg-warning mb-2">Butuh approval ({{ $task->pending_slots_count }})</span>
+                    @endif
                     <p>{{ $task->description }}</p>
                     <p class="mb-1"><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
                     <div class="mb-2">
@@ -103,7 +110,9 @@
                     <p><strong>Assigned to:</strong> {{ optional($task->assignee)->name }}</p>
                 </div>
                 <div class="card-footer">
-                    @php($me = auth()->user())
+                    @php
+                        $me = auth()->user();
+                    @endphp
                     @if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id))
                         <div class="mt-2">
                             <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-sm btn-primary me-1">Update Progress</a>

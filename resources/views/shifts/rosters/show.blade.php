@@ -26,6 +26,11 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Minggu {{ $roster->week_start->toDateString() }} s/d {{ $roster->week_end->toDateString() }}</h3>
+          <div class="card-tools">
+            <a class="btn btn-sm btn-success" href="{{ route('shifts.rosters.export', $roster) }}">
+              <i class="bi bi-download me-1"></i> Export Excel
+            </a>
+          </div>
         </div>
         <div class="card-body table-responsive p-0">
           <table class="table table-bordered align-middle">

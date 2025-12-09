@@ -13,6 +13,13 @@ KantorApp is a comprehensive multi-location attendance management system built w
 
 ## Recent Updates
 
+- Attendance Recap & Leaves
+  - Leave dihitung per hari di recap meskipun ada roster, jadi rentang cuti/izin (mis. 2025-12-07 s/d 2025-12-11) masuk kolom Leave dan tidak dihitung Alpha.
+  - Rekap mempertimbangkan libur nasional/weekly off walau ada roster; working days disesuaikan.
+- Roster Fairness & Capacity
+- Generator roster kini mendukung kapasitas per slot mengikuti jumlah karyawan di lokasi (bisa >2 orang), menjaga distribusi adil tanpa menugaskan user lebih dari satu slot per hari dan tetap menghormati off/cuti.
+  - Proteksi transisi malam→pagi dan batas 2 shift malam beruntun; meta distribusi rotasi disimpan untuk audit.
+  - Health check `php artisan shift:roster-health` mendeteksi duplikat/slot out-of-range/orphan entries dan dapat auto-fix duplikat.
 - Shift Roster & Calendar
   - Weekly Rosters (Factory/Non Office): kalender hanya menampilkan data dari roster; jika belum ada, tampil “Shift belum ada”.
   - Status OFF ditampilkan sebagai hari libur; cuti/izin (Leaves) muncul sebagai baris “Leave” di kalender mingguannya.
@@ -76,7 +83,6 @@ KantorApp is a comprehensive multi-location attendance management system built w
 
 #### ⏰ Flexible Shift Management
 - **Dynamic Shift Scheduling**: Create custom shifts with flexible time slots
-- **Shift Assignments**: Assign employees to specific shifts on specific dates
 - **Shift Rotation**: Support for rotating schedules and patterns
 - **Overtime Integration**: Automatic overtime calculation based on shift hours
 
@@ -320,10 +326,9 @@ The following modules and menus are available in the web application. Each item 
   - Location admin tasks (Super/Admin Lokasi): `resource /location-admin-tasks` + download routes
   - Location change requests: `GET /location-change-requests` (index/create/store), `PATCH /location-change-requests/{id}/status` (Admin Lokasi)
 
-- Shifts & Assignments
+- Shifts
   - Shifts (Super Admin): `resource /shifts`
   - Location shifts (Super Admin): `resource /location-shifts`, `POST /location-shifts/{location}/attach-shift`, `DELETE /location-shifts/{location}/detach-shift/{shift}`
-  - Shift assignments (Super/Admin Lokasi): `resource /shift-assignments`, `GET /shift-assignments-export`
 
 - Employees (Karyawan)
   - `resource /karyawans` (Super Admin, Admin Lokasi)
@@ -351,8 +356,8 @@ The following modules and menus are available in the web application. Each item 
 
 ## Exports
 
-- Attendance, Overtime, Shift Assignments exports using Laravel Excel
-- Files are generated through dedicated controller actions: `/attendance/export`, `/overtime/export`, `/shift-assignments-export`
+- Attendance and Overtime exports using Laravel Excel
+- Files are generated through dedicated controller actions: `/attendance/export`, `/overtime/export`
 
 ## Frontend & UX
 

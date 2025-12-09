@@ -1,93 +1,93 @@
-@php
+<?php
     use Illuminate\Support\Facades\Storage;
-@endphp
-@extends('layouts.app')
+?>
 
-@section('title')
+
+<?php $__env->startSection('title'); ?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-6"><h3 class="mb-0">Task Detail</h3></div>
         <div class="col-sm-6">
             <ol class="breadcrumb float-sm-end">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('tasks.index') }}">Tasks</a></li>
+                <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
+                <li class="breadcrumb-item"><a href="<?php echo e(route('tasks.index')); ?>">Tasks</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Task Detail</li>
             </ol>
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                 <h4 class="card-title mb-0">{{ $task->title }}</h4>
-                 <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-outline-secondary">Back to List</a>
+                 <h4 class="card-title mb-0"><?php echo e($task->title); ?></h4>
+                 <a href="<?php echo e(route('tasks.index')); ?>" class="btn btn-sm btn-outline-secondary">Back to List</a>
             </div>
             <div class="card-body">
                 <p><strong>Description:</strong></p>
-                <p>{{ $task->description }}</p>
+                <p><?php echo e($task->description); ?></p>
                 <hr>
-                <p class="mb-1"><strong>Status:</strong> <span class="badge text-bg-{{ $task->status === 'completed' ? 'success' : ($task->status === 'in_progress' ? 'info' : 'secondary') }}">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span></p>
+                <p class="mb-1"><strong>Status:</strong> <span class="badge text-bg-<?php echo e($task->status === 'completed' ? 'success' : ($task->status === 'in_progress' ? 'info' : 'secondary')); ?>"><?php echo e(ucfirst(str_replace('_', ' ', $task->status))); ?></span></p>
                 <div class="mb-3">
                     <div class="d-flex justify-content-between small">
                         <span>Progress</span>
-                        <span>{{ $task->progress ?? 0 }}%</span>
+                        <span><?php echo e($task->progress ?? 0); ?>%</span>
                     </div>
                     <div class="progress" style="height:8px;">
-                        <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%;" aria-valuenow="{{ $task->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar" role="progressbar" style="width: <?php echo e($task->progress ?? 0); ?>%;" aria-valuenow="<?php echo e($task->progress ?? 0); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-sm-6">
-                        <p><strong>Assigned by:</strong><br>{{ $task->assigner->name }}</p>
+                        <p><strong>Assigned by:</strong><br><?php echo e($task->assigner->name); ?></p>
                     </div>
                     <div class="col-sm-6">
-                        <p><strong>Assigned to:</strong><br>{{ optional($task->assignee)->name ?? 'N/A' }}</p>
+                        <p><strong>Assigned to:</strong><br><?php echo e(optional($task->assignee)->name ?? 'N/A'); ?></p>
                     </div>
                     <div class="col-sm-6">
-                        <p><strong>Created Date:</strong><br>{{ $task->created_at->format('d M Y') }}</p>
+                        <p><strong>Created Date:</strong><br><?php echo e($task->created_at->format('d M Y')); ?></p>
                     </div>
                     <div class="col-sm-6">
-                        <p><strong>Due Date:</strong><br>{{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
+                        <p><strong>Due Date:</strong><br><?php echo e($task->due_date ? $task->due_date->format('d M Y') : 'No due date'); ?></p>
                     </div>
                     <div class="col-sm-6">
-                        <p><strong>Durasi (menit):</strong><br>{{ $task->duration_minutes ?? '-' }}</p>
+                        <p><strong>Durasi (menit):</strong><br><?php echo e($task->duration_minutes ?? '-'); ?></p>
                     </div>
                 </div>
             </div>
             <div class="card-footer d-flex justify-content-end">
-                @php
+                <?php
                     $me = auth()->user();
-                @endphp
-                @if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id))
-                    <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-primary me-2">Update Progress</a>
-                @endif
-                @can('update', $task)
-                    <a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-primary">Edit Task</a>
-                @endcan
+                ?>
+                <?php if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id)): ?>
+                    <a href="<?php echo e(route('tasks.progress.create', $task)); ?>" class="btn btn-primary me-2">Update Progress</a>
+                <?php endif; ?>
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $task)): ?>
+                    <a href="<?php echo e(route('tasks.edit', $task)); ?>" class="btn btn-outline-primary">Edit Task</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Slot Progres --}}
+
 <div class="row mt-3">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Slot Progres</h5>
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+                <?php if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi'])): ?>
                     <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addSlotForm">Tambah Slot</button>
-                @endif
+                <?php endif; ?>
             </div>
             <div class="card-body">
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+                <?php if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi'])): ?>
                 <div class="collapse mb-3" id="addSlotForm">
-                    <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2 align-items-end">
-                        @csrf
+                    <form action="<?php echo e(route('tasks.slots.store', $task)); ?>" method="POST" class="row g-2 align-items-end">
+                        <?php echo csrf_field(); ?>
                         <div class="col-md-3">
                             <label class="form-label">Nama Slot</label>
                             <input type="text" name="name" class="form-control" required>
@@ -110,69 +110,69 @@
                     </form>
                     <div class="text-muted small mt-1">Pastikan total persen = 100% dan total menit ≤ durasi task.</div>
                 </div>
-                @endif
+                <?php endif; ?>
 
-                @forelse($task->slots as $slot)
+                <?php $__empty_1 = true; $__currentLoopData = $task->slots; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $slot): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex justify-content-between flex-wrap gap-2">
                             <div>
-                                <div class="fw-semibold">{{ $slot->name }} ({{ $slot->percentage }}% | {{ $slot->minutes }} menit)</div>
+                                <div class="fw-semibold"><?php echo e($slot->name); ?> (<?php echo e($slot->percentage); ?>% | <?php echo e($slot->minutes); ?> menit)</div>
                                 <div class="small text-muted">Status:
-                                    <span class="badge text-bg-{{ $slot->status === 'approved' ? 'success' : ($slot->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($slot->status) }}</span>
-                                    @if($slot->approved_at)
-                                        <span class="text-muted">oleh {{ optional($slot->approver)->name }} @ {{ $slot->approved_at->format('d M Y H:i') }}</span>
-                                    @endif
+                                    <span class="badge text-bg-<?php echo e($slot->status === 'approved' ? 'success' : ($slot->status === 'rejected' ? 'danger' : 'warning')); ?>"><?php echo e(ucfirst($slot->status)); ?></span>
+                                    <?php if($slot->approved_at): ?>
+                                        <span class="text-muted">oleh <?php echo e(optional($slot->approver)->name); ?> @ <?php echo e($slot->approved_at->format('d M Y H:i')); ?></span>
+                                    <?php endif; ?>
                                 </div>
-                                @if($slot->rejection_reason)
-                                    <div class="text-danger small">Alasan reject: {{ $slot->rejection_reason }}</div>
-                                @endif
+                                <?php if($slot->rejection_reason): ?>
+                                    <div class="text-danger small">Alasan reject: <?php echo e($slot->rejection_reason); ?></div>
+                                <?php endif; ?>
                             </div>
                             <div class="d-flex align-items-start gap-2 flex-wrap">
-                                @php
+                                <?php
                                     $canApprove = $slot->status === 'pending' && (
                                         auth()->user()->hasRole('Super Admin') ||
                                         (auth()->user()->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === auth()->user()->location_id)
                                     );
                                     $canManage = auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']);
-                                @endphp
-                                @if($canApprove)
-                                    <form action="{{ route('task-slots.approve', $slot) }}" method="POST">
-                                        @csrf
+                                ?>
+                                <?php if($canApprove): ?>
+                                    <form action="<?php echo e(route('task-slots.approve', $slot)); ?>" method="POST">
+                                        <?php echo csrf_field(); ?>
                                         <button type="submit" class="btn btn-success btn-sm">Approve</button>
                                     </form>
-                                    <form action="{{ route('task-slots.reject', $slot) }}" method="POST" class="d-flex align-items-start gap-2">
-                                        @csrf
+                                    <form action="<?php echo e(route('task-slots.reject', $slot)); ?>" method="POST" class="d-flex align-items-start gap-2">
+                                        <?php echo csrf_field(); ?>
                                         <textarea name="reason" class="form-control form-control-sm" placeholder="Alasan reject" rows="1" required style="min-width: 180px;"></textarea>
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
                                     </form>
-                                @endif
-                                @if($canManage)
-                                    <form action="{{ route('tasks.slots.destroy', [$task, $slot]) }}" method="POST" onsubmit="return confirm('Hapus slot ini?')">
-                                        @csrf @method('DELETE')
+                                <?php endif; ?>
+                                <?php if($canManage): ?>
+                                    <form action="<?php echo e(route('tasks.slots.destroy', [$task, $slot])); ?>" method="POST" onsubmit="return confirm('Hapus slot ini?')">
+                                        <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                                         <button type="submit" class="btn btn-outline-secondary btn-sm">Hapus</button>
                                     </form>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="mt-2">
                             <div class="fw-semibold small mb-1">Lampiran</div>
                             <div class="d-flex flex-wrap gap-2">
-                                @forelse($slot->attachments as $att)
-                                    @if($att->type === 'link')
-                                        <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link</a>
-                                    @else
-                                        <a href="{{ Storage::disk('public')->url($att->path_or_url) }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ ucfirst($att->type) }}</a>
-                                    @endif
-                                @empty
+                                <?php $__empty_2 = true; $__currentLoopData = $slot->attachments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $att): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                                    <?php if($att->type === 'link'): ?>
+                                        <a href="<?php echo e($att->path_or_url); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Link</a>
+                                    <?php else: ?>
+                                        <a href="<?php echo e(Storage::disk('public')->url($att->path_or_url)); ?>" target="_blank" class="btn btn-sm btn-outline-primary"><?php echo e(ucfirst($att->type)); ?></a>
+                                    <?php endif; ?>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
                                     <span class="text-muted small">Belum ada lampiran.</span>
-                                @endforelse
+                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="mt-2">
-                            <form action="{{ route('task-slots.submit', $slot) }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
-                                @csrf
+                            <form action="<?php echo e(route('task-slots.submit', $slot)); ?>" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
+                                <?php echo csrf_field(); ?>
                                 <div class="col-md-3">
                                     <label class="form-label">Foto</label>
                                     <input type="file" name="photo" class="form-control form-control-sm" accept="image/*">
@@ -196,11 +196,13 @@
                             </form>
                         </div>
                     </div>
-                @empty
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <p class="text-muted mb-0">Belum ada slot progres. Tambahkan slot untuk memecah tugas.</p>
-                @endforelse
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\www\kantorapp\resources\views/tasks/show.blade.php ENDPATH**/ ?>

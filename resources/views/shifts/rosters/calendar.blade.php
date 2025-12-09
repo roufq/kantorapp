@@ -3,21 +3,21 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-center flex-wrap gap-2">
   <div>
-    <h1 class="h4 mb-1">Kalender Shift (Mingguan)</h1>
-    <p class="text-muted mb-0">Lihat jadwal masuk per lokasi dalam satu minggu.</p>
+    <h1 class="h4 mb-1">Kalender Shift (Rosters)</h1>
+    <p class="text-muted mb-0">Lihat jadwal masuk per lokasi untuk satu minggu berjalan.</p>
   </div>
-  <a href="{{ route('shift-assignments.index') }}" class="text-decoration-none">Kembali ke daftar</a>
+  <a href="{{ route('shifts.rosters.index') }}" class="text-decoration-none">Kembali ke daftar roster</a>
 </div>
 
 <div class="card">
   <div class="card-body">
-    <form method="GET" action="{{ route('shift-assignments.calendar') }}" class="row g-2 align-items-end">
+    <form method="GET" action="{{ route('shifts.rosters.calendar') }}" class="row g-2 align-items-end">
       @if($locations->count() > 0)
         <div class="col-md-4">
           <label class="form-label">Lokasi</label>
           <select name="location_id" class="form-control" onchange="this.form.submit()">
             @foreach($locations as $loc)
-              <option value="{{ $loc->id }}" @selected($loc->id == $locationId)>{{ $loc->name }} ({{ $loc->code }})</option>
+              <option value="{{ $loc->id }}" @if($loc->id == $locationId) selected @endif>{{ $loc->name }} ({{ $loc->code }})</option>
             @endforeach
           </select>
         </div>

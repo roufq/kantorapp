@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\LocationShift;
 use App\Models\ShiftAssignment;
+use App\Models\EmployeeLeave;
 use App\Models\User;
 use App\Models\WeeklyRoster;
 use App\Models\WeeklyRosterEntry;
+use App\Exports\WeeklyRosterExport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ShiftRosterController extends Controller
 {
@@ -27,6 +30,125 @@ class ShiftRosterController extends Controller
         $rosters = $rostersQuery->paginate(15);
 
         return view('shifts.rosters.index', compact('rosters'));
+    }
+
+    public function calendar(Request $request)
+    {
+        $auth = auth()->user();
+        $weekStart = $request->filled('week_start')
+            ? Carbon::parse($request->week_start)
+            : Carbon::now()->startOfWeek();
+        $weekEnd = $weekStart->copy()->addDays(6);
+
+        $locationId = $auth->hasRole('Super Admin')
+            ? ($request->input('location_id') ?: $auth->location_id)
+            : $auth->location_id;
+
+        $locations = Location::active()
+            ->when(!$auth->hasRole('Super Admin'), fn($q) => $q->where('id', $locationId))
+            ->orderBy('name')
+            ->get();
+
+        if (!$locationId && $auth->hasRole('Super Admin') && $locations->isNotEmpty()) {
+            $locationId = $locations->first()->id;
+        }
+
+        $locationModel = $locationId ? Location::with('shifts')->find($locationId) : null;
+        if (!$locationModel) {
+            return back()->withErrors(['location_id' => 'Lokasi tidak ditemukan atau tidak aktif.']);
+        }
+
+        $users = User::where('location_id', $locationId)->orderBy('name')->get();
+
+        $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
+            ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->get()
+            ->groupBy(fn($e) => $e->date->toDateString());
+
+        $leaves = EmployeeLeave::with('user')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($weekStart, $weekEnd) {
+                $q->whereBetween('start_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                    ->orWhere(function ($sub) use ($weekStart, $weekEnd) {
+                        $sub->whereDate('start_date', '<=', $weekEnd->toDateString())
+                            ->whereDate('end_date', '>=', $weekStart->toDateString());
+                    });
+            })
+            ->get()
+            ->filter(function ($leave) use ($locationId) {
+                return $leave->location_id ? $leave->location_id == $locationId : ($leave->user?->location_id == $locationId);
+            });
+
+        $leavesPerDate = collect();
+        foreach ($leaves as $leave) {
+            $start = $leave->start_date->toDateString();
+            $end = $leave->end_date->toDateString();
+            $period = new \DatePeriod(
+                Carbon::parse($start),
+                new \DateInterval('P1D'),
+                Carbon::parse($end)->copy()->addDay()
+            );
+            foreach ($period as $d) {
+                $dateStr = $d->format('Y-m-d');
+                if ($dateStr < $weekStart->toDateString() || $dateStr > $weekEnd->toDateString()) {
+                    continue;
+                }
+                $leavesPerDate[$dateStr] = ($leavesPerDate[$dateStr] ?? collect())->push($leave);
+            }
+        }
+
+        $weekData = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $weekStart->copy()->addDays($i)->toDateString();
+            $rows = collect();
+
+            if ($rosterEntries->has($date)) {
+                $rows = $rosterEntries[$date]->map(function ($entry) {
+                    $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
+                    $slot = $slots[$entry->slot_index] ?? null;
+                    $time = $entry->status === 'off'
+                        ? 'Hari libur'
+                        : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
+                    return [
+                        'user' => $entry->user,
+                        'status' => $entry->status,
+                        'time' => $time,
+                        'notes' => $entry->notes,
+                    ];
+                });
+            }
+
+            if ($leavesPerDate->has($date)) {
+                $leaveRows = $leavesPerDate[$date]->map(function ($leave) {
+                    return [
+                        'user' => $leave->user,
+                        'status' => 'leave',
+                        'time' => 'Cuti/Izin',
+                        'notes' => $leave->type ? ($leave->type . ($leave->reason ? ' - ' . $leave->reason : '')) : $leave->reason,
+                    ];
+                });
+                $rows = $rows->merge($leaveRows);
+            }
+
+            if ($rows->isEmpty()) {
+                $rows = collect([[
+                    'user' => null,
+                    'status' => 'missing',
+                    'time' => 'Shift belum ada',
+                    'notes' => null,
+                ]]);
+            }
+
+            $weekData[$date] = $rows;
+        }
+
+        return view('shifts.rosters.calendar', [
+            'locations' => $locations,
+            'locationId' => $locationId,
+            'weekStart' => $weekStart,
+            'weekData' => $weekData,
+        ]);
     }
 
     public function create(Request $request)
@@ -419,5 +541,16 @@ class ShiftRosterController extends Controller
             return false;
         }
         return $this->slotCrossesMidnight($slot) || $start >= '22:00';
+    }
+
+    public function export(WeeklyRoster $roster)
+    {
+        $auth = auth()->user();
+        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+            abort(403);
+        }
+
+        $filename = sprintf('roster_%s_%s.xlsx', $roster->location->code ?? 'loc', $roster->week_start->format('Ymd'));
+        return Excel::download(new WeeklyRosterExport($roster), $filename);
     }
 }

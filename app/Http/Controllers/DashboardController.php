@@ -60,6 +60,7 @@ class DashboardController extends Controller
         $recentAssignments = collect();
         $myUpcomingAssignments = collect();
         $attendanceList = collect();
+        $todayPlannedDate = null;
 
         // Get counts for dashboard (location-aware for non Super Admin)
         if ($user->hasRole('Super Admin')) {

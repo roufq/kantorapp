@@ -159,6 +159,7 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/leaves', [App\Http\Controllers\LeaveController::class, 'index'])->name('leaves.index');
     Route::post('/leaves', [App\Http\Controllers\LeaveController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('leaves.store');
     Route::patch('/leaves/{leave}/status', [App\Http\Controllers\LeaveController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('leaves.updateStatus');
+    Route::get('/rosters/{roster}/export', [App\Http\Controllers\ShiftRosterController::class, 'export'])->name('shifts.rosters.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
@@ -181,6 +182,12 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/tasks/{task}/progress/create', [TaskProgressController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.create');
     Route::post('/tasks/{task}/progress', [TaskProgressController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.store');
     Route::get('/task-progress/approvals', [TaskProgressController::class, 'approvals'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approvals');
+    Route::resource('work-recaps', App\Http\Controllers\WorkRecapController::class)
+        ->except(['show'])
+        ->middleware('role:Super Admin,Admin Lokasi');
+    Route::resource('work-targets', App\Http\Controllers\LocationWorkTargetController::class)
+        ->except(['show'])
+        ->middleware('role:Super Admin,Admin Lokasi');
     Route::post('/task-progress/{progressUpdate}/approve', [TaskProgressController::class, 'approve'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approve');
     Route::post('/task-progress/{progressUpdate}/reject', [TaskProgressController::class, 'reject'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.reject');
     Route::get('/task-progress/{progressUpdate}/download/{type}', [TaskProgressController::class, 'downloadAttachment'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.download');
@@ -215,6 +222,7 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::post('/shifts/scheduler', [App\Http\Controllers\ShiftController::class, 'schedulerGenerate'])->middleware('role:Super Admin')->name('shifts.scheduler.generate');
 
     // Weekly Rosters (didefinisikan sebelum resource shifts untuk menghindari bentrok shifts/{shift})
+    Route::get('/shifts/rosters/calendar', [App\Http\Controllers\ShiftRosterController::class, 'calendar'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('shifts.rosters.calendar');
     Route::prefix('shifts')->name('shifts.')->middleware('role:Super Admin,Admin Lokasi')->group(function () {
         Route::resource('rosters', App\Http\Controllers\ShiftRosterController::class);
     });
@@ -251,6 +259,18 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::patch('/reports/{report}/approve', [App\Http\Controllers\ReportController::class, 'approve'])->middleware('role:Super Admin|Admin Lokasi')->name('reports.approve');
     Route::get('/report-attachments/{attachment}/download', [App\Http\Controllers\ReportController::class, 'downloadAttachment'])->name('reports.attachments.download');
 
+    // Task Slots (structure & approval)
+    Route::prefix('tasks')->group(function () {
+        Route::post('{task}/slots', [App\Http\Controllers\TaskSlotController::class, 'store'])->name('tasks.slots.store')->middleware('role:Super Admin,Admin Lokasi');
+        Route::patch('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'update'])->name('tasks.slots.update')->middleware('role:Super Admin,Admin Lokasi');
+        Route::delete('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'destroy'])->name('tasks.slots.destroy')->middleware('role:Super Admin,Admin Lokasi');
+    });
+    Route::post('/task-slots/{slot}/submit', [App\Http\Controllers\TaskSlotController::class, 'submit'])->name('task-slots.submit')->middleware('auth');
+    Route::post('/task-slots/{slot}/approve', [App\Http\Controllers\TaskSlotController::class, 'approve'])->name('task-slots.approve')->middleware('role:Super Admin,Admin Lokasi');
+    Route::post('/task-slots/{slot}/reject', [App\Http\Controllers\TaskSlotController::class, 'reject'])->name('task-slots.reject')->middleware('role:Super Admin,Admin Lokasi');
+    Route::post('/tasks/{task}/approve-slots', [App\Http\Controllers\TaskSlotController::class, 'approveTask'])->name('tasks.approve-slots')->middleware('role:Super Admin,Admin Lokasi');
+    Route::post('/tasks/{task}/reject-slots', [App\Http\Controllers\TaskSlotController::class, 'rejectTask'])->name('tasks.reject-slots')->middleware('role:Super Admin,Admin Lokasi');
+
     // Overtime Requests
     Route::get('/overtime', [App\Http\Controllers\OvertimeController::class, 'index'])->name('overtime.index');
     Route::get('/overtime/create', [App\Http\Controllers\OvertimeController::class, 'create'])->name('overtime.create');
@@ -276,12 +296,6 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/location-change-requests/create', [LocationChangeRequestController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.create');
     Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.store');
     Route::patch('/location-change-requests/{locationChangeRequest}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('location-change-requests.updateStatus');
-
-    // Shift Assignments & Calendar
-    Route::get('/shift-assignments/calendar', [App\Http\Controllers\ShiftAssignmentController::class, 'calendar'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('shift-assignments.calendar');
-    Route::resource('shift-assignments', App\Http\Controllers\ShiftAssignmentController::class)->middleware('role:Super Admin,Admin Lokasi');
-    Route::get('/shift-assignments-export', [App\Http\Controllers\ShiftAssignmentController::class, 'export'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.export');
-    Route::post('/shift-assignments/rotate', [App\Http\Controllers\ShiftAssignmentController::class, 'rotate'])->middleware('role:Super Admin,Admin Lokasi')->name('shift-assignments.rotate');
 
     // Super Admin location selection (session-scoped)
     Route::middleware('role:Super Admin')->group(function () {

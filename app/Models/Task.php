@@ -21,6 +21,7 @@ class Task extends Model
         'due_date',
         'photo_path',
         'document_path',
+        'duration_minutes',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class Task extends Model
         return [
             'due_date' => 'date',
             'progress' => 'integer',
+            'duration_minutes' => 'integer',
         ];
     }
 
@@ -46,6 +48,11 @@ class Task extends Model
         return $this->hasMany(TaskProgressUpdate::class);
     }
 
+    public function slots()
+    {
+        return $this->hasMany(TaskSlot::class)->orderBy('order');
+    }
+
     public function latestProgressUpdate()
     {
         return $this->hasOne(TaskProgressUpdate::class)->latestOfMany();
@@ -56,5 +63,11 @@ class Task extends Model
         $this->progress = max(0, min(100, $progress));
         $this->status = $this->progress >= 100 ? 'completed' : ($this->progress > 0 ? 'in_progress' : 'pending');
         $this->save();
+    }
+
+    public function recalcProgressFromSlots(): void
+    {
+        $approvedPercent = (int) $this->slots()->where('status', 'approved')->sum('percentage');
+        $this->applyProgress($approvedPercent);
     }
 }

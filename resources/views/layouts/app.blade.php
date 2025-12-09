@@ -37,52 +37,28 @@
     onload="this.media='all'" />
   <!--end::Fonts-->
   <!-- Branding Hook: Inject per-location brand styles and assets -->
-  @php
+@php
   $brandLocation = auth()->check() ? auth()->user()->location : null;
   $brandName = $brandLocation && $brandLocation->brand_name ? $brandLocation->brand_name : null;
   $brandLogoUrl = $brandLocation && $brandLocation->brand_logo_url ? (\Illuminate\Support\Str::startsWith($brandLocation->brand_logo_url, ['http://','https://']) ? $brandLocation->brand_logo_url : asset($brandLocation->brand_logo_url)) : null;
   $primaryColor = $brandLocation && $brandLocation->primary_color ? $brandLocation->primary_color : null;
   $secondaryColor = $brandLocation && $brandLocation->secondary_color ? $brandLocation->secondary_color : null;
-  @endphp
+  $brandName = $brandName ?: 'CfgBrand';
+@endphp
   @if($primaryColor || $secondaryColor)
   <style>
     :root {
-      @if($primaryColor) --brand-primary: {
-          {
-          $primaryColor
-        }
-      }
-
-      ;
-
-      @endif @if($secondaryColor) --brand-secondary: {
-          {
-          $secondaryColor
-        }
-      }
-
-      ;
-      @endif
+      @if($primaryColor) --brand-primary: {{ $primaryColor }}; @endif
+      @if($secondaryColor) --brand-secondary: {{ $secondaryColor }}; @endif
     }
-
-    .brand-text {
-      color: var(--brand-primary, inherit);
-    }
-
-    .btn-primary {
-      background-color: var(--brand-primary, #0d6efd);
-      border-color: var(--brand-primary, #0d6efd);
-    }
-
-    .text-primary {
-      color: var(--brand-primary, #0d6efd) !important;
-    }
-
-    .bg-primary {
-      background-color: var(--brand-primary, #0d6efd) !important;
-    }
+    .brand-text { color: var(--brand-primary, inherit); }
+    .btn-primary { background-color: var(--brand-primary, #0d6efd); border-color: var(--brand-primary, #0d6efd); }
+    .text-primary { color: var(--brand-primary, #0d6efd) !important; }
+    .bg-primary { background-color: var(--brand-primary, #0d6efd) !important; }
   </style>
   @endif
+  <link rel="stylesheet" href="/css/custom-cfg.css">
+  <link rel="stylesheet" href="/themes/green.css">
   @if($brandLocation && $brandLocation->custom_css_url)
   <link rel="stylesheet" href="{{ $brandLocation->custom_css_url }}" />
   @endif
@@ -399,11 +375,11 @@
                 <p>Tasks</p>
               </a>
             </li>
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
             <li class="nav-item">
-              <a href="{{ route('shift-assignments.calendar') }}" class="nav-link {{ request()->routeIs('shift-assignments.calendar') ? 'active' : '' }}">
+              <a href="{{ route('shifts.rosters.calendar') }}" class="nav-link {{ request()->routeIs('shifts.rosters.calendar') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-calendar-week"></i>
-                <p>Shift Calendar</p>
+                <p>Kalender</p>
               </a>
             </li>
             @endif
@@ -471,6 +447,32 @@
                 <p>Laporan</p>
               </a>
             </li>
+            @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+            <li class="nav-item">
+              <a href="{{ route('work-recaps.index') }}" class="nav-link {{ request()->routeIs('work-recaps.*') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-clock-history"></i>
+                <p>Rekap Jam Kerja</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('work-recaps.create') }}" class="nav-link {{ request()->routeIs('work-recaps.create') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-plus-circle"></i>
+                <p>Tambah Rekap</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('work-targets.index') }}" class="nav-link {{ request()->routeIs('work-targets.*') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-bullseye"></i>
+                <p>Target Jam Kerja</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('work-targets.create') }}" class="nav-link {{ request()->routeIs('work-targets.create') ? 'active' : '' }}">
+                <i class="nav-icon bi bi-plus-circle-dotted"></i>
+                <p>Tambah Target</p>
+              </a>
+            </li>
+            @endif
 
             @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
             <li class="nav-item">
@@ -530,18 +532,6 @@
                 <p>Weekly Rosters</p>
               </a>
             </li>
-            <li class="nav-item">
-              <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
-                <i class="nav-icon bi bi-calendar3"></i>
-                <p>Shift Assignments</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{{ route('shift-assignments.calendar') }}" class="nav-link {{ request()->routeIs('shift-assignments.calendar') ? 'active' : '' }}">
-                <i class="nav-icon bi bi-calendar-week"></i>
-                <p>Shift Calendar</p>
-              </a>
-            </li>
             @if(auth()->user()->location_id)
             <li class="nav-item">
               <a href="{{ route('locations.settings', auth()->user()->location_id) }}" class="nav-link {{ request()->routeIs('locations.settings*') ? 'active' : '' }}">
@@ -598,12 +588,6 @@
               <a href="{{ route('location-admins.index') }}" class="nav-link {{ request()->routeIs('location-admins.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-person-gear"></i>
                 <p>Location Admins</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{{ route('shift-assignments.index') }}" class="nav-link {{ request()->routeIs('shift-assignments.*') ? 'active' : '' }}">
-                <i class="nav-icon bi bi-calendar3"></i>
-                <p>Shift Assignments</p>
               </a>
             </li>
             @endif

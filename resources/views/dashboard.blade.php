@@ -544,9 +544,6 @@
       <div class="card-body">
         <div class="d-grid gap-2">
           <a class="btn btn-outline-primary" href="{{ route('attendance.checkin') }}">Attendance: Check In/Out</a>
-          @if($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi'))
-            <a class="btn btn-outline-success" href="{{ route('shift-assignments.index') }}">Manage Shift Assignments</a>
-          @endif
           @if($user->hasRole('Admin Lokasi') && $user->location_id)
             <a class="btn btn-outline-secondary" href="{{ route('locations.settings', $user->location_id) }}">My Location Settings</a>
           @endif

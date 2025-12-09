@@ -40,6 +40,14 @@
                         @enderror
                     </div>
                     <div class="mb-3">
+                        <label for="duration_minutes" class="form-label">Durasi (menit)</label>
+                        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="1" value="{{ old('duration_minutes', $task->duration_minutes) }}">
+                        <small class="text-muted">Total menit yang akan dibagi ke slot progres. Due date tetap sebagai target akhir.</small>
+                        @error('duration_minutes')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
                         <label for="assigned_to" class="form-label">Assign To</label>
                         <div class="assigned-to-dropdown position-relative">
                             <input type="hidden" name="assigned_to" id="assigned_to" value="{{ old('assigned_to', $task->assigned_to) }}" required>
@@ -91,7 +99,51 @@
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
-                    <p class="text-muted">Ubah progres menggunakan form "Update Progress" di halaman detail tugas, dengan lampiran foto/dokumen.</p>
+                    <hr>
+                    <h5 class="mb-2">Slot Progres (opsional, total % harus 100%)</h5>
+                    <div id="slotListEdit">
+                        @php $slots = old('slots', $task->slots->toArray()); @endphp
+                        @forelse($slots as $i => $slot)
+                        <div class="row g-2 mb-2 slot-row">
+                            <div class="col-md-4">
+                                <input type="text" name="slots[{{ $i }}][name]" class="form-control" value="{{ $slot['name'] ?? '' }}" placeholder="Nama / Tujuan">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[{{ $i }}][percentage]" class="form-control" min="1" max="100" value="{{ $slot['percentage'] ?? '' }}" placeholder="%">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[{{ $i }}][minutes]" class="form-control" min="1" value="{{ $slot['minutes'] ?? '' }}" placeholder="Menit">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-center gap-2">
+                                <input type="number" name="slots[{{ $i }}][order]" class="form-control" min="0" value="{{ $slot['order'] ?? $i }}">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="row g-2 mb-2 slot-row">
+                            <div class="col-md-4">
+                                <input type="text" name="slots[0][name]" class="form-control" placeholder="Nama / Tujuan">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[0][percentage]" class="form-control" min="1" max="100" placeholder="%">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[0][minutes]" class="form-control" min="1" placeholder="Menit">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-center gap-2">
+                                <input type="number" name="slots[0][order]" class="form-control" min="0" value="0">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+                            </div>
+                        </div>
+                        @endforelse
+                    </div>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnEdit">Tambah Slot</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnEdit">Hapus Semua Slot</button>
+                        <span class="small text-muted ms-2">Total persentase harus 100%, total menit ≤ durasi.</span>
+                    </div>
+
+                    <p class="text-muted">Progres dihitung dari slot yang disetujui. Unggah bukti per slot di halaman detail.</p>
                     <button type="submit" class="btn btn-primary">Update Task</button>
                     <a href="{{ route('tasks.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
@@ -154,6 +206,48 @@
         }
       });
     });
+
+    // Slot repeater for edit
+    const slotList = document.getElementById('slotListEdit');
+    const addBtn = document.getElementById('addSlotBtnEdit');
+    const clearBtn = document.getElementById('clearSlotsBtnEdit');
+    if (slotList && addBtn && clearBtn) {
+      let idx = slotList.querySelectorAll('.slot-row').length;
+      addBtn.addEventListener('click', () => {
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 slot-row';
+        row.innerHTML = `
+          <div class="col-md-4">
+            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan">
+          </div>
+          <div class="col-md-3">
+            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="1" max="100" placeholder="%">
+          </div>
+          <div class="col-md-3">
+            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit">
+          </div>
+          <div class="col-md-2 d-flex align-items-center gap-2">
+            <input type="number" name="slots[${idx}][order]" class="form-control" min="0" value="${idx}">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+          </div>
+        `;
+        slotList.appendChild(row);
+        idx++;
+      });
+
+      slotList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-slot')) {
+          e.preventDefault();
+          const row = e.target.closest('.slot-row');
+          if (row) row.remove();
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        slotList.innerHTML = '';
+        idx = 0;
+      });
+    }
   })();
 </script>
 @endsection

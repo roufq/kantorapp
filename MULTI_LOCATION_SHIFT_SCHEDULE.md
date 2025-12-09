@@ -49,13 +49,13 @@
 - [x] Implement shift creation via dashboard per lokasi (UI tersedia, perlu assignment per user/tanggal)
 - [x] Add shift templates (pagi, siang, malam, 24jam)
 - [x] Create shift scheduling logic
-- [x] Test basic shift assignment
+- [ ] Test basic shift assignment (ditangguhkan; alur penjadwalan kini memakai Weekly Roster, bukan Shift Assignment UI)
 
 ### **MINGGU 5: ADVANCED SHIFT FEATURES**
 **Target:** Shift management advanced untuk 24 jam operation
 - [x] Implement shift rotation system
-- [x] Add shift handover procedures
-- [x] Create shift break management
+- [ ] Add shift handover procedures (alur Assignment dihapus; handover belum dipasang ulang di roster)
+- [ ] Create shift break management (field `break_minutes` ada, belum diintegrasi logic)
 - [ ] Implement shift overtime calculation
 - [x] Add shift conflict detection
 - [ ] Test 24-hour shift operations

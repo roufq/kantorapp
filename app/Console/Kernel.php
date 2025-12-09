@@ -16,6 +16,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('attendance:mark-absences')
             ->dailyAt('23:59')
             ->timezone('Asia/Jakarta');
+
+        // Rekap jam kerja bulanan (jalan harian untuk menjaga akumulasi)
+        $schedule->command('work-recaps:generate')
+            ->dailyAt('01:00')
+            ->timezone('Asia/Jakarta');
     }
 
     /**
@@ -38,5 +43,7 @@ class Kernel extends ConsoleKernel
         Commands\SendShiftReminders::class,
         Commands\SeedShiftTemplates::class,
         Commands\ShiftRosterHealthCheck::class,
+        Commands\GenerateWorkRecaps::class,
+        Commands\BackfillTaskSlots::class,
     ];
 }

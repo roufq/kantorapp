@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\TaskProgressUpdate;
+use App\Models\TaskSlot;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,7 @@ class TaskProgressController extends Controller
             abort(403, 'Anda tidak berhak memperbarui progres tugas ini.');
         }
 
+        $task->load(['slots.attachments', 'assignee']);
         $progressUpdates = $task->progressUpdates()->with(['user', 'approver'])->latest()->get();
 
         return view('tasks.progress.create', compact('task', 'progressUpdates'));
@@ -99,7 +101,7 @@ class TaskProgressController extends Controller
         $query->where(function ($q) use ($user, $isManager) {
             // Super Admin sees all 'super_admin' level requests, and also 'location_admin' as a fallback.
             if ($user->hasRole('Super Admin')) {
-                $q->whereIn('approval_level', ['super_admin', 'location_admin']);
+                $q->whereIn('approval_level', ['super_admin', 'location_admin', 'manager']);
             }
             // Admin Lokasi sees 'location_admin' requests for their location
             elseif ($user->hasRole('Admin Lokasi')) {
@@ -120,7 +122,29 @@ class TaskProgressController extends Controller
 
         $pendingUpdates = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        return view('tasks.progress-approvals', compact('pendingUpdates'));
+        // Task-level pending (slot-based)
+        $taskQuery = Task::with(['assignee.location', 'slots' => function ($q) {
+            $q->where('status', 'pending')->with('attachments');
+        }])->whereHas('slots', function ($q) {
+            $q->where('status', 'pending');
+        });
+
+        if ($user->hasRole('Super Admin')) {
+            // all tasks
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $taskQuery->whereHas('assignee', function ($q) use ($user) {
+                $q->where('location_id', $user->location_id);
+            });
+        } elseif ($isManager) {
+            $taskQuery->whereHas('assignee', function ($q) use ($user) {
+                $q->where('master_id', $user->id);
+            });
+        } else {
+            abort(403);
+        }
+        $pendingTasks = $taskQuery->orderBy('due_date', 'asc')->get();
+
+        return view('tasks.progress-approvals', compact('pendingUpdates', 'pendingTasks'));
     }
 
     public function approve(TaskProgressUpdate $progressUpdate)
@@ -178,8 +202,8 @@ class TaskProgressController extends Controller
             return;
         }
 
-        // Super Admins can handle 'super_admin' and 'location_admin' levels.
-        if ($user->hasRole('Super Admin') && in_array($level, ['super_admin', 'location_admin'])) {
+        // Super Admins can handle any level.
+        if ($user->hasRole('Super Admin')) {
             return;
         }
         
@@ -208,48 +232,38 @@ class TaskProgressController extends Controller
             ];
         }
 
-        // 2. Task was created by a Super Admin -> Approval goes to that Super Admin
-        if ($taskCreator->hasRole('Super Admin')) {
+        // 2. Admin Lokasi mengirim progres -> auto disetujui (self-approved)
+        if ($updater->hasRole('Admin Lokasi')) {
             return [
-                'level' => 'super_admin',
-                'requires_approval' => true,
-                'status' => 'pending',
-                'approver_id' => $taskCreator->id
-            ];
-        }
-        
-        // 3. Task was created by an Admin Lokasi -> Approval goes to a Super Admin
-        if ($taskCreator->hasRole('Admin Lokasi')) {
-            $superAdmin = User::role('Super Admin')->first();
-            return [
-                'level' => 'super_admin',
-                'requires_approval' => true,
-                'status' => 'pending',
-                'approver_id' => $superAdmin ? $superAdmin->id : null // Failsafe
+                'level' => 'none',
+                'requires_approval' => false,
+                'status' => 'approved',
+                'approver_id' => $updater->id,
             ];
         }
 
-        // 4. Default case (task created by Karyawan or other)
-        // Find the updater's direct manager (atasan) from the Employee model
-        $manager = optional($updater->employee)->master; // master is a User object
-
-        if ($manager) {
+        // 3. Karyawan atau role lain:
+        //    - Jika ada Admin Lokasi untuk lokasi user, kirim ke Admin Lokasi
+        //    - Jika tidak ada Admin Lokasi, kirim ke Super Admin
+        $locationAdmin = $updater->location_id
+            ? User::role('Admin Lokasi')->where('location_id', $updater->location_id)->first()
+            : null;
+        if ($locationAdmin) {
             return [
-                'level' => 'manager', // New level for direct manager
+                'level' => 'location_admin',
                 'requires_approval' => true,
                 'status' => 'pending',
-                'approver_id' => $manager->id
-            ];
-        } else {
-            // 5. Failsafe: if no manager, send to Super Admin
-            $superAdmin = User::role('Super Admin')->first();
-            return [
-                'level' => 'super_admin',
-                'requires_approval' => true,
-                'status' => 'pending',
-                'approver_id' => $superAdmin ? $superAdmin->id : null
+                'approver_id' => $locationAdmin->id,
             ];
         }
+
+        $superAdmin = User::role('Super Admin')->first();
+        return [
+            'level' => 'super_admin',
+            'requires_approval' => true,
+            'status' => 'pending',
+            'approver_id' => $superAdmin ? $superAdmin->id : null,
+        ];
     }
 
     public function downloadAttachment(TaskProgressUpdate $progressUpdate, string $type)
