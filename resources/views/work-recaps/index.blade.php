@@ -17,90 +17,145 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">Bulan</label>
-                <input type="month" name="month" value="{{ $monthParam }}" class="form-control">
-            </div>
             @if(auth()->user()->hasRole('Super Admin'))
                 <div class="col-md-3">
                     <label class="form-label">Lokasi</label>
                     <select name="location_id" class="form-select">
-                        <option value="">Semua</option>
+                        <option value="">Pilih lokasi</option>
                         @foreach($locations as $loc)
-                            <option value="{{ $loc->id }}" @selected(request('location_id') == $loc->id)>{{ $loc->name ?? $loc->nama ?? 'Lokasi '.$loc->id }}</option>
+                            <option value="{{ $loc->id }}" @selected($locationFilter == $loc->id)>{{ $loc->name ?? $loc->nama ?? 'Lokasi '.$loc->id }}</option>
                         @endforeach
                     </select>
                 </div>
             @endif
             <div class="col-md-3">
                 <label class="form-label">Karyawan</label>
-                <select name="employee_id" class="form-select">
-                    <option value="">Semua</option>
-                    @foreach($employees as $emp)
-                        <option value="{{ $emp->id }}" @selected(request('employee_id') == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
-                    @endforeach
-                </select>
+            <select name="employee_id" class="form-select">
+                <option value="">Pilih karyawan</option>
+                @foreach($employees as $emp)
+                    <option value="{{ $emp->id }}" @selected($employeeId == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
+                @endforeach
+            </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Mulai</label>
+                <input type="date" name="start_date" value="{{ $startDate }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Selesai</label>
+                <input type="date" name="end_date" value="{{ $endDate }}" class="form-control">
+            </div>
+            <div class="col-md-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Terapkan</button>
                 <a href="{{ route('work-recaps.index') }}" class="btn btn-outline-secondary">Reset</a>
-                <a href="{{ route('work-recaps.create') }}" class="btn btn-outline-primary ms-auto">Tambah Rekap</a>
+                @if($employeeId)
+                    <button type="submit" name="export" value="1" class="btn btn-outline-success">Export PDF</button>
+                @endif
             </div>
         </form>
     </div>
 </div>
 
-<div class="card">
+@if($employeeId)
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Target (menit)</div>
+                <div class="h4 mb-0">{{ $slotSummary['target_minutes'] ?? '—' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Slot Approved (menit)</div>
+                <div class="h4 mb-0">{{ $slotSummary['slot_minutes'] }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Kehadiran (menit)</div>
+                <div class="h4 mb-0">{{ $slotSummary['attendance_minutes'] }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Sisa (menit)</div>
+                <div class="h4 mb-0">{{ $slotSummary['remaining'] ?? '—' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
     <div class="card-header">
-        <h5 class="card-title mb-0">Hasil Rekap</h5>
+        <h5 class="card-title mb-0">Detail Slot Approved</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-striped mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Karyawan</th>
-                        <th>Lokasi</th>
-                        <th>Bulan</th>
-                        <th>Slot Approved (menit)</th>
-                        <th>Kehadiran (menit)</th>
-                        <th>Total (menit)</th>
-                        <th>Update</th>
-                        <th>Aksi</th>
+                        <th>Task</th>
+                        <th>Slot</th>
+                        <th>Menit</th>
+                        <th>Approved</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($recaps as $recap)
+                    @forelse($slotDetails as $slot)
                         <tr>
-                            <td>{{ $recap->employee->nama ?? 'Emp #'.$recap->employee_id }}</td>
-                            <td>{{ $recap->location->name ?? $recap->location->nama ?? 'Lokasi #'.$recap->location_id }}</td>
-                            <td>{{ sprintf('%02d', $recap->month) }}-{{ $recap->year }}</td>
-                            <td>{{ $recap->slot_minutes_approved }}</td>
-                            <td>{{ $recap->attendance_minutes }}</td>
-                            <td><strong>{{ $recap->total_minutes }}</strong></td>
-                            <td class="text-muted small">{{ optional($recap->updated_at)->format('d M Y H:i') }}</td>
-                            <td class="d-flex gap-2">
-                                <a href="{{ route('work-recaps.edit', $recap) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                <form action="{{ route('work-recaps.destroy', $recap) }}" method="POST" onsubmit="return confirm('Hapus rekap ini?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
-                                </form>
-                            </td>
+                            <td>{{ $slot->task->title ?? 'Task #'.$slot->task_id }}</td>
+                            <td>{{ $slot->name }}</td>
+                            <td>{{ $slot->minutes }}</td>
+                            <td>{{ optional($slot->approved_at)->format('d M Y H:i') }}</td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted">Belum ada data untuk filter ini.</td>
-                        </tr>
+                        <tr><td colspan="4" class="text-center text-muted">Belum ada slot approved pada rentang ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-    @if($recaps->hasPages())
-        <div class="card-footer d-flex justify-content-center">
-            {{ $recaps->links() }}
-        </div>
-    @endif
 </div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Detail Kehadiran</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Durasi (menit)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($attendanceDetails as $att)
+                        <tr>
+                            <td>{{ optional($att->check_in_time)->format('d M Y') }}</td>
+                            <td>{{ optional($att->check_in_time)->format('H:i') }}</td>
+                            <td>{{ optional($att->check_out_time)->format('H:i') }}</td>
+                            <td>{{ $att->duration_minutes ?? 0 }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center text-muted">Belum ada data kehadiran pada rentang ini.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@else
+    <div class="alert alert-info">Pilih karyawan untuk melihat ringkasan dan detail.</div>
+@endif
 @endsection

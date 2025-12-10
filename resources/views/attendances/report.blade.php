@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid">
     <div class="row">
-        <div class="col-md-12">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">{{ __('Attendance Report') }}</div>
 
@@ -30,8 +30,8 @@
                     @endauth
                     {{-- Filters --}}
                     <form method="GET" action="{{ route('attendance.report') }}" class="mb-4">
-                        <div class="row">
-                            <div class="col-md-3">
+                        <div class="row g-3">
+                            <div class="col-xl-3 col-lg-6">
                                 <label for="user_id" class="form-label">User</label>
                                 <select name="user_id" id="user_id" class="form-control">
                                     <option value="">All Users</option>
@@ -42,15 +42,15 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-lg-6">
                                 <label for="start_date" class="form-label">Start Date</label>
                                 <input type="date" name="start_date" id="start_date" class="form-control" value="{{ request('start_date') }}">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-lg-6">
                                 <label for="end_date" class="form-label">End Date</label>
                                 <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date') }}">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-lg-6">
                                 <label for="shift_id" class="form-label">Shift</label>
                                 <select name="shift_id" id="shift_id" class="form-control">
                                     <option value="">All Shifts</option>
@@ -61,7 +61,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-lg-6">
                                 <label class="form-label">&nbsp;</label>
                                 <button type="submit" class="btn btn-primary form-control">Filter</button>
                             </div>

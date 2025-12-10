@@ -89,9 +89,27 @@
                     <?php
                         $me = auth()->user();
                         $needsApproval = ($me->hasAnyRole(['Super Admin','Admin Lokasi']) && ($task->pending_slots_count ?? 0) > 0);
+                        $requiresCreationApproval = $task->requires_approval ?? false;
+                        $creationApproved = !$requiresCreationApproval || $task->approval_status === 'approved';
+                        $approvalLabel = null;
+                        if ($requiresCreationApproval) {
+                            if ($task->approval_status === 'pending') {
+                                $approvalLabel = 'Menunggu persetujuan ' . ($task->approval_level === 'location_admin' ? 'Admin Lokasi' : 'Super Admin');
+                            } elseif ($task->approval_status === 'rejected') {
+                                $approvalLabel = 'Ditolak' . ($task->approval_note ? ': ' . $task->approval_note : '');
+                            }
+                        }
+                        $canUpdateProgress = $creationApproved && (
+                            $me->hasRole('Super Admin') ||
+                            $task->assigned_to === $me->id ||
+                            ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id)
+                        );
                     ?>
                     <?php if($needsApproval): ?>
                         <span class="badge text-bg-warning mb-2">Butuh approval (<?php echo e($task->pending_slots_count); ?>)</span>
+                    <?php endif; ?>
+                    <?php if($approvalLabel): ?>
+                        <span class="badge text-bg-<?php echo e($task->approval_status === 'rejected' ? 'danger' : 'warning'); ?> mb-2"><?php echo e($approvalLabel); ?></span>
                     <?php endif; ?>
                     <p><?php echo e($task->description); ?></p>
                     <p class="mb-1"><strong>Status:</strong> <?php echo e(ucfirst($task->status)); ?></p>
@@ -112,7 +130,7 @@
                     <?php
                         $me = auth()->user();
                     ?>
-                    <?php if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id)): ?>
+                    <?php if($canUpdateProgress): ?>
                         <div class="mt-2">
                             <a href="<?php echo e(route('tasks.progress.create', $task)); ?>" class="btn btn-sm btn-primary me-1">Update Progress</a>
                             <a href="<?php echo e(route('tasks.edit', $task)); ?>" class="btn btn-sm btn-outline-primary">Edit</a>
@@ -122,6 +140,12 @@
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>
                         </div>
+                    <?php elseif($requiresCreationApproval): ?>
+                        <?php if($task->approval_status === 'rejected'): ?>
+                            <div class="mt-2 text-danger small">Tugas Anda ditolak: <?php echo e($task->approval_note ?? 'Alasan tidak tersedia.'); ?></div>
+                        <?php else: ?>
+                            <div class="mt-2 text-muted small">Menunggu persetujuan sebelum progres bisa diupdate.</div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

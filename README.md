@@ -11,61 +11,58 @@
 
 KantorApp is a comprehensive multi-location attendance management system built with Laravel, designed to streamline workforce management across multiple office locations. The system provides GPS-validated attendance tracking, flexible shift scheduling, task management, overtime handling, and comprehensive reporting capabilities.
 
+### High-level flow (current)
+- **Attendance**: Check-in/out divalidasi radius & roster. Jika belum checkout, durasi harian dianggap maksimal 8 jam (informasi saja, tidak mengurangi target).
+- **Tasks & Slots**: Semua task wajib memiliki slot; total menit slot = durasi task, total persentase slot = 100%. Progress bisa di-update setelah task disetujui dan harus menyertakan bukti (foto/dokumen/link).
+- **Approvals**: Self-assign karyawan → butuh Admin Lokasi (atau Super Admin jika tidak ada). Self-assign Admin Lokasi → butuh Super Admin. Slot/task bisa di-approve/reject dengan alasan.
+- **Work Target (menit)**: Target per lokasi/bulan (opsional per karyawan). Hanya slot yang disetujui yang mengurangi target; kehadiran tidak mengurangi target.
+- **Rekap Jam Kerja Bulanan**: Filter lokasi/karyawan/rentang tanggal, ringkasan target/slot approved/kehadiran/sisa, detail slot approved & kehadiran, export ke PDF (nama file memakai nama karyawan).
+- **Reporting**: Attendance report full width, filter user/tanggal/shift + export; daftar target menit per lokasi/karyawan dapat difilter.
+- **Attachments**: Detail task menampilkan preview foto dan link unduh dokumen sesuai lampiran yang di-upload.
+
 ## Recent Updates
 
-- Attendance Recap & Leaves
-  - Leave dihitung per hari di recap meskipun ada roster, jadi rentang cuti/izin (mis. 2025-12-07 s/d 2025-12-11) masuk kolom Leave dan tidak dihitung Alpha.
-  - Rekap mempertimbangkan libur nasional/weekly off walau ada roster; working days disesuaikan.
-- Roster Fairness & Capacity
-- Generator roster kini mendukung kapasitas per slot mengikuti jumlah karyawan di lokasi (bisa >2 orang), menjaga distribusi adil tanpa menugaskan user lebih dari satu slot per hari dan tetap menghormati off/cuti.
-  - Proteksi transisi malam→pagi dan batas 2 shift malam beruntun; meta distribusi rotasi disimpan untuk audit.
-  - Health check `php artisan shift:roster-health` mendeteksi duplikat/slot out-of-range/orphan entries dan dapat auto-fix duplikat.
-- Shift Roster & Calendar
-  - Weekly Rosters (Factory/Non Office): kalender hanya menampilkan data dari roster; jika belum ada, tampil “Shift belum ada”.
-  - Status OFF ditampilkan sebagai hari libur; cuti/izin (Leaves) muncul sebagai baris “Leave” di kalender mingguannya.
-  - Akses kalender: Karyawan/Admin Lokasi hanya lokasi sendiri, Super Admin bisa pilih semua lokasi via dropdown.
-  - Rolling roster berbasis nama karyawan (bukan nomor slot) dan jam slot tampil di tabel.
-- Attendance + Roster Sync
-  - Check-in/out divalidasi terhadap slot jadwal (grace early 30 menit), menolak jika OFF atau di luar jam.
-  - Check-out menolak sebelum akhir slot (kecuali overtime). Absensi menyimpan `shift_assignment_id`.
-- Dashboard
-  - Hari OFF menampilkan “Hari libur Anda” (tanpa jam) di kartu shift karyawan.
-  - Detail shift lokasi menampilkan slot per hari (hari + jam) di Location Shift Details.
-- Shift Calendar
-  - Super Admin/Admin Lokasi/Karyawan dapat melihat kalender per lokasi; default office fallback dihilangkan untuk mencegah jadwal fiktif di luar roster.
-  - Halaman kalender menampilkan pesan “Shift belum ada / Belum ada jadwal” bila minggu belum dibuat roster.
-- Tasks
-  - Filter baru rentang tanggal due date (start/end) di index tasks dengan tata letak form lebih rapi.
-- Security Hardening (Phase 1)
-  - 2FA multi-metode (SMS/Email/App) dengan middleware verifikasi.
-  - Perbaikan loop redirect 2FA: hanya bypass verify jika sesi sudah `2fa_verified`.
-  - Login lockout: setelah 5 gagal, akun dikunci 15 menit; throttle 5/menit tetap aktif.
-  - Session timeout default 30 menit (atur via `SESSION_LIFETIME`).
-  - Sanitasi input global (strip tags/trim) kecuali field file; pemasangan di web middleware.
-  - Saat login: sesi lain user dihapus; saat ganti password: `logoutOtherDevices` memaksa logout sesi lain.
-- Tasks & Forms
-  - Semua form create/edit diberi header konsisten (judul, deskripsi singkat, link kembali).
-  - Dropdown assign task dengan pencarian di dalam panel (custom combobox).
-- Employees
-  - Field `tanggal_masuk_kerja` (join date) ditambahkan; form create/edit/show/index sudah mendukung.
-  - Admin Lokasi otomatis terikat `location_id`; Super Admin wajib pilih lokasi saat membuat admin lokasi/karyawan.
-- Menu & Navigasi
-  - Menu “Karyawan” aktif untuk Super Admin dan Admin Lokasi (`karyawans.index`).
-- Email Verification (opsional)
-  - Rute/view verifikasi tersedia; aktifkan dengan `EMAIL_VERIFICATION_ENABLED=true` jika ingin enforce.
-- SMTP/Gmail
-  - Gunakan TLS port 587 + App Password untuk Gmail (lihat bagian mail config).
+- Task & Slot Approval
+  - Slot wajib, total menit slot = durasi task, persentase total = 100%.
+  - Self-assign: karyawan → Admin Lokasi/Super Admin; Admin Lokasi → Super Admin.
+  - Progress hanya setelah task disetujui; reject wajib alasan; lampiran foto/dokumen/link wajib saat update progres.
+- Work Target & Rekap
+  - Hanya slot approved yang mengurangi target menit bulanan per lokasi/karyawan.
+  - Kehadiran ditampilkan (maks 8 jam/hari jika belum checkout) tapi tidak mengurangi target.
+  - Rekap jam kerja bulanan bisa export PDF (nama file pakai nama karyawan), menampilkan ringkasan target/slot/kehadiran/sisa + detail slot & kehadiran.
+- UI & Approval
+  - Halaman approval tugas dalam tabel dengan filter lokasi/karyawan dan modal reject dengan backdrop transparan (halaman tetap terlihat).
+  - Sidebar punya menu approval karyawan/admin lokasi; laporan attendance full width.
 - Reporting
-  - Export Rekap Kehadiran ke Excel (filter mengikuti tabel recap).
-- Tasks Progress & Approval
-  - Progress wajib 0–100% dengan lampiran foto/dokumen di setiap update.
-  - Alur approve/reject: Karyawan → Admin Lokasi (fallback ke Super Admin jika tidak ada admin lokasi), Admin Lokasi → Super Admin. Super Admin update tanpa approval, tetap wajib lampiran.
-  - Form reject kini memakai textarea lebar; alasan reject wajib diisi.
-  - Halaman show task sudah null-safe untuk assigner/assignee dan punya tombol kembali ke index.
-- Dashboard & Peran
-  - Kartu clock in/out ditampilkan untuk Admin Lokasi dan disembunyikan untuk Karyawan di bagian tabel ringkasan.
-  - Grid kartu menggunakan `row g-3` agar jarak antar kartu konsisten di semua role.
-  - Karyawan tidak lagi melihat panel “Monthly Recap Report”; tabel attendance harian hanya untuk Admin Lokasi.
+  - Attendance report: filter user/tanggal/shift + export; target jam kerja per lokasi/karyawan dapat difilter.
+- Security & Forms
+  - Validasi form menjaga input lama, menampilkan alert; akses ditolak jika approve/reject slot pada task yang sudah ditolak.
+
+## Feature Summary (current)
+
+- Security & Compliance
+  - 2FA multi-metode (SMS/Email/App), login lockout, session timeout, sanitasi input global.
+  - Peran & guard: Super Admin, Admin Lokasi, Karyawan dengan scoping lokasi; akses approval dibatasi role.
+  - Check-in/out divalidasi radius lokasi + jadwal roster, menolak di luar jam atau OFF; audit trail via attendance & task logs.
+- Attendance & Shift
+  - Roster mingguan dengan kapasitas per slot, proteksi transisi malam→pagi, batas 2 shift malam beruntun; health-check roster CLI.
+  - Check-in/out terikat `shift_assignment_id`; jika belum checkout, durasi harian diasumsikan maks 8 jam (informasi).
+- Tasks & Slot Progress
+  - Task wajib punya slot; total menit slot = durasi task, total persentase = 100%.
+  - Progress per slot wajib lampiran (foto/dokumen/link), validasi progres 0–100, form menampilkan error tanpa kehilangan input.
+  - Lampiran task dapat di-preview/diunduh (foto + dokumen) di detail task.
+- Approvals
+  - Self-assign karyawan: perlu Admin Lokasi atau Super Admin. Self-assign Admin Lokasi: perlu Super Admin.
+  - Slot/task bisa di-approve/reject dengan alasan; jika task ditolak, slot turunannya otomatis ditolak dan aksi lain ditolak.
+  - Modal reject transparan (halaman tetap terlihat); tabel approval dengan filter lokasi/karyawan.
+- Work Target & Recap
+  - Target menit per lokasi/bulan (opsional per karyawan); hanya slot approved yang mengurangi target.
+  - Rekap jam kerja bulanan: ringkasan target/slot approved/kehadiran/sisa + detail slot & kehadiran; export PDF memakai nama karyawan.
+- Reporting & Export
+  - Attendance report full width, filter user/tanggal/shift, export.
+  - Target jam kerja per lokasi/karyawan dapat difilter dan dicatat; health-check roster CLI tersedia.
+- Overtime & Leave
+  - Pengajuan lembur dengan approval; libur nasional/weekly off dihormati; leave/cuti dicatat di kalender & tidak dihitung alfa.
 
 ### Key Features
 

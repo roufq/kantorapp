@@ -128,14 +128,15 @@ class TaskController extends Controller
                 'duration_minutes' => 'nullable|integer|min:1',
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
-                'slots' => 'nullable|array',
-                'slots.*.name' => 'required_with:slots|string|max:255',
-                'slots.*.percentage' => 'required_with:slots|integer|min:1|max:100',
-                'slots.*.minutes' => 'required_with:slots|integer|min:1',
+                'slots' => 'required|array|min:1',
+                'slots.*.name' => 'required|string|max:255',
+                'slots.*.percentage' => 'required|integer|min:1|max:100',
+                'slots.*.minutes' => 'required|integer|min:1',
                 'slots.*.order' => 'nullable|integer|min:0|max:255',
             ]);
 
             // Authorization rules
+            $assignee = User::findOrFail($request->assigned_to);
             if ($user->hasRole('Admin Lokasi')) {
                 // Admin Lokasi: assign ke Karyawan/Admin Lokasi di lokasi yg sama atau diri sendiri
                 if ((int)$request->assigned_to !== (int)$user->id) {
@@ -163,6 +164,8 @@ class TaskController extends Controller
                 }
             }
 
+            $approvalMeta = Task::determineCreationApproval($user, $assignee);
+
             $photoPath = null;
             $documentPath = null;
 
@@ -174,7 +177,7 @@ class TaskController extends Controller
                 $documentPath = $request->file('document')->store('tasks/documents', 'public');
             }
 
-            $task = Task::create([
+            $task = Task::create(array_merge([
                 'title' => $request->title,
                 'description' => $request->description,
                 'assigned_by' => $user->id,
@@ -185,42 +188,44 @@ class TaskController extends Controller
                 'duration_minutes' => $request->duration_minutes,
                 'photo_path' => $photoPath,
                 'document_path' => $documentPath,
-            ]);
+            ], $approvalMeta));
 
             // Tambahkan slot awal jika diisi
             $slots = $request->input('slots', []);
-            if (!empty($slots)) {
-                $totalPercent = collect($slots)->sum(fn($s) => (int) ($s['percentage'] ?? 0));
-                $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
-                if ($totalPercent !== 100) {
-                    return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
-                }
-                if ($task->duration_minutes && $totalMinutes > $task->duration_minutes) {
-                    return back()->withErrors(['slots' => 'Total menit slot melebihi durasi task.'])->withInput();
-                }
-                foreach ($slots as $idx => $slot) {
-                    $newSlot = TaskSlot::create([
-                        'task_id' => $task->id,
-                        'name' => $slot['name'],
-                        'percentage' => (int) $slot['percentage'],
-                        'minutes' => (int) $slot['minutes'],
-                        'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
-                        'created_by' => $user->id,
-                        'status' => 'pending',
-                    ]);
-                    TaskSlotHistory::create([
-                        'task_slot_id' => $newSlot->id,
-                        'action' => 'created',
-                        'data_after' => $newSlot->toArray(),
-                        'actor_id' => $user->id,
-                    ]);
-                }
+            $totalPercent = collect($slots)->sum(fn($s) => (int) ($s['percentage'] ?? 0));
+            $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
+            if ($totalPercent !== 100) {
+                return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
+            }
+            if ($task->duration_minutes && $totalMinutes !== (int) $task->duration_minutes) {
+                return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $task->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
+            }
+            foreach ($slots as $idx => $slot) {
+                $newSlot = TaskSlot::create([
+                    'task_id' => $task->id,
+                    'name' => $slot['name'],
+                    'percentage' => (int) $slot['percentage'],
+                    'minutes' => (int) $slot['minutes'],
+                    'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
+                    'created_by' => $user->id,
+                    'status' => 'pending',
+                ]);
+                TaskSlotHistory::create([
+                    'task_slot_id' => $newSlot->id,
+                    'action' => 'created',
+                    'data_after' => $newSlot->toArray(),
+                    'actor_id' => $user->id,
+                ]);
             }
         } else {
             abort(403, 'Employees cannot assign tasks to others');
         }
 
-        return redirect()->route('tasks.index')->with('success', 'Task created!');
+        $message = ($approvalMeta['requires_approval'] ?? false)
+            ? 'Task dikirim dan menunggu persetujuan.'
+            : 'Task created!';
+
+        return redirect()->route('tasks.index')->with('success', $message);
     }
 
     public function show(Task $task)
@@ -231,6 +236,7 @@ class TaskController extends Controller
             'slots.attachments',
             'slots.approver',
             'slots.creator',
+            'approver',
         ]);
         $progressUpdates = $task->progressUpdates()->with(['user', 'approver'])->orderBy('created_at', 'desc')->get();
 
@@ -505,6 +511,12 @@ class TaskController extends Controller
             'due_date' => 'nullable|date|after_or_equal:today',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
+            'duration_minutes' => 'nullable|integer|min:1',
+            'slots' => 'required|array|min:1',
+            'slots.*.name' => 'required|string|max:255',
+            'slots.*.percentage' => 'required|integer|min:1|max:100',
+            'slots.*.minutes' => 'required|integer|min:1',
+            'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
 
         $photoPath = null;
@@ -518,7 +530,19 @@ class TaskController extends Controller
             $documentPath = $request->file('document')->store('tasks/documents', 'public');
         }
 
-        Task::create([
+        $approvalMeta = Task::determineCreationApproval($user, $user);
+
+        $slots = $request->input('slots', []);
+        $totalPercent = collect($slots)->sum(fn($s) => (int) ($s['percentage'] ?? 0));
+        if ($totalPercent !== 100) {
+            return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
+        }
+        $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
+        if ($request->duration_minutes && $totalMinutes !== (int) $request->duration_minutes) {
+            return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $request->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
+        }
+
+        $task = Task::create(array_merge([
             'title' => $request->title,
             'description' => $request->description,
             'assigned_by' => $user->id,
@@ -526,11 +550,112 @@ class TaskController extends Controller
             'status' => 'pending',
             'progress' => 0,
             'due_date' => $request->due_date,
+            'duration_minutes' => $request->duration_minutes,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,
+        ], $approvalMeta));
+
+        foreach ($slots as $idx => $slot) {
+            $newSlot = TaskSlot::create([
+                'task_id' => $task->id,
+                'name' => $slot['name'],
+                'percentage' => (int) $slot['percentage'],
+                'minutes' => (int) $slot['minutes'],
+                'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
+                'created_by' => $user->id,
+                'status' => 'pending',
+            ]);
+            TaskSlotHistory::create([
+                'task_slot_id' => $newSlot->id,
+                'action' => 'created',
+                'data_after' => $newSlot->toArray(),
+                'actor_id' => $user->id,
+            ]);
+        }
+
+        $message = $approvalMeta['approval_level'] === 'location_admin'
+            ? 'Task dikirim ke Admin Lokasi untuk persetujuan.'
+            : ($approvalMeta['requires_approval'] ? 'Task dikirim ke Super Admin untuk persetujuan.' : 'Task created for yourself!');
+
+        return redirect()->route('tasks.index')->with('success', $message);
+    }
+
+    private function ensureCanApproveCreation(Task $task): void
+    {
+        if (!$task->requires_approval || $task->approval_status !== 'pending') {
+            abort(403, 'Tugas ini tidak membutuhkan persetujuan atau sudah diproses.');
+        }
+
+        $user = Auth::user();
+
+        if ($task->approval_level === 'super_admin') {
+            if ($user->hasRole('Super Admin')) {
+                return;
+            }
+            abort(403);
+        }
+
+        if ($task->approval_level === 'location_admin') {
+            if ($user->hasRole('Super Admin')) {
+                return;
+            }
+            if ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    public function approveCreation(Task $task)
+    {
+        $this->ensureCanApproveCreation($task);
+
+        $task->update([
+            'approval_status' => 'approved',
+            'approved_by' => Auth::id(),
+            'approved_at' => now(),
+            'approval_note' => null,
         ]);
 
-        return redirect()->route('tasks.index')->with('success', 'Task created for yourself!');
+        return back()->with('success', 'Tugas disetujui.');
+    }
+
+    public function rejectCreation(Request $request, Task $task)
+    {
+        $this->ensureCanApproveCreation($task);
+
+        $data = $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        DB::transaction(function () use ($task, $data) {
+            $task->update([
+                'approval_status' => 'rejected',
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+                'approval_note' => $data['reason'],
+            ]);
+
+            foreach ($task->slots as $slot) {
+                $before = $slot->toArray();
+                $slot->update([
+                    'status' => 'rejected',
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                    'rejection_reason' => $data['reason'],
+                ]);
+                TaskSlotHistory::create([
+                    'task_slot_id' => $slot->id,
+                    'action' => 'rejected',
+                    'data_before' => $before,
+                    'data_after' => $slot->toArray(),
+                    'actor_id' => Auth::id(),
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Tugas ditolak.');
     }
 
     public function downloadPhoto(Task $task)

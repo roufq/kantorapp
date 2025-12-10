@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
@@ -98,14 +99,18 @@ class TaskController extends Controller
             }
         }
 
-        $task = Task::create([
+        $assignee = User::findOrFail($request->assigned_to);
+        $approvalMeta = Task::determineCreationApproval($user, $assignee);
+
+        $task = Task::create(array_merge([
             'title' => $request->title,
             'description' => $request->description,
             'assigned_by' => $user->id,
             'assigned_to' => $request->assigned_to,
             'status' => 'pending',
+            'progress' => 0,
             'due_date' => $request->due_date,
-        ]);
+        ], $approvalMeta));
 
         return response()->json($task, 201);
     }
@@ -113,6 +118,10 @@ class TaskController extends Controller
     public function update(Request $request, Task $task)
     {
         $user = $request->user();
+
+        if ($task->requires_approval && $task->approval_status !== 'approved' && !$user->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Task belum disetujui. Hubungi admin untuk approval.'], 403);
+        }
 
         $isStatusOnly = $request->has('status') && !$request->hasAny(['title', 'description', 'assigned_to', 'due_date']);
 

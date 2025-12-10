@@ -377,6 +377,25 @@
             </li>
             <?php if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi'])): ?>
             <li class="nav-item">
+              <?php
+                $pendingCreationCount = \App\Models\Task::where('requires_approval', true)
+                  ->where('approval_status', 'pending')
+                  ->when(auth()->user()->hasRole('Admin Lokasi'), function ($q) {
+                      $q->where('approval_level', 'location_admin')
+                        ->whereHas('assignee', function ($qq) {
+                            $qq->where('location_id', auth()->user()->location_id);
+                        });
+                  })
+                  ->count();
+              ?>
+              <a href="<?php echo e(route('tasks.progress.approvals')); ?>" class="nav-link <?php echo e(request()->routeIs('tasks.progress.approvals') ? 'active' : ''); ?>">
+                <i class="nav-icon bi bi-shield-check"></i>
+                <p>Approval Tugas <?php if($pendingCreationCount>0): ?><span class="badge text-bg-warning ms-2"><?php echo e($pendingCreationCount); ?></span><?php endif; ?></p>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi'])): ?>
+            <li class="nav-item">
               <a href="<?php echo e(route('shifts.rosters.calendar')); ?>" class="nav-link <?php echo e(request()->routeIs('shifts.rosters.calendar') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-calendar-week"></i>
                 <p>Kalender</p>
@@ -455,21 +474,9 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="<?php echo e(route('work-recaps.create')); ?>" class="nav-link <?php echo e(request()->routeIs('work-recaps.create') ? 'active' : ''); ?>">
-                <i class="nav-icon bi bi-plus-circle"></i>
-                <p>Tambah Rekap</p>
-              </a>
-            </li>
-            <li class="nav-item">
               <a href="<?php echo e(route('work-targets.index')); ?>" class="nav-link <?php echo e(request()->routeIs('work-targets.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-bullseye"></i>
                 <p>Target Jam Kerja</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="<?php echo e(route('work-targets.create')); ?>" class="nav-link <?php echo e(request()->routeIs('work-targets.create') ? 'active' : ''); ?>">
-                <i class="nav-icon bi bi-plus-circle-dotted"></i>
-                <p>Tambah Target</p>
               </a>
             </li>
             <?php endif; ?>

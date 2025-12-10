@@ -21,26 +21,36 @@
                 <h3 class="card-title">{{ (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi')) ? 'Assign Task' : 'Create Task' }}</h3>
             </div>
             <div class="card-body">
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <div class="fw-semibold mb-1">Validasi gagal:</div>
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <form action="{{ route('tasks.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
-                        <input type="text" name="title" class="form-control" id="title" required>
+                        <input type="text" name="title" class="form-control" id="title" value="{{ old('title') }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea name="description" class="form-control" id="description" rows="3"></textarea>
+                        <textarea name="description" class="form-control" id="description" rows="3">{{ old('description') }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="duration_minutes" class="form-label">Durasi (menit)</label>
-                        <input type="number" name="duration_minutes" class="form-control" id="duration_minutes" min="1" placeholder="Misal 240 untuk 4 jam">
+                        <input type="number" name="duration_minutes" class="form-control" id="duration_minutes" min="1" placeholder="Misal 240 untuk 4 jam" value="{{ old('duration_minutes') }}">
                         <small class="text-muted">Total menit yang akan dibagi ke slot progres. Due date tetap berlaku sebagai target akhir.</small>
                     </div>
                     @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
                     <div class="mb-3">
                         <label for="assigned_to" class="form-label">Assign To</label>
                         <div class="assigned-to-dropdown position-relative">
-                            <input type="hidden" name="assigned_to" id="assigned_to" required>
+                            <input type="hidden" name="assigned_to" id="assigned_to" value="{{ old('assigned_to') }}" required>
                             <button type="button" class="form-select text-start assigned-to-toggle" data-placeholder="-- Pilih user --">-- Pilih user --</button>
                             <div class="assigned-to-panel card shadow-sm p-2 d-none" style="position:absolute; z-index:1000; width:100%; left:0; top:100%; border:1px solid #dee2e6;">
                                 <input type="text" class="form-control form-control-sm mb-2 assigned-to-filter" placeholder="Cari nama/email...">
@@ -58,7 +68,7 @@
                     @endif
                     <div class="mb-3">
                         <label for="due_date" class="form-label">Due Date</label>
-                        <input type="date" name="due_date" class="form-control" id="due_date">
+                        <input type="date" name="due_date" class="form-control" id="due_date" value="{{ old('due_date') }}">
                     </div>
                     <div class="mb-3">
                         <label for="photo" class="form-label">Photo (Optional)</label>
@@ -70,31 +80,36 @@
                     </div>
                     <p class="text-muted">Setelah dibuat, progres 0-100% diupdate lewat halaman detail tugas dengan lampiran foto/dokumen.</p>
                     <hr>
-                    <h5 class="mb-2">Slot Progres (opsional, total % harus 100%)</h5>
-                    <div id="slotList">
-                        <div class="row g-2 mb-2 slot-row">
-                            <div class="col-md-4">
-                                <label class="form-label">Nama / Tujuan</label>
-                                <input type="text" name="slots[0][name]" class="form-control" placeholder="Contoh: Desain UI">
+                    <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
+                    @php
+                        $oldSlots = old('slots', [['name' => '', 'percentage' => '', 'minutes' => '', 'order' => 0]]);
+                    @endphp
+                    <div id="slotList" data-initial-count="{{ count($oldSlots) }}">
+                        @foreach($oldSlots as $idx => $slot)
+                            <div class="row g-2 mb-2 slot-row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nama / Tujuan</label>
+                                    <input type="text" name="slots[{{ $idx }}][name]" class="form-control" placeholder="Contoh: Desain UI" required value="{{ $slot['name'] }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Persentase (%)</label>
+                                    <input type="number" name="slots[{{ $idx }}][percentage]" class="form-control" min="1" max="100" placeholder="25" required value="{{ $slot['percentage'] }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Menit</label>
+                                    <input type="number" name="slots[{{ $idx }}][minutes]" class="form-control" min="1" placeholder="60" required value="{{ $slot['minutes'] }}">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center gap-2">
+                                    <input type="number" name="slots[{{ $idx }}][order]" class="form-control" min="0" value="{{ $slot['order'] ?? $idx }}">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Persentase (%)</label>
-                                <input type="number" name="slots[0][percentage]" class="form-control" min="1" max="100" placeholder="25">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Menit</label>
-                                <input type="number" name="slots[0][minutes]" class="form-control" min="1" placeholder="60">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Urutan</label>
-                                <input type="number" name="slots[0][order]" class="form-control" min="0" value="0">
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
                     <div class="d-flex gap-2 mb-3">
                         <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtn">Tambah Slot</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtn">Hapus Semua Slot</button>
-                        <span class="small text-muted ms-2">Total persentase harus 100%, total menit ≤ durasi.</span>
+                        <span class="small text-muted ms-2">Minimal 1 slot. Total persentase harus 100%, total menit harus sama dengan durasi (jika diisi).</span>
                     </div>
 
                     <button type="submit" class="btn btn-primary">{{ (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi')) ? 'Assign Task' : 'Create Task' }}</button>
@@ -166,20 +181,20 @@
       const addBtn = document.getElementById('addSlotBtn');
       const clearBtn = document.getElementById('clearSlotsBtn');
       if (!slotList || !addBtn || !clearBtn) return;
-      let idx = 1;
+      let idx = parseInt(slotList.getAttribute('data-initial-count') || slotList.querySelectorAll('.slot-row').length || 0);
 
-      addBtn.addEventListener('click', () => {
+      const addSlotRow = () => {
         const row = document.createElement('div');
         row.className = 'row g-2 mb-2 slot-row';
         row.innerHTML = `
           <div class="col-md-4">
-            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan">
+            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan" required>
           </div>
           <div class="col-md-3">
-            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="1" max="100" placeholder="%">
+            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="1" max="100" placeholder="%" required>
           </div>
           <div class="col-md-3">
-            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit">
+            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit" required>
           </div>
           <div class="col-md-2 d-flex align-items-center gap-2">
             <input type="number" name="slots[${idx}][order]" class="form-control" min="0" value="${idx}">
@@ -188,7 +203,9 @@
         `;
         slotList.appendChild(row);
         idx++;
-      });
+      };
+
+      addBtn.addEventListener('click', addSlotRow);
 
       slotList.addEventListener('click', (e) => {
         if (e.target.classList.contains('remove-slot')) {
@@ -201,6 +218,7 @@
       clearBtn.addEventListener('click', () => {
         slotList.innerHTML = '';
         idx = 0;
+        addSlotRow();
       });
     })();
   })();

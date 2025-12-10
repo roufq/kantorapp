@@ -6,6 +6,8 @@ use App\Models\Task;
 use App\Models\TaskSlot;
 use App\Models\TaskSlotAttachment;
 use App\Models\TaskSlotHistory;
+use App\Models\LocationWorkTarget;
+use App\Models\EmployeeWorkRecap;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,13 +18,17 @@ class TaskSlotController extends Controller
     private function ensureCanManageStructure(Task $task): void
     {
         $user = Auth::user();
-        if (!$user->hasRole(['Super Admin', 'Admin Lokasi'])) {
+        if ($user->hasRole('Super Admin')) {
+            return;
+        }
+        if (!$user->hasRole('Admin Lokasi')) {
             abort(403);
         }
-        if ($user->hasRole('Admin Lokasi')) {
-            if (optional($task->assignee)->location_id !== $user->location_id) {
-                abort(403);
-            }
+        if ($task->requires_approval && $task->approval_status !== 'approved') {
+            abort(403, 'Struktur tugas belum bisa diubah karena tugas menunggu persetujuan.');
+        }
+        if (optional($task->assignee)->location_id !== $user->location_id) {
+            abort(403);
         }
     }
 
@@ -31,6 +37,9 @@ class TaskSlotController extends Controller
         $user = Auth::user();
         if ($user->hasRole('Super Admin')) {
             return;
+        }
+        if ($slot->task && $slot->task->requires_approval && $slot->task->approval_status !== 'approved') {
+            abort(403, 'Tugas ini belum disetujui.');
         }
         if ($user->hasRole('Admin Lokasi')) {
             if (optional($slot->task->assignee)->location_id !== $user->location_id) {
@@ -47,6 +56,9 @@ class TaskSlotController extends Controller
         if ($user->hasRole('Super Admin')) {
             return;
         }
+        if ($task->requires_approval && $task->approval_status !== 'approved') {
+            abort(403, 'Tugas ini belum disetujui.');
+        }
         if ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id) {
             return;
         }
@@ -56,6 +68,9 @@ class TaskSlotController extends Controller
     private function ensureCanSubmit(TaskSlot $slot): void
     {
         $user = Auth::user();
+        if ($slot->task && $slot->task->requires_approval && $slot->task->approval_status !== 'approved') {
+            abort(403, 'Tugas ini belum disetujui.');
+        }
         if ($user->id === optional($slot->task)->assigned_to) {
             return;
         }
@@ -236,38 +251,13 @@ class TaskSlotController extends Controller
     {
         $this->ensureCanApprove($slot);
 
-        $before = $slot->toArray();
-        $slot->update([
-            'status' => 'approved',
-            'approved_by' => Auth::id(),
-            'approved_at' => now(),
-            'rejection_reason' => null,
-        ]);
+        $task = $slot->task;
+        $minutes = (int) ($slot->minutes ?? 0);
 
-        TaskSlotHistory::create([
-            'task_slot_id' => $slot->id,
-            'action' => 'approved',
-            'data_before' => $before,
-            'data_after' => $slot->toArray(),
-            'actor_id' => Auth::id(),
-        ]);
+        try {
+            DB::transaction(function () use ($slot, $task, $minutes) {
+                $this->applyWorkTargetConsumption($task, $minutes);
 
-        $slot->task->recalcProgressFromSlots();
-
-        return back()->with('success', 'Slot disetujui.');
-    }
-
-    public function approveTask(Task $task)
-    {
-        $this->ensureCanApproveTask($task);
-
-        $pendingSlots = $task->slots()->where('status', 'pending')->get();
-        if ($pendingSlots->isEmpty()) {
-            return back()->with('info', 'Tidak ada slot pending untuk tugas ini.');
-        }
-
-        DB::transaction(function () use ($pendingSlots, $task) {
-            foreach ($pendingSlots as $slot) {
                 $before = $slot->toArray();
                 $slot->update([
                     'status' => 'approved',
@@ -283,10 +273,54 @@ class TaskSlotController extends Controller
                     'data_after' => $slot->toArray(),
                     'actor_id' => Auth::id(),
                 ]);
-            }
 
-            $task->recalcProgressFromSlots();
-        });
+                $slot->task->recalcProgressFromSlots();
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
+
+        return back()->with('success', 'Slot disetujui.');
+    }
+
+    public function approveTask(Task $task)
+    {
+        $this->ensureCanApproveTask($task);
+
+        $pendingSlots = $task->slots()->where('status', 'pending')->get();
+        if ($pendingSlots->isEmpty()) {
+            return back()->with('info', 'Tidak ada slot pending untuk tugas ini.');
+        }
+
+        $totalMinutes = (int) $pendingSlots->sum('minutes');
+
+        try {
+            DB::transaction(function () use ($pendingSlots, $task, $totalMinutes) {
+                $this->applyWorkTargetConsumption($task, $totalMinutes);
+
+                foreach ($pendingSlots as $slot) {
+                    $before = $slot->toArray();
+                    $slot->update([
+                        'status' => 'approved',
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now(),
+                        'rejection_reason' => null,
+                    ]);
+
+                    TaskSlotHistory::create([
+                        'task_slot_id' => $slot->id,
+                        'action' => 'approved',
+                        'data_before' => $before,
+                        'data_after' => $slot->toArray(),
+                        'actor_id' => Auth::id(),
+                    ]);
+                }
+
+                $task->recalcProgressFromSlots();
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
 
         return back()->with('success', 'Semua slot pending pada tugas ini telah disetujui.');
     }
@@ -356,5 +390,68 @@ class TaskSlotController extends Controller
         });
 
         return back()->with('success', 'Semua slot pending pada tugas ini telah ditolak.');
+    }
+
+    /**
+     * Kurangi target jam kerja (menit) karyawan saat slot disetujui.
+     * Jika tidak ada target, dilewati. Jika sisa tidak cukup, lempar ValidationException.
+     */
+    private function applyWorkTargetConsumption(Task $task, int $minutesToConsume): void
+    {
+        if ($minutesToConsume <= 0) {
+            return;
+        }
+
+        $assignee = $task->assignee;
+        if (!$assignee) {
+            return;
+        }
+
+        $employeeId = $assignee->employee_id ?? $assignee->karyawan_id;
+        $locationId = $assignee->location_id;
+        if (!$employeeId || !$locationId) {
+            return;
+        }
+
+        $year = now()->year;
+        $month = now()->month;
+
+        $target = LocationWorkTarget::where('location_id', $locationId)
+            ->where('employee_id', $employeeId)
+            ->where('year', $year)
+            ->where('month', $month)
+            ->first();
+
+        if (!$target) {
+            return;
+        }
+
+        $recap = EmployeeWorkRecap::firstOrCreate(
+            [
+                'employee_id' => $employeeId,
+                'location_id' => $locationId,
+                'year' => $year,
+                'month' => $month,
+            ],
+            [
+                'slot_minutes_approved' => 0,
+                'attendance_minutes' => 0,
+                'total_minutes' => 0,
+            ]
+        );
+
+        $currentApproved = (int) $recap->slot_minutes_approved;
+        $remaining = (int) $target->target_minutes - $currentApproved;
+
+        if ($remaining < $minutesToConsume) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'slots' => 'Sisa jatah jam kerja bulan ini tinggal ' . $remaining . ' menit, tetapi slot memerlukan ' . $minutesToConsume . ' menit. Approval dibatalkan.',
+            ]);
+        }
+
+        $recap->update([
+            'slot_minutes_approved' => $currentApproved + $minutesToConsume,
+            'total_minutes' => $currentApproved + $minutesToConsume + (int) $recap->attendance_minutes,
+        ]);
     }
 }

@@ -17,6 +17,14 @@ class TaskProgressController extends Controller
     {
         $user = Auth::user();
 
+        if ($task->requires_approval && $task->approval_status !== 'approved') {
+            return redirect()->route('tasks.show', $task)->with('error', 'Tugas ini belum disetujui, progres belum dapat diperbarui.');
+        }
+
+        if (!$task->slots()->exists()) {
+            return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
+        }
+
         // Authorization: The user must be the assignee, or an admin
         $isAssignee = $task->assigned_to === $user->id;
         $isAdmin = $user->hasRole(['Super Admin', 'Admin Lokasi']);
@@ -34,6 +42,14 @@ class TaskProgressController extends Controller
     public function store(Request $request, Task $task)
     {
         $user = Auth::user();
+
+        if ($task->requires_approval && $task->approval_status !== 'approved') {
+            return redirect()->route('tasks.show', $task)->with('error', 'Tugas ini belum disetujui, progres belum dapat diperbarui.');
+        }
+
+        if (!$task->slots()->exists()) {
+            return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
+        }
 
         // Authorization: The user must be the assignee, or an admin
         $isAssignee = $task->assigned_to === $user->id;
@@ -96,6 +112,42 @@ class TaskProgressController extends Controller
             abort(403, 'Anda tidak punya akses ke halaman persetujuan.');
         }
 
+        $search = $request->get('search');
+        $locationId = $request->get('location_id');
+        $assigneeId = $request->get('assignee_id');
+
+        $taskApprovalQuery = Task::where('requires_approval', true)
+            ->where('approval_status', 'pending')
+            ->with(['assignee.location', 'assigner']);
+
+        if ($user->hasRole('Super Admin')) {
+            // all pending creation requests
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $taskApprovalQuery->where('approval_level', 'location_admin')
+                ->whereHas('assignee', function ($q) use ($user) {
+                    $q->where('location_id', $user->location_id);
+                });
+        } else {
+            $taskApprovalQuery->whereRaw('1 = 0');
+        }
+
+        if ($search) {
+            $taskApprovalQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('assignee', function ($qq) use ($search) {
+                        $qq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+        if ($locationId) {
+            $taskApprovalQuery->whereHas('assignee', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            });
+        }
+        if ($assigneeId) {
+            $taskApprovalQuery->where('assigned_to', $assigneeId);
+        }
+
         $query = TaskProgressUpdate::where('approval_status', 'pending')->with(['task.assignee.location', 'user']);
 
         $query->where(function ($q) use ($user, $isManager) {
@@ -129,6 +181,23 @@ class TaskProgressController extends Controller
             $q->where('status', 'pending');
         });
 
+        if ($search) {
+            $taskQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('assignee', function ($qq) use ($search) {
+                        $qq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+        if ($locationId) {
+            $taskQuery->whereHas('assignee', function ($q) use ($locationId) {
+                $q->where('location_id', $locationId);
+            });
+        }
+        if ($assigneeId) {
+            $taskQuery->where('assigned_to', $assigneeId);
+        }
+
         if ($user->hasRole('Super Admin')) {
             // all tasks
         } elseif ($user->hasRole('Admin Lokasi')) {
@@ -144,7 +213,14 @@ class TaskProgressController extends Controller
         }
         $pendingTasks = $taskQuery->orderBy('due_date', 'asc')->get();
 
-        return view('tasks.progress-approvals', compact('pendingUpdates', 'pendingTasks'));
+        $pendingTaskCreations = $taskApprovalQuery->orderBy('created_at', 'asc')->get();
+
+        $locations = \App\Models\Location::orderBy('name')->get();
+        $assignees = $user->hasRole('Super Admin')
+            ? \App\Models\User::role(['Karyawan', 'Admin Lokasi'])->orderBy('name')->get()
+            : \App\Models\User::where('location_id', $user->location_id)->orderBy('name')->get();
+
+        return view('tasks.progress-approvals', compact('pendingUpdates', 'pendingTasks', 'pendingTaskCreations', 'locations', 'assignees', 'search', 'locationId', 'assigneeId'));
     }
 
     public function approve(TaskProgressUpdate $progressUpdate)

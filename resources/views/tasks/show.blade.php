@@ -20,7 +20,7 @@
 
 @section('content')
 <div class="row">
-    <div class="col-12">
+    <div class="col-lg-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                  <h4 class="card-title mb-0">{{ $task->title }}</h4>
@@ -31,6 +31,36 @@
                 <p>{{ $task->description }}</p>
                 <hr>
                 <p class="mb-1"><strong>Status:</strong> <span class="badge text-bg-{{ $task->status === 'completed' ? 'success' : ($task->status === 'in_progress' ? 'info' : 'secondary') }}">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span></p>
+                @if($task->requires_approval)
+                    <p class="mb-1"><strong>Persetujuan Tugas:</strong>
+                        @if($task->approval_status === 'approved')
+                            <span class="badge text-bg-success">Disetujui @ {{ optional($task->approved_at)->format('d M Y H:i') }}</span>
+                            @if($task->approver)
+                                <span class="text-muted small">oleh {{ $task->approver->name }}</span>
+                            @endif
+                        @elseif($task->approval_status === 'pending')
+                            <span class="badge text-bg-warning">Menunggu {{ $task->approval_level === 'location_admin' ? 'Admin Lokasi' : 'Super Admin' }}</span>
+                        @else
+                            <span class="badge text-bg-danger">Ditolak</span>
+                            @if($task->approval_note)
+                                <span class="text-danger small">Alasan: {{ $task->approval_note }}</span>
+                            @endif
+                        @endif
+                    </p>
+                @endif
+                @if($task->photo_path || $task->document_path)
+                    <div class="mt-2">
+                        <p class="mb-1"><strong>Lampiran Tugas:</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @if($task->photo_path)
+                                <a href="{{ route('tasks.download.photo', $task) }}" class="btn btn-sm btn-outline-primary">Lihat / Unduh Foto</a>
+                            @endif
+                            @if($task->document_path)
+                                <a href="{{ route('tasks.download.document', $task) }}" class="btn btn-sm btn-outline-secondary">Unduh Dokumen</a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
                 <div class="mb-3">
                     <div class="d-flex justify-content-between small">
                         <span>Progress</span>
@@ -61,13 +91,59 @@
             <div class="card-footer d-flex justify-content-end">
                 @php
                     $me = auth()->user();
+                    $hasSlots = $task->slots->count() > 0;
+                    $canUpdateProgress = $hasSlots && (!$task->requires_approval || $task->approval_status === 'approved') &&
+                        ($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id));
                 @endphp
-                @if($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id))
+                @if($canUpdateProgress)
                     <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-primary me-2">Update Progress</a>
+                @elseif(!$hasSlots)
+                    <span class="text-muted me-2">Tambah slot progres dulu sebelum update.</span>
+                @elseif($task->requires_approval)
+                    @if($task->approval_status === 'rejected')
+                        <span class="text-danger me-2">Tugas Anda ditolak: {{ $task->approval_note ?? 'Alasan tidak tersedia.' }}</span>
+                    @else
+                        <span class="text-muted me-2">Menunggu persetujuan sebelum progres bisa diupdate.</span>
+                    @endif
                 @endif
                 @can('update', $task)
                     <a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-primary">Edit Task</a>
                 @endcan
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0">Lampiran</h6>
+            </div>
+            <div class="card-body">
+                @if($task->photo_path)
+                    <div class="mb-3">
+                        <p class="fw-semibold small mb-2">Foto</p>
+                        @php
+                            $photoUrl = $task->photo_path ? asset('storage/' . ltrim($task->photo_path, '/')) : null;
+                            $exists = $task->photo_path && Storage::disk('public')->exists($task->photo_path);
+                        @endphp
+                        @if($photoUrl && $exists)
+                            <a href="{{ route('tasks.download.photo', $task) }}" target="_blank">
+                                <img src="{{ $photoUrl }}" alt="Foto Tugas" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain; background:#f8f9fa;">
+                            </a>
+                        @else
+                            <p class="text-muted small mb-0">Foto tidak ditemukan di penyimpanan.</p>
+                        @endif
+                    </div>
+                @else
+                    <p class="text-muted small mb-3">Belum ada foto.</p>
+                @endif
+                @if($task->document_path)
+                    <div>
+                        <p class="fw-semibold small mb-2">Dokumen</p>
+                        <a href="{{ route('tasks.download.document', $task) }}" class="btn btn-sm btn-outline-secondary">Unduh Dokumen</a>
+                    </div>
+                @else
+                    <p class="text-muted small mb-0">Belum ada dokumen.</p>
+                @endif
             </div>
         </div>
     </div>

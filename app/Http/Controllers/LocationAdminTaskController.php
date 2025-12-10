@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\TaskSlot;
+use App\Models\TaskSlotHistory;
 
 class LocationAdminTaskController extends Controller
 {
@@ -71,8 +73,14 @@ class LocationAdminTaskController extends Controller
             'description' => 'nullable|string',
             'assigned_to' => 'required|exists:users,id',
             'due_date' => 'nullable|date|after_or_equal:today',
+            'duration_minutes' => 'nullable|integer|min:1',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
+            'slots' => 'required|array|min:1',
+            'slots.*.name' => 'required|string|max:255',
+            'slots.*.percentage' => 'required|integer|min:1|max:100',
+            'slots.*.minutes' => 'required|integer|min:1',
+            'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
 
         // ensure assignee within location (Karyawan/Admin Lokasi)
@@ -91,17 +99,55 @@ class LocationAdminTaskController extends Controller
         $photoPath = $request->hasFile('photo') ? $request->file('photo')->store('tasks/photos', 'public') : null;
         $documentPath = $request->hasFile('document') ? $request->file('document')->store('tasks/documents', 'public') : null;
 
-        Task::create([
+        $slots = $request->input('slots', []);
+        $totalPercent = collect($slots)->sum(fn($s) => (int) ($s['percentage'] ?? 0));
+        if ($totalPercent !== 100) {
+            return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
+        }
+        $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
+        if ($request->duration_minutes && $totalMinutes !== (int) $request->duration_minutes) {
+            return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $request->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
+        }
+
+        $assignee = User::findOrFail($request->assigned_to);
+        $approvalMeta = Task::determineCreationApproval($user, $assignee);
+
+        $task = Task::create(array_merge([
             'title' => $request->title,
             'description' => $request->description,
             'assigned_by' => $user->id,
             'assigned_to' => $request->assigned_to,
+            'status' => 'pending',
+            'progress' => 0,
             'due_date' => $request->due_date,
+            'duration_minutes' => $request->duration_minutes,
             'photo_path' => $photoPath,
             'document_path' => $documentPath,
-        ]);
+        ], $approvalMeta));
 
-        return redirect()->route('location-admin-tasks.index')->with('success', 'Task created!');
+        foreach ($slots as $idx => $slot) {
+            $newSlot = TaskSlot::create([
+                'task_id' => $task->id,
+                'name' => $slot['name'],
+                'percentage' => (int) $slot['percentage'],
+                'minutes' => (int) $slot['minutes'],
+                'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
+                'created_by' => $user->id,
+                'status' => 'pending',
+            ]);
+            TaskSlotHistory::create([
+                'task_slot_id' => $newSlot->id,
+                'action' => 'created',
+                'data_after' => $newSlot->toArray(),
+                'actor_id' => $user->id,
+            ]);
+        }
+
+        $message = ($approvalMeta['requires_approval'] ?? false)
+            ? 'Task dikirim untuk persetujuan.'
+            : 'Task created!';
+
+        return redirect()->route('location-admin-tasks.index')->with('success', $message);
     }
 
     public function show(Task $task)

@@ -5,8 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\EmployeeWorkRecap;
 use App\Models\Location;
+use App\Models\LocationWorkTarget;
+use App\Models\TaskSlot;
+use App\Models\User;
+use App\Models\Attendance;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class WorkRecapController extends Controller
 {
@@ -14,31 +22,11 @@ class WorkRecapController extends Controller
     {
         $user = Auth::user();
 
-        $monthParam = $request->get('month', now()->format('Y-m'));
-        [$year, $month] = array_pad(explode('-', $monthParam), 2, null);
-        $year = (int) $year;
-        $month = (int) $month;
-
-        $query = EmployeeWorkRecap::with(['employee', 'location'])
-            ->where('year', $year)
-            ->where('month', $month);
-
-        // Role filter
-        if ($user->hasRole('Super Admin')) {
-            if ($request->filled('location_id')) {
-                $query->where('location_id', $request->location_id);
-            }
-        } elseif ($user->hasRole('Admin Lokasi')) {
-            $query->where('location_id', $user->location_id);
-        } else {
-            abort(403);
-        }
-
-        if ($request->filled('employee_id')) {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        $recaps = $query->orderBy('employee_id')->paginate(20)->withQueryString();
+        $startDate = $request->get('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', now()->endOfMonth()->toDateString());
+        $locationFilter = $request->get('location_id');
+        $employeeId = $request->get('employee_id');
+        $export = $request->boolean('export', false);
 
         $locations = $user->hasRole('Super Admin')
             ? Location::all()
@@ -46,9 +34,131 @@ class WorkRecapController extends Controller
 
         $employees = Employee::when(!$user->hasRole('Super Admin'), function ($q) use ($user) {
             $q->where('location_id', $user->location_id);
+        })->when($locationFilter, function ($q) use ($locationFilter) {
+            $q->where('location_id', $locationFilter);
         })->orderBy('nama')->get();
 
-        return view('work-recaps.index', compact('recaps', 'locations', 'employees', 'monthParam'));
+        // Summary & detail (live calc from slot approved + attendance)
+        $slotSummary = [
+            'target_minutes' => null,
+            'slot_minutes' => 0,
+            'attendance_minutes' => 0,
+            'remaining' => null,
+        ];
+        $slotDetails = collect();
+        $attendanceDetails = collect();
+        $employee = null;
+        $employeeName = null;
+
+        if ($employeeId) {
+            $employee = Employee::find($employeeId);
+            $employeeName = $employee?->nama ?? "Karyawan {$employeeId}";
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end = Carbon::parse($endDate)->endOfDay();
+
+            // user ids untuk karyawan ini
+            $userIds = User::where('employee_id', $employeeId)->pluck('id');
+            $locationScoped = $locationFilter ?? ($user->hasRole('Admin Lokasi') ? $user->location_id : null);
+            $locationScoped = $locationScoped ?: $user->location_id;
+
+            // Slot approved (berdasarkan assignee user_id)
+            $slotQuery = TaskSlot::where('status', 'approved')
+                ->whereBetween('approved_at', [$start, $end])
+                ->whereHas('task', function ($q) use ($userIds, $locationScoped, $user) {
+                    $q->whereIn('assigned_to', $userIds);
+                    if ($user->hasRole('Admin Lokasi')) {
+                        $q->whereHas('assignee', function ($sq) use ($user) {
+                            $sq->where('location_id', $user->location_id);
+                        });
+                    } elseif ($locationScoped) {
+                        $q->whereHas('assignee', function ($sq) use ($locationScoped) {
+                            $sq->where('location_id', $locationScoped);
+                        });
+                    }
+                });
+
+            $slotSummary['slot_minutes'] = (int) $slotQuery->sum('minutes');
+            $slotDetails = TaskSlot::where('status', 'approved')
+                ->whereBetween('approved_at', [$start, $end])
+                ->whereHas('task', function ($q) use ($userIds, $locationScoped, $user) {
+                    $q->whereIn('assigned_to', $userIds);
+                    if ($user->hasRole('Admin Lokasi')) {
+                        $q->whereHas('assignee', function ($sq) use ($user) {
+                            $sq->where('location_id', $user->location_id);
+                        });
+                    } elseif ($locationScoped) {
+                        $q->whereHas('assignee', function ($sq) use ($locationScoped) {
+                            $sq->where('location_id', $locationScoped);
+                        });
+                    }
+                })
+                ->with(['task'])
+                ->orderByDesc('approved_at')
+                ->limit(50)
+                ->get(['id', 'task_id', 'name', 'minutes', 'approved_at']);
+
+            // Attendance (durasi check-in/out)
+            $attendanceDetails = Attendance::with([
+                    'shift',
+                    'shiftAssignment.locationShift.location',
+                    'shiftAssignment.shift',
+                ])
+                ->whereIn('user_id', $userIds)
+                ->whereBetween('check_in_time', [$start, $end])
+                ->when($locationScoped, function ($q, $loc) {
+                    $q->where('location_id', $loc);
+                })
+                ->orderByDesc('check_in_time')
+                ->get()
+                ->map(function ($att) {
+                    $att->duration_minutes = $this->calculateAttendanceDuration($att);
+                    return $att;
+                });
+
+            $slotSummary['attendance_minutes'] = (int) $attendanceDetails->sum('duration_minutes');
+
+            // Target per bulan (pakai bulan dari start_date), prioritas target karyawan, lalu target lokasi
+            $startCarbon = Carbon::parse($startDate)->startOfMonth();
+            $year = (int) $startCarbon->year;
+            $month = (int) $startCarbon->month;
+
+            $target = LocationWorkTarget::where('year', $year)
+                ->where('month', $month)
+                ->where(function ($q) use ($employeeId, $locationScoped) {
+                    $q->where(function ($qq) use ($employeeId) {
+                        $qq->where('employee_id', $employeeId);
+                    })->orWhere(function ($qq) use ($locationScoped) {
+                        if ($locationScoped) {
+                            $qq->whereNull('employee_id')->where('location_id', $locationScoped);
+                        }
+                    });
+                })
+                ->orderByRaw('employee_id is null') // prefer specific employee
+                ->first();
+
+            $slotSummary['target_minutes'] = $target?->target_minutes;
+            if ($slotSummary['target_minutes'] !== null) {
+                // Sisa target hanya dikurangi oleh slot tugas yang disetujui (kehadiran tidak memotong target)
+                $slotSummary['remaining'] = max(0, $slotSummary['target_minutes'] - $slotSummary['slot_minutes']);
+            }
+        }
+
+        if ($export && $employeeId) {
+            return $this->exportPdf($slotSummary, $slotDetails, $attendanceDetails, $startDate, $endDate, $employeeId, $employeeName);
+        }
+
+        return view('work-recaps.index', [
+            'locations' => $locations,
+            'employees' => $employees,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'locationFilter' => $locationFilter,
+            'employeeId' => $employeeId,
+            'slotSummary' => $slotSummary,
+            'slotDetails' => $slotDetails,
+            'attendanceDetails' => $attendanceDetails,
+            'employeeName' => $employeeName,
+        ]);
     }
 
     public function create()
@@ -186,5 +296,67 @@ class WorkRecapController extends Controller
         $work_recap->delete();
 
         return redirect()->route('work-recaps.index')->with('success', 'Rekap dihapus.');
+    }
+
+    /**
+     * Hitung durasi kehadiran (menit) dengan fallback:
+     * - check-in/out langsung
+     * - jadwal shift assignment (pivot slots)
+     * - master shift duration
+     */
+    private function calculateAttendanceDuration(?Attendance $attendance): int
+    {
+        if (!$attendance) {
+            return 0;
+        }
+
+        // Standar hitung 1 hari = 8 jam (480 menit). Overtime di luar 8 jam tidak dihitung.
+        $maxDailyMinutes = 480;
+
+        if ($attendance->check_in_time && $attendance->check_out_time) {
+            return min($maxDailyMinutes, $attendance->check_in_time->diffInMinutes($attendance->check_out_time));
+        }
+
+        $baseDate = $attendance->check_in_time ?? $attendance->created_at;
+        if (!$baseDate) {
+            return 0;
+        }
+
+        // Gunakan slot dari shift assignment jika tersedia
+        if ($attendance->shiftAssignment && $attendance->shiftAssignment->locationShift) {
+            $intervals = $attendance->shiftAssignment->locationShift->slotIntervalsForDate(Carbon::parse($baseDate));
+            $duration = 0;
+            foreach ($intervals as [$start, $end]) {
+                $duration += $start->diffInMinutes($end);
+            }
+            if ($duration > 0) {
+                return min($maxDailyMinutes, $duration);
+            }
+        }
+
+        // Fallback ke durasi master shift
+        if ($attendance->shift) {
+            return min($maxDailyMinutes, (int) $attendance->shift->getDurationInMinutes());
+        }
+
+        // Jika tidak ada checkout maupun jadwal, asumsikan 1 hari kerja penuh (8 jam)
+        return $maxDailyMinutes;
+    }
+
+    private function exportPdf(array $slotSummary, $slotDetails, $attendanceDetails, string $startDate, string $endDate, $employeeId, ?string $employeeName = null)
+    {
+        $safeName = $employeeName ? Str::slug($employeeName, '-') : $employeeId;
+        $pdf = Pdf::loadView('work-recaps.pdf', [
+            'slotSummary' => $slotSummary,
+            'slotDetails' => $slotDetails,
+            'attendanceDetails' => $attendanceDetails,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'employeeId' => $employeeId,
+            'employeeName' => $employeeName,
+        ])->setPaper('A4', 'landscape');
+
+        $filename = "rekap-jam-kerja-{$safeName}-{$startDate}-{$endDate}.pdf";
+        return $pdf->download($filename);
     }
 }

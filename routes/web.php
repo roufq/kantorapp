@@ -173,6 +173,8 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::post('/tasks', [TaskController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.store');
     Route::get('/tasks/create-self', [TaskController::class, 'createSelf'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.create.self');
     Route::post('/tasks/store-self', [TaskController::class, 'storeSelf'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.store.self');
+    Route::post('/tasks/{task}/approve-creation', [TaskController::class, 'approveCreation'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.approvals.approve');
+    Route::post('/tasks/{task}/reject-creation', [TaskController::class, 'rejectCreation'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.approvals.reject');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.show');
     Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.edit');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.update');
