@@ -78,7 +78,7 @@ class LocationAdminTaskController extends Controller
             'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             'slots' => 'required|array|min:1',
             'slots.*.name' => 'required|string|max:255',
-            'slots.*.percentage' => 'required|integer|min:1|max:100',
+            'slots.*.percentage' => 'required|numeric|min:0.01|max:100',
             'slots.*.minutes' => 'required|integer|min:1',
             'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
@@ -100,8 +100,12 @@ class LocationAdminTaskController extends Controller
         $documentPath = $request->hasFile('document') ? $request->file('document')->store('tasks/documents', 'public') : null;
 
         $slots = $request->input('slots', []);
-        $totalPercent = collect($slots)->sum(fn($s) => (int) ($s['percentage'] ?? 0));
-        if ($totalPercent !== 100) {
+        $totalPercent = collect($slots)->sum(fn($s) => (float) ($s['percentage'] ?? 0));
+        $totalPercent = round($totalPercent, 2);
+        if (abs($totalPercent - 100) <= 0.05) {
+            $totalPercent = 100.0;
+        }
+        if (abs($totalPercent - 100) > 0.01) {
             return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
         }
         $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
@@ -129,7 +133,7 @@ class LocationAdminTaskController extends Controller
             $newSlot = TaskSlot::create([
                 'task_id' => $task->id,
                 'name' => $slot['name'],
-                'percentage' => (int) $slot['percentage'],
+                'percentage' => round((float) $slot['percentage'], 2),
                 'minutes' => (int) $slot['minutes'],
                 'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                 'created_by' => $user->id,

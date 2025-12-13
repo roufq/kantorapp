@@ -79,39 +79,43 @@
     </form>
   </div>
 </div>
-<div class="row">
+<div class="row g-4">
     @foreach($tasks as $task)
         <div class="col-md-4">
-            <div class="card">
+            <div class="card h-100">
+                @php
+                    $me = auth()->user();
+                    $needsApproval = ($me->hasAnyRole(['Super Admin','Admin Lokasi']) && ($task->pending_slots_count ?? 0) > 0);
+                    $requiresCreationApproval = $task->requires_approval ?? false;
+                    $creationApproved = !$requiresCreationApproval || $task->approval_status === 'approved';
+                    $approvalLabel = null;
+                    if ($requiresCreationApproval) {
+                        if ($task->approval_status === 'pending') {
+                            $approvalLabel = 'Menunggu persetujuan ' . ($task->approval_level === 'location_admin' ? 'Admin Lokasi' : 'Super Admin');
+                        } elseif ($task->approval_status === 'rejected') {
+                            $approvalLabel = 'Ditolak' . ($task->approval_note ? ': ' . $task->approval_note : '');
+                        }
+                    }
+                    $canUpdateProgress = $creationApproved && (
+                        $me->hasRole('Super Admin') ||
+                        $task->assigned_to === $me->id ||
+                        ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id)
+                    );
+                @endphp
                 <div class="card-header">
-                    <h5 class="card-title"><a href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a></h5>
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h5 class="card-title mb-0"><a href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a></h5>
+                        <div class="d-flex flex-column align-items-end gap-1">
+                            @if($needsApproval)
+                                <span class="badge text-bg-warning">Butuh approval ({{ $task->pending_slots_count }})</span>
+                            @endif
+                            @if($approvalLabel)
+                                <span class="badge text-bg-{{ $task->approval_status === 'rejected' ? 'danger' : 'warning' }}">{{ $approvalLabel }}</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    @php
-                        $me = auth()->user();
-                        $needsApproval = ($me->hasAnyRole(['Super Admin','Admin Lokasi']) && ($task->pending_slots_count ?? 0) > 0);
-                        $requiresCreationApproval = $task->requires_approval ?? false;
-                        $creationApproved = !$requiresCreationApproval || $task->approval_status === 'approved';
-                        $approvalLabel = null;
-                        if ($requiresCreationApproval) {
-                            if ($task->approval_status === 'pending') {
-                                $approvalLabel = 'Menunggu persetujuan ' . ($task->approval_level === 'location_admin' ? 'Admin Lokasi' : 'Super Admin');
-                            } elseif ($task->approval_status === 'rejected') {
-                                $approvalLabel = 'Ditolak' . ($task->approval_note ? ': ' . $task->approval_note : '');
-                            }
-                        }
-                        $canUpdateProgress = $creationApproved && (
-                            $me->hasRole('Super Admin') ||
-                            $task->assigned_to === $me->id ||
-                            ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id)
-                        );
-                    @endphp
-                    @if($needsApproval)
-                        <span class="badge text-bg-warning mb-2">Butuh approval ({{ $task->pending_slots_count }})</span>
-                    @endif
-                    @if($approvalLabel)
-                        <span class="badge text-bg-{{ $task->approval_status === 'rejected' ? 'danger' : 'warning' }} mb-2">{{ $approvalLabel }}</span>
-                    @endif
                     <p>{{ $task->description }}</p>
                     <p class="mb-1"><strong>Status:</strong> {{ ucfirst($task->status) }}</p>
                     <div class="mb-2">

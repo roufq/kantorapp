@@ -76,8 +76,9 @@ class Task extends Model
         return $this->requires_approval && $this->approval_status === 'pending';
     }
 
-    public function applyProgress(int $progress): void
+    public function applyProgress($progress): void
     {
+        $progress = (int) round($progress);
         $this->progress = max(0, min(100, $progress));
         $this->status = $this->progress >= 100 ? 'completed' : ($this->progress > 0 ? 'in_progress' : 'pending');
         $this->save();
@@ -85,7 +86,7 @@ class Task extends Model
 
     public function recalcProgressFromSlots(): void
     {
-        $approvedPercent = (int) $this->slots()->where('status', 'approved')->sum('percentage');
+        $approvedPercent = (float) $this->slots()->where('status', 'approved')->sum('percentage');
         $this->applyProgress($approvedPercent);
     }
 

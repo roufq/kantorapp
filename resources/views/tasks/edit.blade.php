@@ -99,50 +99,51 @@
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
-                    <hr>
-                    <h5 class="mb-2">Slot Progres (opsional, total % harus 100%)</h5>
-                    <div id="slotListEdit">
-                        @php $slots = old('slots', $task->slots->toArray()); @endphp
-                        @forelse($slots as $i => $slot)
-                        <div class="row g-2 mb-2 slot-row">
-                            <div class="col-md-4">
-                                <input type="text" name="slots[{{ $i }}][name]" class="form-control" value="{{ $slot['name'] ?? '' }}" placeholder="Nama / Tujuan">
-                            </div>
+                    <hr>
+                    <h5 class="mb-2">Slot Progres (opsional, total % harus 100%)</h5>
+                    @php $slots = old('slots', $task->slots->toArray()); @endphp
+                    <div id="slotListEdit" data-initial-count="{{ count($slots) }}">
+                        @forelse($slots as $i => $slot)
+                        <div class="row g-2 mb-2 slot-row">
+                            <div class="col-md-4">
+                                <input type="text" name="slots[{{ $i }}][name]" class="form-control" value="{{ $slot['name'] ?? '' }}" placeholder="Nama / Tujuan">
+                            </div>
                             <div class="col-md-3">
-                                <input type="number" name="slots[{{ $i }}][percentage]" class="form-control" min="1" max="100" value="{{ $slot['percentage'] ?? '' }}" placeholder="%">
+                                <input type="number" name="slots[{{ $i }}][percentage]" class="form-control" min="0.01" max="100" step="0.01" value="{{ $slot['percentage'] ?? '' }}" placeholder="%">
                             </div>
-                            <div class="col-md-3">
-                                <input type="number" name="slots[{{ $i }}][minutes]" class="form-control" min="1" value="{{ $slot['minutes'] ?? '' }}" placeholder="Menit">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-center gap-2">
-                                <input type="number" name="slots[{{ $i }}][order]" class="form-control" min="0" value="{{ $slot['order'] ?? $i }}">
-                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="row g-2 mb-2 slot-row">
-                            <div class="col-md-4">
-                                <input type="text" name="slots[0][name]" class="form-control" placeholder="Nama / Tujuan">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" name="slots[0][percentage]" class="form-control" min="1" max="100" placeholder="%">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" name="slots[0][minutes]" class="form-control" min="1" placeholder="Menit">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-center gap-2">
-                                <input type="number" name="slots[0][order]" class="form-control" min="0" value="0">
-                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
-                            </div>
-                        </div>
-                        @endforelse
-                    </div>
-                    <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnEdit">Tambah Slot</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnEdit">Hapus Semua Slot</button>
-                        <span class="small text-muted ms-2">Total persentase harus 100%, total menit ≤ durasi.</span>
-                    </div>
-
+                            <div class="col-md-3">
+                                <input type="number" name="slots[{{ $i }}][minutes]" class="form-control" min="1" value="{{ $slot['minutes'] ?? '' }}" placeholder="Menit">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-center gap-2">
+                                <input type="number" name="slots[{{ $i }}][order]" class="form-control" min="0" value="{{ $slot['order'] ?? $i }}">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="row g-2 mb-2 slot-row">
+                            <div class="col-md-4">
+                                <input type="text" name="slots[0][name]" class="form-control" placeholder="Nama / Tujuan">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[0][percentage]" class="form-control" min="1" max="100" placeholder="%">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="slots[0][minutes]" class="form-control" min="1" placeholder="Menit">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-center gap-2">
+                                <input type="number" name="slots[0][order]" class="form-control" min="0" value="0">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+                            </div>
+                        </div>
+                        @endforelse
+                    </div>
+                    <div id="slotSummaryEdit" class="small text-muted mb-2"></div>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnEdit">Tambah Slot</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnEdit">Hapus Semua Slot</button>
+                        <span class="small text-muted ms-2">Total persentase harus 100%, total menit harus sama dengan durasi (jika diisi).</span>
+                    </div>
+
                     <p class="text-muted">Progres dihitung dari slot yang disetujui. Unggah bukti per slot di halaman detail.</p>
                     <button type="submit" class="btn btn-primary">Update Task</button>
                     <a href="{{ route('tasks.index') }}" class="btn btn-secondary">Cancel</a>
@@ -207,47 +208,159 @@
       });
     });
 
-    // Slot repeater for edit
-    const slotList = document.getElementById('slotListEdit');
-    const addBtn = document.getElementById('addSlotBtnEdit');
-    const clearBtn = document.getElementById('clearSlotsBtnEdit');
-    if (slotList && addBtn && clearBtn) {
-      let idx = slotList.querySelectorAll('.slot-row').length;
-      addBtn.addEventListener('click', () => {
+    const initSlotProgress = ({ slotListId, addBtnId, clearBtnId, summaryId, durationInputId = 'duration_minutes' }) => {
+      const slotList = document.getElementById(slotListId);
+      const addBtn = document.getElementById(addBtnId);
+      const clearBtn = document.getElementById(clearBtnId);
+      const durationInput = document.getElementById(durationInputId);
+      const slotSummary = document.getElementById(summaryId);
+      if (!slotList || !addBtn || !clearBtn) return;
+      let idx = parseInt(slotList.getAttribute('data-initial-count') || slotList.querySelectorAll('.slot-row').length || 0);
+      let isSyncing = false;
+
+      const getDuration = () => {
+        const val = parseFloat(durationInput?.value);
+        return isNaN(val) || val <= 0 ? null : val;
+      };
+
+      const formatPct = (val, decimals = 2) => {
+        if (!isFinite(val)) return '';
+        const factor = Math.pow(10, decimals);
+        const rounded = Math.round(val * factor) / factor;
+        return Math.abs(rounded) < 0.01 ? 0 : rounded;
+      };
+
+      const updateSummary = () => {
+        if (!slotSummary) return;
+        let totalPct = 0;
+        let totalMinutes = 0;
+        slotList.querySelectorAll('.slot-row').forEach((row) => {
+          const pct = parseFloat(row.querySelector('input[name$=\"[percentage]\"]')?.value);
+          const min = parseFloat(row.querySelector('input[name$=\"[minutes]\"]')?.value);
+          if (!isNaN(pct)) totalPct += pct;
+          if (!isNaN(min)) totalMinutes += min;
+        });
+        totalPct = parseFloat(totalPct.toFixed(2));
+        const durationVal = getDuration();
+        let remainingPct = 100 - totalPct;
+        if (Math.abs(remainingPct) < 0.01) remainingPct = 0;
+        let remainingMin = durationVal !== null ? durationVal - totalMinutes : null;
+        if (remainingMin !== null && Math.abs(remainingMin) < 0.01) remainingMin = 0;
+        slotSummary.textContent = [
+          `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (sisa ${formatPct(remainingPct)})` : ''),
+          durationVal !== null
+            ? `Total menit: ${totalMinutes} / ${durationVal}` + (remainingMin !== null ? ` (sisa ${remainingMin})` : '')
+            : `Total menit: ${totalMinutes}`
+        ].join(' | ');
+      };
+
+      const syncRow = (row, from) => {
+        if (isSyncing) return;
+        const pctInput = row.querySelector('input[name$=\"[percentage]\"]');
+        const minInput = row.querySelector('input[name$=\"[minutes]\"]');
+        if (!pctInput || !minInput) return;
+        const durationVal = getDuration();
+        isSyncing = true;
+        if (from === 'percentage') {
+          const pct = parseFloat(pctInput.value);
+          if (durationVal && !isNaN(pct)) {
+            const minutes = Math.round((pct / 100) * durationVal);
+            minInput.value = minutes || '';
+          } else if (!durationVal) {
+            minInput.value = '';
+          }
+          row.dataset.lastSource = 'percentage';
+        } else if (from === 'minutes') {
+          const mins = parseFloat(minInput.value);
+          if (durationVal && !isNaN(mins)) {
+            const pct = (mins / durationVal) * 100;
+            pctInput.value = formatPct(pct) || '';
+          } else if (!durationVal) {
+            pctInput.value = '';
+          }
+          row.dataset.lastSource = 'minutes';
+        } else if (from === 'duration-change') {
+          const pctVal = parseFloat(pctInput.value);
+          const minVal = parseFloat(minInput.value);
+          if (durationVal && !isNaN(pctVal)) {
+            const minutes = Math.round((pctVal / 100) * durationVal);
+            minInput.value = minutes || '';
+          } else if (durationVal && isNaN(pctVal) && !isNaN(minVal)) {
+            const pct = (minVal / durationVal) * 100;
+            pctInput.value = formatPct(pct) || '';
+          }
+        }
+        isSyncing = false;
+        updateSummary();
+      };
+
+      const attachSlotSync = (row) => {
+        const pctInput = row.querySelector('input[name$=\"[percentage]\"]');
+        const minInput = row.querySelector('input[name$=\"[minutes]\"]');
+        if (!pctInput || !minInput) return;
+        pctInput.addEventListener('input', () => syncRow(row, 'percentage'));
+        minInput.addEventListener('input', () => syncRow(row, 'minutes'));
+      };
+
+      slotList.querySelectorAll('.slot-row').forEach((row) => attachSlotSync(row));
+
+      if (durationInput) {
+        durationInput.addEventListener('input', () => {
+          slotList.querySelectorAll('.slot-row').forEach((row) => syncRow(row, 'duration-change'));
+          updateSummary();
+        });
+      }
+
+      const addSlotRow = () => {
         const row = document.createElement('div');
         row.className = 'row g-2 mb-2 slot-row';
         row.innerHTML = `
-          <div class="col-md-4">
-            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan">
+          <div class=\"col-md-4\">
+            <input type=\"text\" name=\"slots[${idx}][name]\" class=\"form-control\" placeholder=\"Nama / Tujuan\">
           </div>
-          <div class="col-md-3">
-            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="1" max="100" placeholder="%">
+          <div class=\"col-md-3\">
+            <input type=\"number\" name=\"slots[${idx}][percentage]\" class=\"form-control\" min=\"0.01\" max=\"100\" step=\"0.01\" placeholder=\"%\">
           </div>
-          <div class="col-md-3">
-            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit">
+          <div class=\"col-md-3\">
+            <input type=\"number\" name=\"slots[${idx}][minutes]\" class=\"form-control\" min=\"1\" placeholder=\"Menit\">
           </div>
-          <div class="col-md-2 d-flex align-items-center gap-2">
-            <input type="number" name="slots[${idx}][order]" class="form-control" min="0" value="${idx}">
-            <button type="button" class="btn btn-sm btn-outline-danger remove-slot">X</button>
+          <div class=\"col-md-2 d-flex align-items-center gap-2\">
+            <input type=\"number\" name=\"slots[${idx}][order]\" class=\"form-control\" min=\"0\" value=\"${idx}\">
+            <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-slot\">X</button>
           </div>
         `;
         slotList.appendChild(row);
+        attachSlotSync(row);
+        updateSummary();
         idx++;
-      });
+      };
+
+      addBtn.addEventListener('click', addSlotRow);
 
       slotList.addEventListener('click', (e) => {
         if (e.target.classList.contains('remove-slot')) {
           e.preventDefault();
           const row = e.target.closest('.slot-row');
           if (row) row.remove();
+          updateSummary();
         }
       });
 
       clearBtn.addEventListener('click', () => {
         slotList.innerHTML = '';
         idx = 0;
+        updateSummary();
       });
-    }
+
+      updateSummary();
+    };
+
+    initSlotProgress({
+      slotListId: 'slotListEdit',
+      addBtnId: 'addSlotBtnEdit',
+      clearBtnId: 'clearSlotsBtnEdit',
+      summaryId: 'slotSummaryEdit'
+    });
   })();
 </script>
 @endsection

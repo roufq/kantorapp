@@ -23,7 +23,7 @@ class TaskSlot extends Model
     ];
 
     protected $casts = [
-        'percentage' => 'integer',
+        'percentage' => 'decimal:2',
         'minutes' => 'integer',
         'order' => 'integer',
         'approved_at' => 'datetime',

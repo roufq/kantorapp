@@ -86,13 +86,13 @@ class TaskSlotController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'percentage' => 'required|integer|min:1|max:100',
+            'percentage' => 'required|numeric|min:0.01|max:100',
             'minutes' => 'required|integer|min:1',
             'order' => 'nullable|integer|min:0|max:255',
         ]);
 
-        $totalPercent = $task->slots()->sum('percentage') + $data['percentage'];
-        if ($totalPercent > 100) {
+        $totalPercent = (float) $task->slots()->sum('percentage') + (float) $data['percentage'];
+        if ($totalPercent > 100.01) {
             return back()->withErrors(['percentage' => 'Total persentase slot melebihi 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
         }
 
@@ -103,7 +103,7 @@ class TaskSlotController extends Controller
 
         $slot = $task->slots()->create([
             'name' => $data['name'],
-            'percentage' => $data['percentage'],
+            'percentage' => round((float) $data['percentage'], 2),
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
             'created_by' => Auth::id(),
@@ -128,13 +128,13 @@ class TaskSlotController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'percentage' => 'required|integer|min:1|max:100',
+            'percentage' => 'required|numeric|min:0.01|max:100',
             'minutes' => 'required|integer|min:1',
             'order' => 'nullable|integer|min:0|max:255',
         ]);
 
-        $totalPercent = $task->slots()->where('id', '!=', $slot->id)->sum('percentage') + $data['percentage'];
-        if ($totalPercent > 100) {
+        $totalPercent = (float) $task->slots()->where('id', '!=', $slot->id)->sum('percentage') + (float) $data['percentage'];
+        if ($totalPercent > 100.01) {
             return back()->withErrors(['percentage' => 'Total persentase slot melebihi 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
         }
 
@@ -146,7 +146,7 @@ class TaskSlotController extends Controller
         $before = $slot->toArray();
         $slot->update([
             'name' => $data['name'],
-            'percentage' => $data['percentage'],
+            'percentage' => round((float) $data['percentage'], 2),
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
             'status' => 'pending',
