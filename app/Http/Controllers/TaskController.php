@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\TaskSlot;
 use App\Models\TaskSlotHistory;
+use App\Notifications\TaskApprovalNotification;
 use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
@@ -76,7 +77,9 @@ class TaskController extends Controller
 
         $query->withCount([
             'slots as pending_slots_count' => function ($q) {
-                $q->where('status', 'pending');
+                $q->where('status', 'pending')->whereHas('attachments', function ($aq) {
+                    $aq->where('type', 'link');
+                });
             },
         ]);
 
@@ -126,8 +129,6 @@ class TaskController extends Controller
                 'assigned_to' => 'required|exists:users,id',
                 'due_date' => 'nullable|date|after_or_equal:today',
                 'duration_minutes' => 'nullable|integer|min:1',
-                'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
                 'slots' => 'required|array|min:1',
                 'slots.*.name' => 'required|string|max:255',
                 'slots.*.percentage' => 'required|numeric|min:0.01|max:100',
@@ -166,17 +167,6 @@ class TaskController extends Controller
 
             $approvalMeta = Task::determineCreationApproval($user, $assignee);
 
-            $photoPath = null;
-            $documentPath = null;
-
-            if ($request->hasFile('photo')) {
-                $photoPath = $request->file('photo')->store('tasks/photos', 'public');
-            }
-
-            if ($request->hasFile('document')) {
-                $documentPath = $request->file('document')->store('tasks/documents', 'public');
-            }
-
             $task = Task::create(array_merge([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -186,8 +176,6 @@ class TaskController extends Controller
                 'progress' => 0,
                 'due_date' => $request->due_date,
                 'duration_minutes' => $request->duration_minutes,
-                'photo_path' => $photoPath,
-                'document_path' => $documentPath,
             ], $approvalMeta));
 
             // Tambahkan slot awal jika diisi
@@ -212,7 +200,7 @@ class TaskController extends Controller
                     'minutes' => (int) $slot['minutes'],
                     'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                     'created_by' => $user->id,
-                    'status' => 'pending',
+                    'status' => 'draft',
                 ]);
                 TaskSlotHistory::create([
                     'task_slot_id' => $newSlot->id,
@@ -264,6 +252,7 @@ class TaskController extends Controller
     public function edit(Task $task)
     {
         $user = Auth::user();
+        $canSelfEditRejected = $task->assigned_to === $user->id && $task->approval_status === 'rejected';
 
         if ($user->hasRole('Super Admin')) {
             $users = User::whereHas('roles', function ($q) {
@@ -272,7 +261,7 @@ class TaskController extends Controller
             if (!$users->contains('id', $user->id)) {
                 $users->push($user);
             }
-            return view('tasks.edit', compact('task', 'users'));
+            return view('tasks.edit', compact('task', 'users', 'canSelfEditRejected'));
         } elseif ($user->hasRole('Admin Lokasi')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
@@ -285,24 +274,137 @@ class TaskController extends Controller
                 if (!$users->contains('id', $user->id)) {
                     $users->push($user);
                 }
-                return view('tasks.edit', compact('task', 'users'));
+                return view('tasks.edit', compact('task', 'users', 'canSelfEditRejected'));
             }
             abort(403, 'Not authorized to edit this task');
         } else {
-            // Employees tidak mengubah detail; gunakan form progres
             if ($task->assigned_to !== $user->id) {
                 abort(403, 'You can only edit your own tasks');
             }
-            return redirect()->route('tasks.show', $task)->with('info', 'Gunakan form update progres di halaman detail tugas.');
+            if (!$canSelfEditRejected) {
+                return redirect()->route('tasks.show', $task)->with('info', 'Gunakan form update progres di halaman detail tugas.');
+            }
+            // Karyawan boleh mengedit jika tugasnya ditolak, untuk perbaikan
+            $users = collect([$user]);
+            return view('tasks.edit', compact('task', 'users', 'canSelfEditRejected'));
         }
     }
 
     public function update(Request $request, Task $task)
     {
         $user = Auth::user();
+        $isSelfRejected = $task->assigned_to === $user->id && $task->approval_status === 'rejected';
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi')) {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi') && !$isSelfRejected) {
             abort(403, 'Perubahan detail tugas hanya oleh admin.');
+        }
+
+        // Jalur khusus karyawan memperbaiki tugas yang ditolak
+        if ($isSelfRejected && !$user->hasAnyRole(['Super Admin', 'Admin Lokasi'])) {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'due_date' => 'nullable|date|after_or_equal:today',
+                'duration_minutes' => 'nullable|integer|min:1',
+                'slots' => 'required|array|min:1',
+                'slots.*.name' => 'required|string|max:255',
+                'slots.*.percentage' => 'required|numeric|min:0.01|max:100',
+                'slots.*.minutes' => 'required|integer|min:1',
+                'slots.*.order' => 'nullable|integer|min:0|max:255',
+            ]);
+
+            $slotsInput = array_values($request->input('slots', []));
+            $totalPercent = collect($slotsInput)->sum(fn($s) => (float) ($s['percentage'] ?? 0));
+            $totalPercent = round($totalPercent, 2);
+            if (abs($totalPercent - 100) <= 0.05) {
+                $totalPercent = 100.0;
+            }
+            if (abs($totalPercent - 100) > 0.01) {
+                return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
+            }
+            $totalMinutes = collect($slotsInput)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
+            if ($request->duration_minutes && $totalMinutes !== (int) $request->duration_minutes) {
+                return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $request->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
+            }
+
+            DB::transaction(function () use ($request, $task, $slotsInput, $user) {
+                $task->update([
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'due_date' => $request->due_date,
+                    'duration_minutes' => $request->duration_minutes,
+                    'approval_status' => 'pending',
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    // approval_note tetap berisi alasan penolakan terakhir sebagai referensi
+                ]);
+
+                $existingSlots = $task->slots()->orderBy('order')->get()->values();
+                $usedSlotIds = [];
+
+                foreach ($slotsInput as $idx => $slot) {
+                    $slotModel = $existingSlots[$idx] ?? null;
+                    if ($slotModel) {
+                        $before = $slotModel->toArray();
+                        $slotModel->update([
+                            'name' => $slot['name'],
+                            'percentage' => round((float) $slot['percentage'], 2),
+                            'minutes' => (int) $slot['minutes'],
+                            'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
+                            'status' => 'pending',
+                            'approved_by' => null,
+                            'approved_at' => null,
+                            'rejection_reason' => null,
+                        ]);
+                        TaskSlotHistory::create([
+                            'task_slot_id' => $slotModel->id,
+                            'action' => 'updated',
+                            'data_before' => $before,
+                            'data_after' => $slotModel->toArray(),
+                            'actor_id' => $user->id,
+                        ]);
+                        $usedSlotIds[] = $slotModel->id;
+                    } else {
+                        $newSlot = TaskSlot::create([
+                            'task_id' => $task->id,
+                            'name' => $slot['name'],
+                            'percentage' => round((float) $slot['percentage'], 2),
+                            'minutes' => (int) $slot['minutes'],
+                            'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
+                            'created_by' => $user->id,
+                            'status' => 'pending',
+                        ]);
+                        TaskSlotHistory::create([
+                            'task_slot_id' => $newSlot->id,
+                            'action' => 'created',
+                            'data_after' => $newSlot->toArray(),
+                            'actor_id' => $user->id,
+                        ]);
+                        $usedSlotIds[] = $newSlot->id;
+                    }
+                }
+
+                // Hapus slot yang tidak dipakai lagi (dengan history)
+                foreach ($existingSlots as $slotModel) {
+                    if (in_array($slotModel->id, $usedSlotIds, true)) {
+                        continue;
+                    }
+                    $before = $slotModel->toArray();
+                    $slotModel->delete();
+                    TaskSlotHistory::create([
+                        'task_slot_id' => $slotModel->id,
+                        'action' => 'deleted',
+                        'data_before' => $before,
+                        'actor_id' => $user->id,
+                    ]);
+                }
+
+                $task->recalcProgressFromSlots();
+            });
+
+            $task->applyProgress((int) $task->progress);
+
+            return redirect()->route('tasks.show', $task)->with('success', 'Tugas direvisi dan dikirim ulang untuk persetujuan.');
         }
 
         // Super Admin/Admin Lokasi can update task metadata (progress via progress updates)
@@ -312,8 +414,6 @@ class TaskController extends Controller
             'assigned_to' => 'required|exists:users,id',
             'due_date' => 'nullable|date|after_or_equal:today',
             'duration_minutes' => 'nullable|integer|min:1',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             'slots' => 'nullable|array',
             'slots.*.name' => 'required_with:slots|string|max:255',
             'slots.*.percentage' => 'required_with:slots|numeric|min:0.01|max:100',
@@ -351,34 +451,13 @@ class TaskController extends Controller
             }
         }
 
-        $photoPath = $task->photo_path;
-        $documentPath = $task->document_path;
-
-        if ($request->hasFile('photo')) {
-            // Delete old photo if exists
-            if ($photoPath) {
-                Storage::disk('public')->delete($photoPath);
-            }
-            $photoPath = $request->file('photo')->store('tasks/photos', 'public');
-        }
-
-        if ($request->hasFile('document')) {
-            // Delete old document if exists
-            if ($documentPath) {
-                Storage::disk('public')->delete($documentPath);
-            }
-            $documentPath = $request->file('document')->store('tasks/documents', 'public');
-        }
-
-        DB::transaction(function () use ($request, $task, $photoPath, $documentPath, $user) {
+        DB::transaction(function () use ($request, $task, $user) {
             $task->update([
                 'title' => $request->title,
                 'description' => $request->description,
                 'assigned_to' => $request->assigned_to,
                 'due_date' => $request->due_date,
                 'duration_minutes' => $request->duration_minutes,
-                'photo_path' => $photoPath,
-                'document_path' => $documentPath,
             ]);
 
             $slots = $request->input('slots', []);
@@ -517,8 +596,6 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date|after_or_equal:today',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             'duration_minutes' => 'nullable|integer|min:1',
             'slots' => 'required|array|min:1',
             'slots.*.name' => 'required|string|max:255',
@@ -526,17 +603,6 @@ class TaskController extends Controller
             'slots.*.minutes' => 'required|integer|min:1',
             'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
-
-        $photoPath = null;
-        $documentPath = null;
-
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('tasks/photos', 'public');
-        }
-
-        if ($request->hasFile('document')) {
-            $documentPath = $request->file('document')->store('tasks/documents', 'public');
-        }
 
         $approvalMeta = Task::determineCreationApproval($user, $user);
 
@@ -563,8 +629,6 @@ class TaskController extends Controller
             'progress' => 0,
             'due_date' => $request->due_date,
             'duration_minutes' => $request->duration_minutes,
-            'photo_path' => $photoPath,
-            'document_path' => $documentPath,
         ], $approvalMeta));
 
         foreach ($slots as $idx => $slot) {
@@ -575,7 +639,7 @@ class TaskController extends Controller
                 'minutes' => (int) $slot['minutes'],
                 'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                 'created_by' => $user->id,
-                'status' => 'pending',
+                'status' => 'draft',
             ]);
             TaskSlotHistory::create([
                 'task_slot_id' => $newSlot->id,
@@ -630,6 +694,10 @@ class TaskController extends Controller
             'approval_note' => null,
         ]);
 
+        if ($task->assignee) {
+            $task->assignee->notify(new TaskApprovalNotification($task, 'approved'));
+        }
+
         return back()->with('success', 'Tugas disetujui.');
     }
 
@@ -666,6 +734,10 @@ class TaskController extends Controller
                 ]);
             }
         });
+
+        if ($task->assignee) {
+            $task->assignee->notify(new TaskApprovalNotification($task, 'rejected'));
+        }
 
         return back()->with('success', 'Tugas ditolak.');
     }

@@ -134,6 +134,7 @@
                 <div class="card-footer">
                     @php
                         $me = auth()->user();
+                        $isOwnRejected = $task->assigned_to === $me->id && $task->approval_status === 'rejected';
                     @endphp
                     @if($canUpdateProgress)
                         <div class="mt-2">
@@ -148,6 +149,12 @@
                     @elseif($requiresCreationApproval)
                         @if($task->approval_status === 'rejected')
                             <div class="mt-2 text-danger small">Tugas Anda ditolak: {{ $task->approval_note ?? 'Alasan tidak tersedia.' }}</div>
+                            @if($isOwnRejected)
+                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                    <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-outline-primary">Perbaiki &amp; ajukan ulang</a>
+                                    <a href="{{ route('tasks.show', $task) }}" class="btn btn-sm btn-outline-secondary">Lihat detail</a>
+                                </div>
+                            @endif
                         @else
                             <div class="mt-2 text-muted small">Menunggu persetujuan sebelum progres bisa diupdate.</div>
                         @endif

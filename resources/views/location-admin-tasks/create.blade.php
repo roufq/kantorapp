@@ -27,7 +27,7 @@
             </ul>
           </div>
         @endif
-        <form action="{{ route('location-admin-tasks.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('location-admin-tasks.store') }}" method="POST">
           @csrf
           <div class="mb-3">
             <label for="title" class="form-label">Title</label>
@@ -59,16 +59,7 @@
             <input type="date" name="due_date" id="due_date" class="form-control" value="{{ old('due_date') }}">
             @error('due_date')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
-          <div class="mb-3">
-            <label for="photo" class="form-label">Photo (Optional)</label>
-            <input type="file" name="photo" id="photo" class="form-control" accept="image/*">
-            @error('photo')<div class="text-danger">{{ $message }}</div>@enderror
-          </div>
-          <div class="mb-3">
-            <label for="document" class="form-label">Document (Optional)</label>
-            <input type="file" name="document" id="document" class="form-control" accept=".pdf,.doc,.docx,.txt">
-            @error('document')<div class="text-danger">{{ $message }}</div>@enderror
-          </div>
+        <p class="text-muted">Bukti progres dikirim via link di slot, tanpa upload file.</p>
           <hr>
           <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
           @php

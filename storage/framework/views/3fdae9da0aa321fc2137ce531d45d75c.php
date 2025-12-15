@@ -160,6 +160,7 @@
         </div>
       </div>
     </div>
+    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
     <div class="col-12 col-sm-6 col-md-3">
       <div class="info-box">
         <span class="info-box-icon text-bg-warning shadow-sm">
@@ -171,6 +172,8 @@
         </div>
       </div>
     </div>
+    <?php endif; ?>
+    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
     <div class="col-12 col-sm-6 col-md-3">
         <div class="info-box">
           <span class="info-box-icon text-bg-info shadow-sm">
@@ -196,6 +199,8 @@
          </div>
        </div>
     </div>
+    <?php endif; ?>
+    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
     <div class="col-12 col-sm-6 col-md-3">
       <div class="info-box">
         <span class="info-box-icon text-bg-light shadow-sm">
@@ -233,7 +238,8 @@
       </div>
     </div>
   </div>
-
+  <?php endif; ?>
+  <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
   <!-- Lokasi & Jadwal Hari Ini -->
   <div class="row">
     <div class="col-md-12">
@@ -285,6 +291,7 @@
       </div>
     </div>
   </div>
+  <?php endif; ?>
 <?php endif; ?>
 
 <?php if($user->hasRole('Admin Lokasi') && $attendanceList && $attendanceList->count() > 0): ?>
@@ -548,6 +555,7 @@
 <!--begin::Row: Quick Actions and Info-->
 <div class="row mt-3">
   <div class="col-md-4">
+    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
     <div class="card">
       <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
       <div class="card-body">
@@ -560,7 +568,9 @@
         </div>
       </div>
     </div>
+    <?php endif; ?>
   </div>
+  <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
   <div class="col-md-8">
     <div class="card">
       <div class="card-header"><h3 class="card-title">Messages</h3></div>
@@ -587,9 +597,10 @@
       </div>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 <!--end::Row-->
-
+<?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
 <!--begin::Row: Notices-->
 <div class="row mt-3">
   <div class="col-md-12">
@@ -632,6 +643,7 @@
   <!-- /.col -->
 </div>
 <!--end::Row-->
+<?php endif; ?>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('scripts'); ?>

@@ -31,7 +31,7 @@
                     Tugas yang Anda buat untuk diri sendiri akan menunggu persetujuan:
                     Admin Lokasi (jika ada) atau Super Admin. Anda baru bisa update progres setelah disetujui.
                 </div>
-                <form action="<?php echo e(route('tasks.store.self')); ?>" method="POST" enctype="multipart/form-data">
+                <form action="<?php echo e(route('tasks.store.self')); ?>" method="POST">
                     <?php echo csrf_field(); ?>
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
@@ -50,15 +50,7 @@
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" name="due_date" class="form-control" id="due_date" value="<?php echo e(old('due_date')); ?>">
                     </div>
-                    <div class="mb-3">
-                        <label for="photo" class="form-label">Photo (Optional)</label>
-                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-                    </div>
-                    <div class="mb-3">
-                        <label for="document" class="form-label">Document (Optional)</label>
-                        <input type="file" class="form-control" id="document" name="document" accept=".pdf,.doc,.docx,.txt">
-                    </div>
-                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail dengan melampirkan foto atau dokumen.</p>
+                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail menggunakan bukti berupa link.</p>
                     <hr>
                     <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
                     <?php
@@ -73,7 +65,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Persentase (%)</label>
-                                    <input type="number" name="slots[<?php echo e($idx); ?>][percentage]" class="form-control" min="1" max="100" placeholder="25" required value="<?php echo e($slot['percentage']); ?>">
+                                    <input type="number" name="slots[<?php echo e($idx); ?>][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="25" required value="<?php echo e($slot['percentage']); ?>">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Menit</label>
@@ -115,9 +107,11 @@
         return isNaN(val) || val <= 0 ? null : val;
       };
 
-      const formatPct = (val) => {
+      const formatPct = (val, decimals = 2) => {
         if (!isFinite(val)) return '';
-        return Math.abs(val - Math.round(val)) < 0.01 ? Math.round(val) : parseFloat(val.toFixed(2));
+        const factor = Math.pow(10, decimals);
+        const rounded = Math.round(val * factor) / factor;
+        return Math.abs(rounded) < 0.01 ? 0 : rounded;
       };
 
       const updateSummary = () => {
@@ -130,9 +124,12 @@
           if (!isNaN(pct)) totalPct += pct;
           if (!isNaN(min)) totalMinutes += min;
         });
+        totalPct = parseFloat(totalPct.toFixed(2));
         const durationVal = getDuration();
-        const remainingPct = 100 - totalPct;
-        const remainingMin = durationVal !== null ? durationVal - totalMinutes : null;
+        let remainingPct = 100 - totalPct;
+        if (Math.abs(remainingPct) < 0.01) remainingPct = 0;
+        let remainingMin = durationVal !== null ? durationVal - totalMinutes : null;
+        if (remainingMin !== null && Math.abs(remainingMin) < 0.01) remainingMin = 0;
         slotSummary.textContent = [
           `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (sisa ${formatPct(remainingPct)})` : ''),
           durationVal !== null
@@ -206,7 +203,7 @@
             <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan" required>
           </div>
           <div class="col-md-3">
-            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="1" max="100" placeholder="%" required>
+            <input type="number" name="slots[${idx}][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="%" required>
           </div>
           <div class="col-md-3">
             <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit" required>

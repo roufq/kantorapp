@@ -1,6 +1,3 @@
-<?php use Illuminate\Support\Facades\Storage; ?>
-
-
 <?php $__env->startSection('title'); ?>
 <div class="container-fluid">
     <div class="row">
@@ -27,7 +24,7 @@
                 <h4 class="card-title">Update Progres per Slot</h4>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3">Kirim bukti per slot (foto/dokumen/link). Progres tugas akan otomatis dihitung dari slot yang disetujui.</p>
+                <p class="text-muted mb-3">Kirim bukti per slot berupa link. Progres tugas akan otomatis dihitung dari slot yang disetujui.</p>
                 <?php if($task->slots->isEmpty()): ?>
                     <div class="alert alert-warning mb-0">
                         Belum ada slot untuk tugas ini. Hubungi Admin Lokasi/Super Admin untuk menambahkan slot sebelum mengirim progres.
@@ -55,15 +52,15 @@
                                     <div class="text-danger small">Alasan reject: <?php echo e($slot->rejection_reason); ?></div>
                                 <?php endif; ?>
                             </div>
+                            <?php
+                                $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
+                            ?>
                             <div class="d-flex align-items-start gap-2 flex-wrap">
                                 <div class="fw-semibold small mb-1">Lampiran</div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <?php $__empty_2 = true; $__currentLoopData = $slot->attachments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $att): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
-                                        <?php if($att->type === 'link'): ?>
-                                            <a href="<?php echo e($att->path_or_url); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Link</a>
-                                        <?php else: ?>
-                                            <a href="<?php echo e(Storage::disk('public')->url($att->path_or_url)); ?>" target="_blank" class="btn btn-sm btn-outline-primary"><?php echo e(ucfirst($att->type)); ?></a>
-                                        <?php endif; ?>
+                                    <?php $linkAttachments = $slot->attachments->where('type','link'); ?>
+                                    <?php $__empty_2 = true; $__currentLoopData = $linkAttachments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $att): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                                        <a href="<?php echo e($att->path_or_url); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Link <?php echo e($loop->iteration); ?></a>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
                                         <span class="text-muted small">Belum ada lampiran.</span>
                                     <?php endif; ?>
@@ -71,30 +68,31 @@
                             </div>
                         </div>
 
+                        <?php
+                            $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
+                        ?>
                         <div class="mt-2">
-                            <form action="<?php echo e(route('task-slots.submit', $slot)); ?>" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
-                                <?php echo csrf_field(); ?>
-                                <div class="col-md-3">
-                                    <label class="form-label">Foto</label>
-                                    <input type="file" name="photo" class="form-control form-control-sm" accept="image/*">
+                            <?php if($slotCanSubmit): ?>
+                                <form action="<?php echo e(route('task-slots.submit', $slot)); ?>" method="POST" class="row g-2 align-items-end">
+                                    <?php echo csrf_field(); ?>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Link</label>
+                                        <input type="url" name="link" class="form-control form-control-sm" placeholder="https://" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Catatan</label>
+                                        <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-primary">Submit Bukti Slot</button>
+                                        <small class="text-muted ms-2">Bukti slot kini hanya berupa link.</small>
+                                    </div>
+                                </form>
+                            <?php else: ?>
+                                <div class="alert alert-light border small mb-0">
+                                    Bukti slot sudah dikirim dan menunggu/approved. Ajukan ulang hanya setelah status di-reject.
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Dokumen</label>
-                                    <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Link</label>
-                                    <input type="url" name="link" class="form-control form-control-sm" placeholder="https://">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Catatan</label>
-                                    <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-sm btn-primary">Submit Bukti Slot</button>
-                                    <small class="text-muted ms-2">Minimal satu bukti (foto/dokumen/link) wajib diisi.</small>
-                                </div>
-                            </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -152,14 +150,7 @@
                         <?php if($update->note): ?>
                             <div class="mt-2 small"><strong>Catatan:</strong> <?php echo e($update->note); ?></div>
                         <?php endif; ?>
-                        <div class="mt-2 d-flex flex-wrap gap-2">
-                            <?php if($update->photo_path): ?>
-                                <a class="btn btn-sm btn-outline-primary" href="<?php echo e(route('tasks.progress.download', [$update, 'photo'])); ?>" target="_blank">Download Photo</a>
-                            <?php endif; ?>
-                            <?php if($update->document_path): ?>
-                                <a class="btn btn-sm btn-outline-primary" href="<?php echo e(route('tasks.progress.download', [$update, 'document'])); ?>" target="_blank">Download Document</a>
-                            <?php endif; ?>
-                        </div>
+                        <div class="mt-2 text-muted small">Lampiran legacy disembunyikan (hanya link digunakan ke depan).</div>
                         <?php if($update->approval_status === 'rejected' && $update->rejection_reason): ?>
                             <div class="mt-2 text-danger small"><strong>Alasan penolakan:</strong> <?php echo e($update->rejection_reason); ?></div>
                         <?php endif; ?>

@@ -1,4 +1,3 @@
-@php use Illuminate\Support\Facades\Storage; @endphp
 @extends('layouts.app')
 
 @section('title')
@@ -27,7 +26,7 @@
                 <h4 class="card-title">Update Progres per Slot</h4>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3">Kirim bukti per slot (foto/dokumen/link). Progres tugas akan otomatis dihitung dari slot yang disetujui.</p>
+                <p class="text-muted mb-3">Kirim bukti per slot berupa link. Progres tugas akan otomatis dihitung dari slot yang disetujui.</p>
                 @if($task->slots->isEmpty())
                     <div class="alert alert-warning mb-0">
                         Belum ada slot untuk tugas ini. Hubungi Admin Lokasi/Super Admin untuk menambahkan slot sebelum mengirim progres.
@@ -55,15 +54,15 @@
                                     <div class="text-danger small">Alasan reject: {{ $slot->rejection_reason }}</div>
                                 @endif
                             </div>
+                            @php
+                                $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
+                            @endphp
                             <div class="d-flex align-items-start gap-2 flex-wrap">
                                 <div class="fw-semibold small mb-1">Lampiran</div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    @forelse($slot->attachments as $att)
-                                        @if($att->type === 'link')
-                                            <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link</a>
-                                        @else
-                                            <a href="{{ Storage::disk('public')->url($att->path_or_url) }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ ucfirst($att->type) }}</a>
-                                        @endif
+                                    @php $linkAttachments = $slot->attachments->where('type','link'); @endphp
+                                    @forelse($linkAttachments as $att)
+                                        <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link {{ $loop->iteration }}</a>
                                     @empty
                                         <span class="text-muted small">Belum ada lampiran.</span>
                                     @endforelse
@@ -71,30 +70,31 @@
                             </div>
                         </div>
 
+                        @php
+                            $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
+                        @endphp
                         <div class="mt-2">
-                            <form action="{{ route('task-slots.submit', $slot) }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
-                                @csrf
-                                <div class="col-md-3">
-                                    <label class="form-label">Foto</label>
-                                    <input type="file" name="photo" class="form-control form-control-sm" accept="image/*">
+                            @if($slotCanSubmit)
+                                <form action="{{ route('task-slots.submit', $slot) }}" method="POST" class="row g-2 align-items-end">
+                                    @csrf
+                                    <div class="col-md-6">
+                                        <label class="form-label">Link</label>
+                                        <input type="url" name="link" class="form-control form-control-sm" placeholder="https://" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Catatan</label>
+                                        <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-primary">Submit Bukti Slot</button>
+                                        <small class="text-muted ms-2">Bukti slot kini hanya berupa link.</small>
+                                    </div>
+                                </form>
+                            @else
+                                <div class="alert alert-light border small mb-0">
+                                    Bukti slot sudah dikirim dan menunggu/approved. Ajukan ulang hanya setelah status di-reject.
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Dokumen</label>
-                                    <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Link</label>
-                                    <input type="url" name="link" class="form-control form-control-sm" placeholder="https://">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Catatan</label>
-                                    <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-sm btn-primary">Submit Bukti Slot</button>
-                                    <small class="text-muted ms-2">Minimal satu bukti (foto/dokumen/link) wajib diisi.</small>
-                                </div>
-                            </form>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -151,14 +151,7 @@
                         @if($update->note)
                             <div class="mt-2 small"><strong>Catatan:</strong> {{ $update->note }}</div>
                         @endif
-                        <div class="mt-2 d-flex flex-wrap gap-2">
-                            @if($update->photo_path)
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('tasks.progress.download', [$update, 'photo']) }}" target="_blank">Download Photo</a>
-                            @endif
-                            @if($update->document_path)
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('tasks.progress.download', [$update, 'document']) }}" target="_blank">Download Document</a>
-                            @endif
-                        </div>
+                        <div class="mt-2 text-muted small">Lampiran legacy disembunyikan (hanya link digunakan ke depan).</div>
                         @if($update->approval_status === 'rejected' && $update->rejection_reason)
                             <div class="mt-2 text-danger small"><strong>Alasan penolakan:</strong> {{ $update->rejection_reason }}</div>
                         @endif

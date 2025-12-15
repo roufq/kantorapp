@@ -48,19 +48,6 @@
                         @endif
                     </p>
                 @endif
-                @if($task->photo_path || $task->document_path)
-                    <div class="mt-2">
-                        <p class="mb-1"><strong>Lampiran Tugas:</strong></p>
-                        <div class="d-flex flex-wrap gap-2">
-                            @if($task->photo_path)
-                                <a href="{{ route('tasks.download.photo', $task) }}" class="btn btn-sm btn-outline-primary">Lihat / Unduh Foto</a>
-                            @endif
-                            @if($task->document_path)
-                                <a href="{{ route('tasks.download.document', $task) }}" class="btn btn-sm btn-outline-secondary">Unduh Dokumen</a>
-                            @endif
-                        </div>
-                    </div>
-                @endif
                 <div class="mb-3">
                     <div class="d-flex justify-content-between small">
                         <span>Progress</span>
@@ -115,81 +102,41 @@
     <div class="col-lg-4">
         <div class="card h-100">
             <div class="card-header">
-                <h6 class="mb-0">Lampiran</h6>
+                <h6 class="mb-0">Slot Progres</h6>
             </div>
             <div class="card-body">
-                @if($task->photo_path)
+                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
                     <div class="mb-3">
-                        <p class="fw-semibold small mb-2">Foto</p>
-                        @php
-                            $photoUrl = $task->photo_path ? asset('storage/' . ltrim($task->photo_path, '/')) : null;
-                            $exists = $task->photo_path && Storage::disk('public')->exists($task->photo_path);
-                        @endphp
-                        @if($photoUrl && $exists)
-                            <a href="{{ route('tasks.download.photo', $task) }}" target="_blank">
-                                <img src="{{ $photoUrl }}" alt="Foto Tugas" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain; background:#f8f9fa;">
-                            </a>
-                        @else
-                            <p class="text-muted small mb-0">Foto tidak ditemukan di penyimpanan.</p>
-                        @endif
+                        <button class="btn btn-sm btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#addSlotFormSide">Tambah Slot</button>
+                        <div class="collapse mt-2" id="addSlotFormSide">
+                            <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2">
+                                @csrf
+                                <div class="col-6">
+                                    <label class="form-label">Nama</label>
+                                    <input type="text" name="name" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">% (0-100)</label>
+                                    <input type="number" name="percentage" class="form-control form-control-sm" min="1" max="100" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Menit</label>
+                                    <input type="number" name="minutes" class="form-control form-control-sm" min="1" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Urutan</label>
+                                    <input type="number" name="order" class="form-control form-control-sm" min="0" value="0">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Simpan Slot</button>
+                                    <div class="small text-muted mt-1">Pastikan total persen=100% dan total menit ≤ durasi task.</div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                @else
-                    <p class="text-muted small mb-3">Belum ada foto.</p>
                 @endif
-                @if($task->document_path)
-                    <div>
-                        <p class="fw-semibold small mb-2">Dokumen</p>
-                        <a href="{{ route('tasks.download.document', $task) }}" class="btn btn-sm btn-outline-secondary">Unduh Dokumen</a>
-                    </div>
-                @else
-                    <p class="text-muted small mb-0">Belum ada dokumen.</p>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Slot Progres --}}
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Slot Progres</h5>
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
-                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addSlotForm">Tambah Slot</button>
-                @endif
-            </div>
-            <div class="card-body">
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
-                <div class="collapse mb-3" id="addSlotForm">
-                    <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2 align-items-end">
-                        @csrf
-                        <div class="col-md-3">
-                            <label class="form-label">Nama Slot</label>
-                            <input type="text" name="name" class="form-control" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">% (0-100)</label>
-                            <input type="number" name="percentage" class="form-control" min="1" max="100" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Menit</label>
-                            <input type="number" name="minutes" class="form-control" min="1" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Urutan</label>
-                            <input type="number" name="order" class="form-control" min="0" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary w-100">Simpan Slot</button>
-                        </div>
-                    </form>
-                    <div class="text-muted small mt-1">Pastikan total persen = 100% dan total menit ≤ durasi task.</div>
-                </div>
-                @endif
-
                 @forelse($task->slots as $slot)
-                    <div class="border rounded p-3 mb-2">
+                    <div class="border rounded p-2 mb-3">
                         <div class="d-flex justify-content-between flex-wrap gap-2">
                             <div>
                                 <div class="fw-semibold">{{ $slot->name }} ({{ $slot->percentage }}% | {{ $slot->minutes }} menit)</div>
@@ -232,48 +179,45 @@
                         </div>
 
                         <div class="mt-2">
-                            <div class="fw-semibold small mb-1">Lampiran</div>
+                            <div class="fw-semibold small mb-1">Lampiran Link</div>
+                            @php $linkAttachments = $slot->attachments->where('type','link'); @endphp
                             <div class="d-flex flex-wrap gap-2">
-                                @forelse($slot->attachments as $att)
-                                    @if($att->type === 'link')
-                                        <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link</a>
-                                    @else
-                                        <a href="{{ Storage::disk('public')->url($att->path_or_url) }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ ucfirst($att->type) }}</a>
-                                    @endif
+                                @forelse($linkAttachments as $att)
+                                    <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link {{ $loop->iteration }}</a>
                                 @empty
                                     <span class="text-muted small">Belum ada lampiran.</span>
                                 @endforelse
                             </div>
                         </div>
 
+                        @php
+                            $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
+                        @endphp
                         <div class="mt-2">
-                            <form action="{{ route('task-slots.submit', $slot) }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
-                                @csrf
-                                <div class="col-md-3">
-                                    <label class="form-label">Foto</label>
-                                    <input type="file" name="photo" class="form-control form-control-sm" accept="image/*">
+                            @if($slotCanSubmit)
+                                <form action="{{ route('task-slots.submit', $slot) }}" method="POST" class="row g-2 align-items-end">
+                                    @csrf
+                                    <div class="col-12">
+                                        <label class="form-label">Link</label>
+                                        <input type="url" name="link" class="form-control form-control-sm" placeholder="https://" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Catatan</label>
+                                        <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-primary w-100">Submit Bukti Slot (Link)</button>
+                                    </div>
+                                </form>
+                            @else
+                                <div class="alert alert-light border small mb-0">
+                                    Bukti slot sudah dikirim dan menunggu/approved. Ajukan ulang hanya setelah status di-reject.
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Dokumen</label>
-                                    <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Link</label>
-                                    <input type="url" name="link" class="form-control form-control-sm" placeholder="https://">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Catatan</label>
-                                    <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-sm btn-primary">Submit Bukti Slot</button>
-                                    <small class="text-muted ms-2">Minimal satu bukti (foto/dokumen/link) wajib diisi.</small>
-                                </div>
-                            </form>
+                            @endif
                         </div>
                     </div>
                 @empty
-                    <p class="text-muted mb-0">Belum ada slot progres. Tambahkan slot untuk memecah tugas.</p>
+                    <p class="text-muted mb-0">Belum ada slot progres.</p>
                 @endforelse
             </div>
         </div>

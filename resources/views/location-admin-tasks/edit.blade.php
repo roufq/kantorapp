@@ -5,7 +5,7 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
       <h1 class="h3 mb-1">Edit Tugas Lokasi</h1>
-      <p class="text-muted mb-0">Perbarui detail tugas. Progres diperbarui lewat form progres dengan lampiran.</p>
+      <p class="text-muted mb-0">Perbarui detail tugas. Progres dikirim lewat link pada slot.</p>
     </div>
     <div>
       <a href="{{ route('location-admin-tasks.index') }}" class="text-decoration-none">Kembali</a>
@@ -17,7 +17,7 @@
     <div class="card">
       <div class="card-header"><h3 class="card-title">Edit Task (Location)</h3></div>
       <div class="card-body">
-        <form action="{{ route('location-admin-tasks.update', $task) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('location-admin-tasks.update', $task) }}" method="POST">
           @csrf
           @method('PATCH')
           <div class="mb-3">
@@ -44,23 +44,7 @@
             <input type="date" name="due_date" id="due_date" value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}" class="form-control">
             @error('due_date')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
-          <div class="mb-3">
-            <label for="photo" class="form-label">Photo (Optional)</label>
-            <input type="file" name="photo" id="photo" class="form-control" accept="image/*">
-            @if($task->photo_path)
-              <div class="mt-2"><small>Current photo: <a href="{{ route('location-admin-tasks.download.photo', $task) }}" target="_blank">Download</a></small></div>
-            @endif
-            @error('photo')<div class="text-danger">{{ $message }}</div>@enderror
-          </div>
-          <div class="mb-3">
-            <label for="document" class="form-label">Document (Optional)</label>
-            <input type="file" name="document" id="document" class="form-control" accept=".pdf,.doc,.docx,.txt">
-            @if($task->document_path)
-              <div class="mt-2"><small>Current document: <a href="{{ route('location-admin-tasks.download.document', $task) }}" target="_blank">Download</a></small></div>
-            @endif
-            @error('document')<div class="text-danger">{{ $message }}</div>@enderror
-          </div>
-          <p class="text-muted">Untuk progres, gunakan form update progres di halaman detail tugas (dengan foto/dokumen).</p>
+          <p class="text-muted">Bukti progres dikirim via link pada slot, tanpa upload file.</p>
           <button type="submit" class="btn btn-primary">Update Task</button>
           <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-secondary">Cancel</a>
         </form>

@@ -212,10 +212,25 @@
           })
           ->count();
           }
-          $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount;
+          $unreadNotificationCount = $authUser->unreadNotifications()->count();
+          $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount + $unreadNotificationCount;
+          @endphp
+          @php
+            $notificationLink = ($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi'))
+              ? route('tasks.progress.approvals')
+              : route('tasks.index');
+            $taskNotifTypes = [
+              \App\Notifications\TaskSlotApprovalNotification::class,
+              \App\Notifications\TaskApprovalNotification::class,
+            ];
+            $recentTaskNotifs = $authUser->unreadNotifications()
+              ->whereIn('type', $taskNotifTypes)
+              ->latest()
+              ->take(5)
+              ->get();
           @endphp
           <li class="nav-item dropdown">
-            <a class="nav-link" data-bs-toggle="dropdown" href="#">
+            <a class="nav-link" data-bs-toggle="dropdown" href="#" id="notifDropdown">
               <i class="bi bi-bell-fill"></i>
               @if($totalNotifications > 0)
               <span class="navbar-badge badge text-bg-warning">{{ $totalNotifications }}</span>
@@ -224,19 +239,50 @@
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
               <span class="dropdown-item dropdown-header">{{ $totalNotifications }} Notifikasi</span>
               <div class="dropdown-divider"></div>
-              <a href="{{ route('messages.index') }}" class="dropdown-item">
-                <i class="bi bi-envelope me-2"></i> {{ $unreadMessagesCount }} pesan baru
+              <a href="{{ route('messages.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-envelope me-2"></i> Pesan baru</div>
+                <span class="badge text-bg-secondary">{{ $unreadMessagesCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="{{ route('reports.index') }}" class="dropdown-item">
-                <i class="bi bi-clipboard-check me-2"></i> {{ $pendingReportCount }} laporan menunggu
+              <a href="{{ route('reports.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-clipboard-check me-2"></i> Laporan menunggu</div>
+                <span class="badge text-bg-secondary">{{ $pendingReportCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="{{ route('overtime.index') }}" class="dropdown-item">
-                <i class="bi bi-clock me-2"></i> {{ $pendingOvertimeCount }} overtime menunggu
+              <a href="{{ route('overtime.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-clock me-2"></i> Overtime menunggu</div>
+                <span class="badge text-bg-secondary">{{ $pendingOvertimeCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="{{ route('dashboard') }}" class="dropdown-item dropdown-footer">Lihat semua</a>
+              <a href="{{ $notificationLink }}" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-bell me-2"></i> Notifikasi tugas/progres</div>
+                <span class="badge text-bg-secondary">{{ $unreadNotificationCount }}</span>
+              </a>
+              @if($recentTaskNotifs->count() > 0)
+                <div class="dropdown-divider"></div>
+                @foreach($recentTaskNotifs as $notif)
+                  @php
+                    $data = $notif->data ?? [];
+                    $title = $data['task_title'] ?? 'Tugas';
+                    $status = $data['status'] ?? null;
+                    $label = $status ? ucfirst($status) : 'Info';
+                    $taskId = $data['task_id'] ?? null;
+                    $targetUrl = $taskId ? route('tasks.show', $taskId) : $notificationLink;
+                  @endphp
+                  <a href="{{ $targetUrl }}" class="dropdown-item small">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-truncate" style="max-width: 220px;">
+                        {{ $title }} &mdash; {{ $label }}
+                      </span>
+                      @if($status)
+                        <span class="badge text-bg-{{ $status === 'approved' ? 'success' : 'danger' }}">{{ $label }}</span>
+                      @endif
+                    </div>
+                  </a>
+                @endforeach
+              @endif
+              <div class="dropdown-divider"></div>
+              <a href="{{ $notificationLink }}" class="dropdown-item dropdown-footer">Lihat semua</a>
             </div>
           </li>
           <!--end::Notifications Dropdown Menu-->
@@ -363,12 +409,14 @@
                 <p>Dashboard</p>
               </a>
             </li>
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('messages.index') }}" class="nav-link {{ request()->routeIs('messages.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-chat-dots"></i>
                 <p>Messages</p>
               </a>
             </li>
+            @endif
             <li class="nav-item">
               <a href="{{ route('tasks.index') }}" class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-check-circle"></i>
@@ -410,7 +458,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-arrow-left-right"></i>
@@ -418,6 +466,7 @@
               </a>
             </li>
             @endif
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">
               <a href="#" class="nav-link">
                 <i class="nav-icon bi bi-calendar-check"></i>
@@ -454,18 +503,23 @@
 
               </ul>
             </li>
+            @endif
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('overtime.index') }}" class="nav-link {{ request()->routeIs('overtime.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clock"></i>
                 <p>Overtime</p>
               </a>
             </li>
+            @endif
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clipboard-check"></i>
                 <p>Laporan</p>
               </a>
             </li>
+            @endif
             @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
             <li class="nav-item">
               <a href="{{ route('work-recaps.index') }}" class="nav-link {{ request()->routeIs('work-recaps.*') ? 'active' : '' }}">
@@ -508,7 +562,7 @@
               </a>
             </li>
             @endif
-
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               @php
               if (auth()->user()->hasRole('Super Admin')) {
@@ -524,6 +578,7 @@
                 <p>Leaves @if($pendingLeavesCount>0 && (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi')))<span class="badge text-bg-warning ms-2">{{ $pendingLeavesCount }}</span>@endif</p>
               </a>
             </li>
+            @endif
 
             @if(auth()->user()->hasRole('Admin Lokasi'))
             <li class="nav-header">Location</li>
@@ -1114,6 +1169,22 @@
   @endif
   @yield('scripts')
   @stack('scripts')
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const notifDropdown = document.getElementById('notifDropdown');
+      if (!notifDropdown) return;
+      const markRead = () => {
+        fetch("{{ route('notifications.read') }}", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+          },
+        }).catch(() => {});
+      };
+      notifDropdown.addEventListener('click', markRead, { once: true });
+    });
+  </script>
   <!--end::Script-->
 </body>
 <!--end::Body-->

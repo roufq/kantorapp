@@ -74,8 +74,6 @@ class LocationAdminTaskController extends Controller
             'assigned_to' => 'required|exists:users,id',
             'due_date' => 'nullable|date|after_or_equal:today',
             'duration_minutes' => 'nullable|integer|min:1',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
             'slots' => 'required|array|min:1',
             'slots.*.name' => 'required|string|max:255',
             'slots.*.percentage' => 'required|numeric|min:0.01|max:100',
@@ -95,9 +93,6 @@ class LocationAdminTaskController extends Controller
                 abort(403, 'You can only assign tasks to employees in your location');
             }
         }
-
-        $photoPath = $request->hasFile('photo') ? $request->file('photo')->store('tasks/photos', 'public') : null;
-        $documentPath = $request->hasFile('document') ? $request->file('document')->store('tasks/documents', 'public') : null;
 
         $slots = $request->input('slots', []);
         $totalPercent = collect($slots)->sum(fn($s) => (float) ($s['percentage'] ?? 0));
@@ -125,8 +120,6 @@ class LocationAdminTaskController extends Controller
             'progress' => 0,
             'due_date' => $request->due_date,
             'duration_minutes' => $request->duration_minutes,
-            'photo_path' => $photoPath,
-            'document_path' => $documentPath,
         ], $approvalMeta));
 
         foreach ($slots as $idx => $slot) {
@@ -137,7 +130,7 @@ class LocationAdminTaskController extends Controller
                 'minutes' => (int) $slot['minutes'],
                 'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                 'created_by' => $user->id,
-                'status' => 'pending',
+                'status' => 'draft',
             ]);
             TaskSlotHistory::create([
                 'task_slot_id' => $newSlot->id,
@@ -203,8 +196,6 @@ class LocationAdminTaskController extends Controller
             'description' => 'nullable|string',
             'assigned_to' => 'required|exists:users,id',
             'due_date' => 'nullable|date|after_or_equal:today',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt|max:5120',
         ]);
 
         if (!$user->hasRole('Super Admin')) {
@@ -219,24 +210,11 @@ class LocationAdminTaskController extends Controller
             }
         }
 
-        $photoPath = $task->photo_path;
-        $documentPath = $task->document_path;
-        if ($request->hasFile('photo')) {
-            if ($photoPath) { Storage::disk('public')->delete($photoPath); }
-            $photoPath = $request->file('photo')->store('tasks/photos', 'public');
-        }
-        if ($request->hasFile('document')) {
-            if ($documentPath) { Storage::disk('public')->delete($documentPath); }
-            $documentPath = $request->file('document')->store('tasks/documents', 'public');
-        }
-
         $task->update([
             'title' => $request->title,
             'description' => $request->description,
             'assigned_to' => $request->assigned_to,
             'due_date' => $request->due_date,
-            'photo_path' => $photoPath,
-            'document_path' => $documentPath,
         ]);
 
         $task->applyProgress((int) $task->progress);

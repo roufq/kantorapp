@@ -62,28 +62,19 @@ class TaskProgressController extends Controller
         $data = $request->validate([
             'progress' => 'required|integer|min:0|max:100',
             'note' => 'nullable|string',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt,xls,xlsx|max:8192',
+            'link' => 'required|url|max:2000',
         ]);
-        
-        // [MODIFIED] Simplified validation for file upload
-        if ($request->hasFile('photo') === false && $request->hasFile('document') === false && empty($data['note'])) {
-            return back()->withErrors(['photo' => 'Anda harus memberikan catatan, atau melampirkan foto/dokumen.'])->withInput();
-        }
 
         // [MODIFIED] Get approval info
         $approvalInfo = $this->determineApprovalInfo($user, $task);
-
-        $photoPath = $request->hasFile('photo') ? $request->file('photo')->store('task-progress/photos', 'public') : null;
-        $documentPath = $request->hasFile('document') ? $request->file('document')->store('task-progress/documents', 'public') : null;
 
         $progressUpdate = TaskProgressUpdate::create([
             'task_id' => $task->id,
             'user_id' => $user->id,
             'progress' => $data['progress'],
             'note' => $data['note'] ?? null,
-            'photo_path' => $photoPath,
-            'document_path' => $documentPath,
+            'photo_path' => null,
+            'document_path' => $data['link'],
             'approval_level' => $approvalInfo['level'],
             'requires_approval' => $approvalInfo['requires_approval'],
             'approval_status' => $approvalInfo['status'],
@@ -176,9 +167,13 @@ class TaskProgressController extends Controller
 
         // Task-level pending (slot-based)
         $taskQuery = Task::with(['assignee.location', 'slots' => function ($q) {
-            $q->where('status', 'pending')->with('attachments');
+            $q->where('status', 'pending')->whereHas('attachments', function ($aq) {
+                $aq->where('type', 'link');
+            })->with('attachments');
         }])->whereHas('slots', function ($q) {
-            $q->where('status', 'pending');
+            $q->where('status', 'pending')->whereHas('attachments', function ($aq) {
+                $aq->where('type', 'link');
+            });
         });
 
         if ($search) {
@@ -213,7 +208,7 @@ class TaskProgressController extends Controller
         }
         $pendingTasks = $taskQuery->orderBy('due_date', 'asc')->get();
 
-        $pendingTaskCreations = $taskApprovalQuery->orderBy('created_at', 'asc')->get();
+        $pendingTaskCreations = $taskApprovalQuery->orderBy('created_at', 'desc')->get();
 
         $locations = \App\Models\Location::orderBy('name')->get();
         $assignees = $user->hasRole('Super Admin')
@@ -362,6 +357,9 @@ class TaskProgressController extends Controller
         $path = $type === 'photo' ? $progressUpdate->photo_path : $progressUpdate->document_path;
 
         if (!$path || !Storage::disk('public')->exists($path)) {
+            if (filter_var($path, FILTER_VALIDATE_URL)) {
+                return redirect()->away($path);
+            }
             abort(404);
         }
 

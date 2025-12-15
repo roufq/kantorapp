@@ -92,6 +92,7 @@
     </div>
 </div>
 
+<?php if(!empty($pendingTasks) && $pendingTasks->count() > 0): ?>
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Pending Approval (Per Tugas)</h5>
@@ -111,9 +112,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                <?php $__empty_1 = true; $__currentLoopData = $pendingTasks ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <?php $__currentLoopData = $pendingTasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php
+                        $needsTaskApproval = $task->requires_approval && $task->approval_status === 'pending';
+                    ?>
                     <tr>
-                        <td><?php echo e($task->title); ?></td>
+                        <td>
+                            <?php echo e($task->title); ?>
+
+                            <?php if($needsTaskApproval): ?>
+                                <span class="badge text-bg-warning ms-2">Butuh approval task</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo e(optional($task->assignee)->name); ?></td>
                         <td><?php echo e(optional($task->assignee->location)->name ?? '-'); ?></td>
                         <td><?php echo e(optional($task->due_date)->format('d M Y') ?? '-'); ?></td>
@@ -128,14 +138,13 @@
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectTaskModal<?php echo e($task->id); ?>">Reject</button>
                         </td>
                     </tr>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                    <tr><td colspan="7" class="text-muted text-center">Tidak ada tugas yang menunggu persetujuan.</td></tr>
-                <?php endif; ?>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">

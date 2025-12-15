@@ -14,6 +14,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\MasterTaskController;
 use App\Http\Controllers\LocationChangeRequestController;
+use Illuminate\Support\Facades\Notification;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -93,8 +94,15 @@ Route::post('/logout', function () {
     Auth::logout();
     return redirect('/');
 })->name('logout');
- 
+
 Route::middleware('auth')->group(function () {
+    // Mark all notifications as read
+    Route::post('/notifications/read', function (Request $request) {
+        $user = $request->user();
+        $user?->unreadNotifications?->markAsRead();
+        return response()->json(['ok' => true]);
+    })->name('notifications.read');
+
     // Email Verification routes
     Route::get('/email/verify', function () {
         return view('auth.verify-email');

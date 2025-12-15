@@ -92,6 +92,7 @@
     </div>
 </div>
 
+@if(!empty($pendingTasks) && $pendingTasks->count() > 0)
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Pending Approval (Per Tugas)</h5>
@@ -111,9 +112,17 @@
                     </tr>
                 </thead>
                 <tbody>
-                @forelse($pendingTasks ?? [] as $task)
+                @foreach($pendingTasks as $task)
+                    @php
+                        $needsTaskApproval = $task->requires_approval && $task->approval_status === 'pending';
+                    @endphp
                     <tr>
-                        <td>{{ $task->title }}</td>
+                        <td>
+                            {{ $task->title }}
+                            @if($needsTaskApproval)
+                                <span class="badge text-bg-warning ms-2">Butuh approval task</span>
+                            @endif
+                        </td>
                         <td>{{ optional($task->assignee)->name }}</td>
                         <td>{{ optional($task->assignee->location)->name ?? '-' }}</td>
                         <td>{{ optional($task->due_date)->format('d M Y') ?? '-' }}</td>
@@ -128,14 +137,13 @@
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectTaskModal{{ $task->id }}">Reject</button>
                         </td>
                     </tr>
-                @empty
-                    <tr><td colspan="7" class="text-muted text-center">Tidak ada tugas yang menunggu persetujuan.</td></tr>
-                @endforelse
+                @endforeach
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+@endif
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">

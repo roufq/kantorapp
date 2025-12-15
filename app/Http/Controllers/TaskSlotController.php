@@ -8,6 +8,9 @@ use App\Models\TaskSlotAttachment;
 use App\Models\TaskSlotHistory;
 use App\Models\LocationWorkTarget;
 use App\Models\EmployeeWorkRecap;
+use App\Models\User;
+use App\Notifications\TaskSlotSubmittedNotification;
+use App\Notifications\TaskSlotApprovalNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -107,6 +110,7 @@ class TaskSlotController extends Controller
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
             'created_by' => Auth::id(),
+            'status' => 'draft',
         ]);
 
         TaskSlotHistory::create([
@@ -149,7 +153,7 @@ class TaskSlotController extends Controller
             'percentage' => round((float) $data['percentage'], 2),
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
-            'status' => 'pending',
+            'status' => 'draft',
             'approved_by' => null,
             'approved_at' => null,
             'rejection_reason' => null,
@@ -194,40 +198,27 @@ class TaskSlotController extends Controller
     {
         $this->ensureCanSubmit($slot);
 
+        // Hanya boleh submit pertama kali (pending tanpa lampiran) atau setelah reject
+        $hasAttachments = $slot->attachments()->exists();
+        if ($slot->status === 'approved') {
+            return back()->withErrors(['link' => 'Slot sudah disetujui. Tidak dapat menambah bukti lagi.']);
+        }
+        if (in_array($slot->status, ['pending']) && $hasAttachments) {
+            return back()->withErrors(['link' => 'Slot sudah memiliki bukti dan menunggu approval. Tunggu hasil atau ajukan ulang setelah reject.']);
+        }
+
         $data = $request->validate([
             'note' => 'nullable|string',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,txt,xls,xlsx|max:8192',
-            'link' => 'nullable|url|max:2000',
+            'link' => 'required|url|max:2000',
         ]);
 
-        if (!$request->hasFile('photo') && !$request->hasFile('document') && empty($data['link'])) {
-            return back()->withErrors(['photo' => 'Minimal satu bukti (foto/dokumen/link) wajib diisi.'])->withInput();
-        }
-
         $before = $slot->toArray();
-        $attachments = [];
-
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('task-slots/photos', 'public');
-            $attachments[] = ['type' => 'photo', 'path_or_url' => $path];
-        }
-        if ($request->hasFile('document')) {
-            $path = $request->file('document')->store('task-slots/documents', 'public');
-            $attachments[] = ['type' => 'document', 'path_or_url' => $path];
-        }
-        if (!empty($data['link'])) {
-            $attachments[] = ['type' => 'link', 'path_or_url' => $data['link']];
-        }
-
-        foreach ($attachments as $att) {
-            TaskSlotAttachment::create([
-                'task_slot_id' => $slot->id,
-                'type' => $att['type'],
-                'path_or_url' => $att['path_or_url'],
-                'uploaded_by' => Auth::id(),
-            ]);
-        }
+        TaskSlotAttachment::create([
+            'task_slot_id' => $slot->id,
+            'type' => 'link',
+            'path_or_url' => $data['link'],
+            'uploaded_by' => Auth::id(),
+        ]);
 
         $slot->update([
             'status' => 'pending',
@@ -243,6 +234,29 @@ class TaskSlotController extends Controller
             'data_after' => $slot->toArray(),
             'actor_id' => Auth::id(),
         ]);
+
+        // Notifikasi: kiriman karyawan -> Admin Lokasi & Super Admin; kiriman Admin Lokasi -> Super Admin
+        $submitter = Auth::user();
+        $task = $slot->task;
+        $submittedByRole = $submitter->hasRole('Admin Lokasi') ? 'admin_lokasi' : ($submitter->hasRole('Super Admin') ? 'super_admin' : 'karyawan');
+        $notifyUsers = collect();
+
+        if ($submitter->hasRole('Admin Lokasi')) {
+            $notifyUsers = $notifyUsers->merge(User::role('Super Admin')->get());
+        } elseif ($submitter->hasRole('Super Admin')) {
+            // do nothing (already highest)
+        } else {
+            // karyawan
+            if (optional($task->assignee)->location_id) {
+                $notifyUsers = $notifyUsers->merge(User::role('Admin Lokasi')->where('location_id', $task->assignee->location_id)->get());
+            }
+            $notifyUsers = $notifyUsers->merge(User::role('Super Admin')->get());
+        }
+
+        $notifyUsers = $notifyUsers->unique('id')->reject(fn($u) => $u->id === $submitter->id);
+        foreach ($notifyUsers as $recipient) {
+            $recipient->notify(new TaskSlotSubmittedNotification($task, $slot, $submittedByRole));
+        }
 
         return back()->with('success', 'Bukti progres slot dikirim, menunggu approval.');
     }
@@ -278,6 +292,10 @@ class TaskSlotController extends Controller
             });
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
+        }
+
+        if ($slot->task && $slot->task->assignee) {
+            $slot->task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
         }
 
         return back()->with('success', 'Slot disetujui.');
@@ -322,6 +340,10 @@ class TaskSlotController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
+        if ($slot->task && $slot->task->assignee) {
+            $slot->task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
+        }
+
         return back()->with('success', 'Semua slot pending pada tugas ini telah disetujui.');
     }
 
@@ -350,6 +372,10 @@ class TaskSlotController extends Controller
         ]);
 
         $slot->task->recalcProgressFromSlots();
+
+        if ($slot->task && $slot->task->assignee) {
+            $slot->task->assignee->notify(new TaskSlotApprovalNotification($slot, 'rejected', $data['reason']));
+        }
 
         return back()->with('success', 'Slot ditolak.');
     }

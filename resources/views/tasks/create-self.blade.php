@@ -33,7 +33,7 @@
                     Tugas yang Anda buat untuk diri sendiri akan menunggu persetujuan:
                     Admin Lokasi (jika ada) atau Super Admin. Anda baru bisa update progres setelah disetujui.
                 </div>
-                <form action="{{ route('tasks.store.self') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('tasks.store.self') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
@@ -52,15 +52,7 @@
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" name="due_date" class="form-control" id="due_date" value="{{ old('due_date') }}">
                     </div>
-                    <div class="mb-3">
-                        <label for="photo" class="form-label">Photo (Optional)</label>
-                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-                    </div>
-                    <div class="mb-3">
-                        <label for="document" class="form-label">Document (Optional)</label>
-                        <input type="file" class="form-control" id="document" name="document" accept=".pdf,.doc,.docx,.txt">
-                    </div>
-                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail dengan melampirkan foto atau dokumen.</p>
+                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail menggunakan bukti berupa link.</p>
                     <hr>
                     <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
                     @php

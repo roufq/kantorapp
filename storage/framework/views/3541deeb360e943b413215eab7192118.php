@@ -212,10 +212,25 @@
           })
           ->count();
           }
-          $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount;
+          $unreadNotificationCount = $authUser->unreadNotifications()->count();
+          $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount + $unreadNotificationCount;
+          ?>
+          <?php
+            $notificationLink = ($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi'))
+              ? route('tasks.progress.approvals')
+              : route('tasks.index');
+            $taskNotifTypes = [
+              \App\Notifications\TaskSlotApprovalNotification::class,
+              \App\Notifications\TaskApprovalNotification::class,
+            ];
+            $recentTaskNotifs = $authUser->unreadNotifications()
+              ->whereIn('type', $taskNotifTypes)
+              ->latest()
+              ->take(5)
+              ->get();
           ?>
           <li class="nav-item dropdown">
-            <a class="nav-link" data-bs-toggle="dropdown" href="#">
+            <a class="nav-link" data-bs-toggle="dropdown" href="#" id="notifDropdown">
               <i class="bi bi-bell-fill"></i>
               <?php if($totalNotifications > 0): ?>
               <span class="navbar-badge badge text-bg-warning"><?php echo e($totalNotifications); ?></span>
@@ -224,19 +239,51 @@
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
               <span class="dropdown-item dropdown-header"><?php echo e($totalNotifications); ?> Notifikasi</span>
               <div class="dropdown-divider"></div>
-              <a href="<?php echo e(route('messages.index')); ?>" class="dropdown-item">
-                <i class="bi bi-envelope me-2"></i> <?php echo e($unreadMessagesCount); ?> pesan baru
+              <a href="<?php echo e(route('messages.index')); ?>" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-envelope me-2"></i> Pesan baru</div>
+                <span class="badge text-bg-secondary"><?php echo e($unreadMessagesCount); ?></span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="<?php echo e(route('reports.index')); ?>" class="dropdown-item">
-                <i class="bi bi-clipboard-check me-2"></i> <?php echo e($pendingReportCount); ?> laporan menunggu
+              <a href="<?php echo e(route('reports.index')); ?>" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-clipboard-check me-2"></i> Laporan menunggu</div>
+                <span class="badge text-bg-secondary"><?php echo e($pendingReportCount); ?></span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="<?php echo e(route('overtime.index')); ?>" class="dropdown-item">
-                <i class="bi bi-clock me-2"></i> <?php echo e($pendingOvertimeCount); ?> overtime menunggu
+              <a href="<?php echo e(route('overtime.index')); ?>" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-clock me-2"></i> Overtime menunggu</div>
+                <span class="badge text-bg-secondary"><?php echo e($pendingOvertimeCount); ?></span>
               </a>
               <div class="dropdown-divider"></div>
-              <a href="<?php echo e(route('dashboard')); ?>" class="dropdown-item dropdown-footer">Lihat semua</a>
+              <a href="<?php echo e($notificationLink); ?>" class="dropdown-item d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-bell me-2"></i> Notifikasi tugas/progres</div>
+                <span class="badge text-bg-secondary"><?php echo e($unreadNotificationCount); ?></span>
+              </a>
+              <?php if($recentTaskNotifs->count() > 0): ?>
+                <div class="dropdown-divider"></div>
+                <?php $__currentLoopData = $recentTaskNotifs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notif): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                  <?php
+                    $data = $notif->data ?? [];
+                    $title = $data['task_title'] ?? 'Tugas';
+                    $status = $data['status'] ?? null;
+                    $label = $status ? ucfirst($status) : 'Info';
+                    $taskId = $data['task_id'] ?? null;
+                    $targetUrl = $taskId ? route('tasks.show', $taskId) : $notificationLink;
+                  ?>
+                  <a href="<?php echo e($targetUrl); ?>" class="dropdown-item small">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-truncate" style="max-width: 220px;">
+                        <?php echo e($title); ?> &mdash; <?php echo e($label); ?>
+
+                      </span>
+                      <?php if($status): ?>
+                        <span class="badge text-bg-<?php echo e($status === 'approved' ? 'success' : 'danger'); ?>"><?php echo e($label); ?></span>
+                      <?php endif; ?>
+                    </div>
+                  </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+              <?php endif; ?>
+              <div class="dropdown-divider"></div>
+              <a href="<?php echo e($notificationLink); ?>" class="dropdown-item dropdown-footer">Lihat semua</a>
             </div>
           </li>
           <!--end::Notifications Dropdown Menu-->
@@ -363,12 +410,14 @@
                 <p>Dashboard</p>
               </a>
             </li>
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item">
               <a href="<?php echo e(route('messages.index')); ?>" class="nav-link <?php echo e(request()->routeIs('messages.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-chat-dots"></i>
                 <p>Messages</p>
               </a>
             </li>
+            <?php endif; ?>
             <li class="nav-item">
               <a href="<?php echo e(route('tasks.index')); ?>" class="nav-link <?php echo e(request()->routeIs('tasks.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-check-circle"></i>
@@ -410,7 +459,7 @@
               </a>
             </li>
             <?php endif; ?>
-            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item">
               <a href="<?php echo e(route('location-change-requests.index')); ?>" class="nav-link <?php echo e(request()->routeIs('location-change-requests.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-arrow-left-right"></i>
@@ -418,6 +467,7 @@
               </a>
             </li>
             <?php endif; ?>
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item <?php echo e(request()->routeIs('attendance.*') ? 'menu-open' : ''); ?>">
               <a href="#" class="nav-link">
                 <i class="nav-icon bi bi-calendar-check"></i>
@@ -454,18 +504,23 @@
 
               </ul>
             </li>
+            <?php endif; ?>
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item">
               <a href="<?php echo e(route('overtime.index')); ?>" class="nav-link <?php echo e(request()->routeIs('overtime.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-clock"></i>
                 <p>Overtime</p>
               </a>
             </li>
+            <?php endif; ?>
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item">
               <a href="<?php echo e(route('reports.index')); ?>" class="nav-link <?php echo e(request()->routeIs('reports.*') ? 'active' : ''); ?>">
                 <i class="nav-icon bi bi-clipboard-check"></i>
                 <p>Laporan</p>
               </a>
             </li>
+            <?php endif; ?>
             <?php if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi'])): ?>
             <li class="nav-item">
               <a href="<?php echo e(route('work-recaps.index')); ?>" class="nav-link <?php echo e(request()->routeIs('work-recaps.*') ? 'active' : ''); ?>">
@@ -508,7 +563,7 @@
               </a>
             </li>
             <?php endif; ?>
-
+            <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan')): ?>
             <li class="nav-item">
               <?php
               if (auth()->user()->hasRole('Super Admin')) {
@@ -524,6 +579,7 @@
                 <p>Leaves <?php if($pendingLeavesCount>0 && (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))): ?><span class="badge text-bg-warning ms-2"><?php echo e($pendingLeavesCount); ?></span><?php endif; ?></p>
               </a>
             </li>
+            <?php endif; ?>
 
             <?php if(auth()->user()->hasRole('Admin Lokasi')): ?>
             <li class="nav-header">Location</li>
@@ -1114,6 +1170,22 @@
   <?php endif; ?>
   <?php echo $__env->yieldContent('scripts'); ?>
   <?php echo $__env->yieldPushContent('scripts'); ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const notifDropdown = document.getElementById('notifDropdown');
+      if (!notifDropdown) return;
+      const markRead = () => {
+        fetch("<?php echo e(route('notifications.read')); ?>", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+          },
+        }).catch(() => {});
+      };
+      notifDropdown.addEventListener('click', markRead, { once: true });
+    });
+  </script>
   <!--end::Script-->
 </body>
 <!--end::Body-->

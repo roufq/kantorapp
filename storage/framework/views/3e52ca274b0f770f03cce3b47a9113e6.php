@@ -30,7 +30,7 @@
                         </ul>
                     </div>
                 <?php endif; ?>
-                <form action="<?php echo e(route('tasks.store')); ?>" method="POST" enctype="multipart/form-data">
+                <form action="<?php echo e(route('tasks.store')); ?>" method="POST">
                     <?php echo csrf_field(); ?>
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
@@ -69,15 +69,7 @@
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" name="due_date" class="form-control" id="due_date" value="<?php echo e(old('due_date')); ?>">
                     </div>
-                    <div class="mb-3">
-                        <label for="photo" class="form-label">Photo (Optional)</label>
-                        <input type="file" name="photo" id="photo" class="form-control" accept="image/*">
-                    </div>
-                    <div class="mb-3">
-                        <label for="document" class="form-label">Document (Optional)</label>
-                        <input type="file" name="document" id="document" class="form-control" accept=".pdf,.doc,.docx,.txt">
-                    </div>
-                    <p class="text-muted">Setelah dibuat, progres 0-100% diupdate lewat halaman detail tugas dengan lampiran foto/dokumen.</p>
+                    <p class="text-muted">Setelah dibuat, progres 0-100% diupdate lewat halaman detail tugas menggunakan bukti berupa link.</p>
                     <hr>
                     <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
                     <?php
