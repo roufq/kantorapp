@@ -1,614 +1,160 @@
-# KantorApp - Multi-Location Attendance Management System
+# KantorApp – Multi-Location Attendance & Shift Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Laravel. Fokusnya adalah kontrol akses per lokasi, validasi GPS, jadwal shift/roster yang adil, serta alur tugas dan persetujuan yang terdokumentasi.
 
-## About KantorApp
+## Fitur Singkat
+- Multi-lokasi dengan role `Super Admin`, `Admin Lokasi`, `Karyawan`; pemilihan lokasi untuk Super Admin dan scoping otomatis di seluruh modul.
+- Keamanan login: throttling, single-session invalidation, verifikasi email (opsional), dan 2FA (SMS/Email/Authenticator App) dengan backup codes.
+- Kehadiran berbasis GPS + shift/roster; menolak check-in di luar jadwal/holiday/weekly off, dan memberi asumsi 8 jam jika belum checkout (hanya untuk tampilan).
+- Sistem shift terpisah master vs lokasi: template global, pivot location-shift (override slot, set default), scheduler, kalender roster mingguan, dan proteksi fairness (limit malam beruntun, hindari malam-ke-pagi).
+- Tugas & slot wajib: total menit slot = durasi task, total persentase = 100%; progres per slot wajib bukti (foto/dokumen/link) dan approval dengan alasan.
+- Target kerja per lokasi/bulan dan rekap jam kerja bulanan (ringkasan target, slot approved, kehadiran, sisa) dengan ekspor PDF bernama sesuai karyawan.
+- Lembur, cuti/izin, holiday, weekly off dengan approval dan ekspor; laporan attendance/overtime full-width dengan filter user/tanggal/shift.
+- Pesan internal, permintaan pindah lokasi, brand per lokasi (warna/logo/CSS kustom), dan unduhan lampiran aman untuk task/report.
 
-KantorApp is a comprehensive multi-location attendance management system built with Laravel, designed to streamline workforce management across multiple office locations. The system provides GPS-validated attendance tracking, flexible shift scheduling, task management, overtime handling, and comprehensive reporting capabilities.
+## Hasil Audit Kode (tingkat tinggi)
+- **Middleware keamanan**: `SecurityHeaders` (X-Frame/X-Content/Referrer/XSS), `SanitizeInput` (trim/strip tags/collapse spaces, skip list via config), `TwoFactorMiddleware` (blokir akses sebelum 2FA), `RoleMiddleware`, `LocationAware`. Kernel Laravel default tidak ditemukan di repo; pastikan middleware ini ter-register (cek bootstrap/app.php).
+- **Login hardening**: Route login custom dengan throttle 5/15 menit + lockout cache, single-session invalidation, guard email verification (env), wajib `location_id` untuk non-Super Admin, 2FA challenge sebelum akses.
+- **2FA**: Controller mendukung SMS/Email/App, secret terenkripsi, backup codes dengan konsumsi kode, disable flow, route challenge terpisah.
+- **Attendance**: Validasi radius lokasi + approved location change, blok OFF/holiday/leave, prefer shift assignment/roster lalu fallback location shift, grace early 30 menit, blok di luar slot, checkout wajib lokasi valid, cek overtime end time, early checkout perlu approval flag; recap/absence/report scoping per role.
+- **Shift/Roster**: Master shift + pivot `LocationShift` (override slot, default flag), weekly roster + export + fairness guard (anti overlap, hindari malam→pagi, deduplikasi slot/index, health-check mentions), scheduler/generator in controller; shift assignment model dipakai untuk attendance/resolusi slot.
+- **Tasks/Slots/Progress**: Task wajib slot, self-assign approval rules, slot approval/reject dengan alasan, progres per slot wajib lampiran (foto/dokumen/link) dan validasi rentang progres, unduhan lampiran aman di controller, modal reject transparan di UI.
+- **Work target & recap**: Controller menyiapkan target menit per lokasi/karyawan, recap harian bulanan (holiday/WO/leave dihitung) dan export PDF/XLSX; hanya slot approved yang mengurangi target.
+- **Lembur/Cuti/Holiday/Weekly Off**: Controller ada untuk CRUD + approval + export; attendance menolak check-in di hari OFF/holiday/leave.
+- **Reports & Messages**: Report CRUD + approval + lampiran unduh; pesan internal (list/detail/read/delete by Super Admin).
+- **API**: Controllers tersedia (`app/Http/Controllers/Api`) untuk Auth/Task/Report/Attendance/User, tetapi tidak ada `routes/api.php` sehingga belum ter- expose; perlu wiring jika ingin publik/mobile.
+- **Konfigurasi keamanan tambahan**: TwoFactorSecret terenkripsi via cast; password hashed; input sanitization global; belum terlihat rate limit khusus per route selain login; audit trail log tidak terpusat (per modul sudah mencatat relasi/approval).
 
-### High-level flow (current)
-- **Attendance**: Check-in/out divalidasi radius & roster. Jika belum checkout, durasi harian dianggap maksimal 8 jam (informasi saja, tidak mengurangi target).
-- **Tasks & Slots**: Semua task wajib memiliki slot; total menit slot = durasi task, total persentase slot = 100%. Progress bisa di-update setelah task disetujui dan harus menyertakan bukti (foto/dokumen/link).
-- **Approvals**: Self-assign karyawan → butuh Admin Lokasi (atau Super Admin jika tidak ada). Self-assign Admin Lokasi → butuh Super Admin. Slot/task bisa di-approve/reject dengan alasan.
-- **Work Target (menit)**: Target per lokasi/bulan (opsional per karyawan). Hanya slot yang disetujui yang mengurangi target; kehadiran tidak mengurangi target.
-- **Rekap Jam Kerja Bulanan**: Filter lokasi/karyawan/rentang tanggal, ringkasan target/slot approved/kehadiran/sisa, detail slot approved & kehadiran, export ke PDF (nama file memakai nama karyawan).
-- **Reporting**: Attendance report full width, filter user/tanggal/shift + export; daftar target menit per lokasi/karyawan dapat difilter.
-- **Attachments**: Detail task menampilkan preview foto dan link unduh dokumen sesuai lampiran yang di-upload.
+## Modul & Rute (berdasarkan kode)
+- **Dashboard & Lokasi**: Dashboard terikat lokasi, pemilihan lokasi untuk Super Admin (`LocationSelectionController`), CRUD lokasi & pengaturan (GPS, branding, jam default).
+- **Shift & Roster**: Master shift (template global), location-shift pivot (aktifkan/override slot, set default), weekly roster (kalender, export), scheduler/generator, proteksi fairness (anti overlap, hindari malam→pagi, batas malam beruntun, deduplikasi slot).
+- **Attendance**: Check-in/out dengan validasi radius + window shift/roster, absence list, recap + export, approval status, guard OFF/holiday/weekly-off.
+- **Tasks & Slot**: CRUD task, self-assign dengan approval, slot wajib (menit=durasi, persentase=100%), approval/reject task & slot dengan alasan, progres per slot wajib lampiran, unduhan lampiran foto/dokumen.
+- **Work Target & Recap**: Target menit per lokasi/karyawan, recap jam kerja bulanan (ringkasan + detail) dengan export PDF.
+- **Overtime**: Pengajuan lembur, approval Admin Lokasi/Super Admin, laporan & export.
+- **Cuti/Holiday**: Weekly off, holiday, dan leave; attendance menolak di hari OFF/holiday; kalender cuti/izin.
+- **Reports**: CRUD report dengan approval, lampiran yang dapat diunduh; attendance report full width + filter + export, overtime export.
+- **Master/Location Admin Tasks**: Tugas khusus Super Admin (Master Tasks) dan tugas Admin Lokasi.
+- **Komunikasi & Utilitas**: Pesan internal (list/detail/read/delete), permintaan pindah lokasi dengan approval, sanitasi input global (autoload middleware), sidebar mobile overlay.
+- **API Controllers**: Folder `app/Http/Controllers/Api` (Auth/User/Task/Report/Attendance) tersedia sebagai dasar integrasi, namun rute API belum di-define (tidak ada `routes/api.php`).
 
-## Recent Updates
+## Modul & Alur Utama
 
-- Task & Slot Approval
-  - Slot wajib, total menit slot = durasi task, persentase total = 100%.
-  - Self-assign: karyawan → Admin Lokasi/Super Admin; Admin Lokasi → Super Admin.
-  - Progress hanya setelah task disetujui; reject wajib alasan; lampiran foto/dokumen/link wajib saat update progres.
-- Work Target & Rekap
-  - Hanya slot approved yang mengurangi target menit bulanan per lokasi/karyawan.
-  - Kehadiran ditampilkan (maks 8 jam/hari jika belum checkout) tapi tidak mengurangi target.
-  - Rekap jam kerja bulanan bisa export PDF (nama file pakai nama karyawan), menampilkan ringkasan target/slot/kehadiran/sisa + detail slot & kehadiran.
-- UI & Approval
-  - Halaman approval tugas dalam tabel dengan filter lokasi/karyawan dan modal reject dengan backdrop transparan (halaman tetap terlihat).
-  - Sidebar punya menu approval karyawan/admin lokasi; laporan attendance full width.
-- Reporting
-  - Attendance report: filter user/tanggal/shift + export; target jam kerja per lokasi/karyawan dapat difilter.
-- Security & Forms
-  - Validasi form menjaga input lama, menampilkan alert; akses ditolak jika approve/reject slot pada task yang sudah ditolak.
+### Akun & Keamanan
+- Role-based access via Spatie Permission; guard tunggal `web`.
+- Login: throttling 5x/15 menit, single-session (session lain dihapus saat login), bisa mewajibkan email verified (env flag).
+- 2FA: SMS, Email, atau Authenticator App; secret terenkripsi, backup codes, challenge flow sebelum akses.
+- Middleware `TwoFactorMiddleware` menjaga akses sampai verifikasi; sanitasi input global disertakan.
 
-## Feature Summary (current)
+### Lokasi & Branding
+- CRUD lokasi, location settings (GPS radius, jam kerja default, warna/tema, CSS kustom).
+- Super Admin dapat memilih konteks lokasi; Admin Lokasi terikat ke `location_id`.
+- Location Admin Tasks dan Master Tasks untuk pekerjaan level lokasi atau global.
 
-- Security & Compliance
-  - 2FA multi-metode (SMS/Email/App), login lockout, session timeout, sanitasi input global.
-  - Peran & guard: Super Admin, Admin Lokasi, Karyawan dengan scoping lokasi; akses approval dibatasi role.
-  - Check-in/out divalidasi radius lokasi + jadwal roster, menolak di luar jam atau OFF; audit trail via attendance & task logs.
-- Attendance & Shift
-  - Roster mingguan dengan kapasitas per slot, proteksi transisi malam→pagi, batas 2 shift malam beruntun; health-check roster CLI.
-  - Check-in/out terikat `shift_assignment_id`; jika belum checkout, durasi harian diasumsikan maks 8 jam (informasi).
-- Tasks & Slot Progress
-  - Task wajib punya slot; total menit slot = durasi task, total persentase = 100%.
-  - Progress per slot wajib lampiran (foto/dokumen/link), validasi progres 0–100, form menampilkan error tanpa kehilangan input.
-  - Lampiran task dapat di-preview/diunduh (foto + dokumen) di detail task.
-- Approvals
-  - Self-assign karyawan: perlu Admin Lokasi atau Super Admin. Self-assign Admin Lokasi: perlu Super Admin.
-  - Slot/task bisa di-approve/reject dengan alasan; jika task ditolak, slot turunannya otomatis ditolak dan aksi lain ditolak.
-  - Modal reject transparan (halaman tetap terlihat); tabel approval dengan filter lokasi/karyawan.
-- Work Target & Recap
-  - Target menit per lokasi/bulan (opsional per karyawan); hanya slot approved yang mengurangi target.
-  - Rekap jam kerja bulanan: ringkasan target/slot approved/kehadiran/sisa + detail slot & kehadiran; export PDF memakai nama karyawan.
-- Reporting & Export
-  - Attendance report full width, filter user/tanggal/shift, export.
-  - Target jam kerja per lokasi/karyawan dapat difilter dan dicatat; health-check roster CLI tersedia.
-- Overtime & Leave
-  - Pengajuan lembur dengan approval; libur nasional/weekly off dihormati; leave/cuti dicatat di kalender & tidak dihitung alfa.
+### Shift & Roster
+- Master Shifts: template global (kode, kategori office/non-office, single/multi slot, break minutes).
+- Location Shifts: pivot untuk mengaktifkan shift per lokasi, override slot waktu, set `is_default` untuk office shift.
+- Weekly roster: kalender, ekspor per roster, generator/scheduler untuk rolling shift.
+- Fairness dan validasi: anti-overlap, batas shift malam beruntun, hindari transisi malam→pagi, hormati weekly off/cuti/holiday, deduplikasi slot/index.
+- Attendance dan assignment mengambil slot dari roster/pivot; admin lokasi hanya bisa pakai shift yang diaktifkan di lokasinya.
 
-### Key Features
+### Kehadiran
+- Check-in/out divalidasi radius GPS + window shift/roster; menolak jika off/holiday atau di luar jam.
+- Absence list, recap, laporan kehadiran dengan filter user/tanggal/shift; ekspor XLSX.
+- Durasi harian diasumsikan maks 8 jam jika belum checkout (hanya tampilan, tidak mengurangi target).
 
-#### 🏢 Multi-Location Support
-- **Location Management**: Create and manage multiple office locations
-- **Location-Based Access Control**: Role-based permissions scoped to specific locations
-- **Location Settings**: Customize settings per location (GPS coordinates, branding, schedules)
-- **Location Transfer**: Seamless employee transfers between locations
+### Tugas, Slot, dan Progres
+- Semua task wajib punya slot; total menit = durasi task dan total persentase = 100%.
+- Self-assign karyawan butuh approval Admin Lokasi (fallback Super Admin); self-assign Admin Lokasi butuh Super Admin.
+- Progress per slot bisa setelah task disetujui; wajib lampiran (foto/dokumen/link); approve/reject dengan alasan, penolakan task menolak seluruh slot turunannya.
+- Lampiran dapat di-preview/diunduh; halaman approval tabel dengan filter lokasi/karyawan dan modal reject transparan.
 
-#### 📍 GPS-Validated Attendance
-- **Real-time GPS Tracking**: Accurate location validation during check-in/out
-- **Geofencing**: Configurable location boundaries with radius settings
-- **Anti-Spoofing**: Advanced GPS validation to prevent location manipulation
-- **Attendance History**: Complete audit trail of attendance records
+### Target Kerja & Rekap
+- Target menit per lokasi/bulan (opsional per karyawan); hanya slot approved yang mengurangi target.
+- Rekap jam kerja bulanan menampilkan ringkasan target vs slot approved vs kehadiran vs sisa, plus detail slot & kehadiran; ekspor PDF memakai nama karyawan.
 
-#### ⏰ Flexible Shift Management
-- **Dynamic Shift Scheduling**: Create custom shifts with flexible time slots
-- **Shift Rotation**: Support for rotating schedules and patterns
-- **Overtime Integration**: Automatic overtime calculation based on shift hours
+### Lembur, Cuti, Holiday
+- Overtime request dengan approval (Admin Lokasi atau fallback Super Admin), laporan dan ekspor XLSX.
+- Weekly off, holiday, dan leave dicatat; attendance menolak check-in pada hari off/holiday; kalender cuti/izin tersedia.
 
-#### 📋 Task Management
-- **Employee Tasks**: Daily task tracking and progress monitoring
-- **Master Tasks**: Administrative task assignment and oversight
-- **File Attachments**: Support for photos and documents in tasks
-- **Task Categories**: Organize tasks by type and priority
+### Laporan & Ekspor
+- Attendance report full width dengan filter user/tanggal/shift + ekspor XLSX.
+- Overtime report & export, work target listings (filter per lokasi/karyawan).
+- Roster export per entri; work recap PDF; lampiran laporan dapat diunduh.
 
-#### 💼 Overtime & Leave Management
-- **Overtime Requests**: Employee overtime submission with approval workflow
-- **Leave Management**: Comprehensive leave tracking (annual, sick, personal)
-- **Holiday Calendar**: Configurable holidays and weekly offs
-- **Approval Workflows**: Multi-level approval system for requests
+### Komunikasi & Utility
+- Pesan internal (daftar percakapan, detail, tandai sudah dibaca, hapus oleh Super Admin).
+- Permintaan pindah lokasi dengan approval Admin Lokasi/Super Admin.
+- Sidebar mobile-friendly dengan overlay, tema per lokasi via CSS variable dan tema opsional `public/themes/{theme}.css`.
+- Geocoder Leaflet default negara `id`; override dengan `window.APP_GEO_COUNTRY_CODES`.
 
-#### 📊 Reporting & Analytics
-- **Excel Exports**: Comprehensive attendance and overtime reports
-- **Dashboard Analytics**: Real-time metrics and KPIs
-- **Custom Reports**: Filtered reports by location, department, date range
-- **Data Visualization**: Charts and graphs for attendance patterns
+### Backlog Prioritas (berdasarkan TODO)
+- API publik (JWT/Sanctum) dan dokumentasi OpenAPI.
+- APM/error tracking (Sentry/New Relic), notifikasi real-time yang lebih kaya.
+- Mobile/offline mode, payroll & HR integration, penguatan anti-spoofing GPS lanjutan.
 
-#### 👥 User Management & Communication
-- **Role-Based Access**: Super Admin, Location Admin, Employee roles
-- **Employee Directory**: Centralized employee information management
-- **Internal Messaging**: Real-time communication between users
-- **User Transfer**: Administrative tools for user management
+## Teknologi
+- Laravel 12, PHP 8.2+
+- Blade + AdminLTE (Bootstrap 5)
+- Spatie Laravel Permission (role), Laravel Reverb (WebSockets, optional), Maatwebsite Excel (export), Barryvdh DomPDF (PDF)
+- Queue: database/Redis; Session/Cache: database (default)
 
-#### 🔒 Security & Compliance
-- **Data Encryption**: Secure data storage and transmission
-- **Audit Trails**: Complete logging of all system activities
-- **GDPR Ready**: Privacy-compliant data handling
-- **Multi-Tenant Architecture**: Isolated data per organization
+## Prasyarat Server
+- PHP 8.2+ dengan ekstensi: pdo_mysql, mbstring, xml, curl, zip, gd, fileinfo
+- MySQL 8.0+ / MariaDB 10.5+
+- Node.js 18+ untuk build aset
+- RAM ≥2GB (4GB disarankan), storage ≥20GB
 
-## Technical Stack
-
-- **Framework**: Laravel 12.0
-- **PHP**: 8.3+
-- **Database**: MySQL 8.0+ / MariaDB 10.5+
-- **Frontend**: Blade Templates, AdminLTE UI
-- **Authentication**: Laravel Sanctum (API-ready)
-- **Authorization**: Spatie Laravel Permission
-- **Real-time**: Laravel Reverb (WebSockets)
-- **Export**: Maatwebsite Laravel Excel
-- **Queue**: Database/Redis queue system
-
-## System Requirements
-
-### Server Requirements
-- **OS**: Ubuntu 20.04+, CentOS 7+, Windows Server 2019+
-- **Web Server**: Apache 2.4+ / Nginx 1.18+
-- **PHP**: 8.3+ with extensions:
-  - `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `gd`, `fileinfo`
-- **Database**: MySQL 8.0+ / MariaDB 10.5+
-- **RAM**: Minimum 2GB (Recommended 4GB+)
-- **Storage**: Minimum 20GB (Recommended 50GB+)
-
-### Client Requirements
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- JavaScript enabled
-- GPS-enabled device for mobile attendance
-- Stable internet connection
-
-## Installation
-
-### Quick Setup (Development)
-
-1. **Clone the repository**
+## Instalasi (Development)
+1) Clone repo  
    ```bash
    git clone <repository-url>
    cd kantorapp
    ```
-
-2. **Install dependencies**
+2) Install dependency PHP & JS  
    ```bash
    composer install
    npm install
    ```
-   > **Important:** Pastikan command baris-perintah Anda menggunakan PHP 8.3 atau lebih baru (contoh Laragon: `E:\laragon\bin\php\php-8.4.13-nts-Win32-vs17-x64\php.exe`). Perbedaan versi antara CLI dan web server akan menyebabkan error Composer platform check.
-
-3. **Environment setup**
+3) Salin environment & key  
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
-
-4. **Database configuration**
-   - Create MySQL database
-   - Update `.env` with database credentials
+4) Konfigurasi database dan seed  
    ```bash
    php artisan migrate --seed
-   php artisan db:seed --class=RoleSeeder   # memastikan role Super Admin/Admin Lokasi/Karyawan dengan guard 'web'
+   php artisan db:seed --class=RoleSeeder   # memastikan role Super Admin/Admin Lokasi/Karyawan (guard web)
    ```
-
-5. **Build assets**
+5) Build aset  
    ```bash
-   npm run build
-   # or for development
-   npm run dev
+   npm run build   # atau npm run dev
    ```
-
-6. **Start the application**
+6) Jalankan aplikasi  
    ```bash
    php artisan serve
    ```
 
-### Automated Setup Script
+> Catatan: gunakan versi PHP CLI yang sama dengan web server (minimal 8.2) agar Composer tidak gagal karena platform check.
 
-The project includes an automated setup script:
+### Script Pengembang
+- `composer run setup` – setup cepat (install, keygen, migrate, npm build).
+- `composer run dev` – serve app + queue listener + Vite dev server secara paralel.
+- `composer run test` – clear config cache lalu jalanin test.
 
-```bash
-composer run setup
-```
+## Penggunaan Singkat
+- **Karyawan**: cek-in/out via halaman attendance, ikuti shift/roster lokasi; ajukan tugas self-assign (menunggu approval), unggah progres dengan lampiran; ajukan lembur/cuti.
+- **Admin Lokasi**: kelola task/slot, approve progres/attendance/lembur/cuti, atur roster mingguan lokasi (shift yang diaktifkan di lokasi), kelola target & rekap kerja, kelola settings lokasi.
+- **Super Admin**: semua di atas plus membuat master shift, mengatur location-shift, promosi/demosi admin lokasi, branding lokasi, master tasks, dan memilih konteks lokasi untuk bekerja.
 
-This will:
-- Install PHP dependencies
-- Generate application key
-- Run database migrations
-- Seed initial data
-- Install and build frontend assets
-
-### Post-install Checklist
-
-- Verifikasi tabel `roles` berisi `Super Admin`, `Admin Lokasi`, dan `Karyawan` dengan `guard_name` = `web`. Jika Anda pernah membuat role sebelumnya dengan guard berbeda, jalankan ulang `RoleSeeder` atau perbaiki melalui tinker/SQL.
-- Tetapkan `location_id` pada setiap Admin Lokasi agar permintaan lembur karyawan diarahkan ke approver yang benar.
-- Pastikan user Karyawan memiliki role `Karyawan` dan, bila applicable, `location_id` aktif sehingga fallback ke Super Admin hanya terjadi saat tidak ada Admin Lokasi.
-- Jalankan seluruh perintah Artisan/Composer menggunakan PHP 8.3+ yang sama dengan versi PHP web server Anda.
-- Untuk pencarian peta (Leaflet), secara bawaan geocoder dibatasi ke kode negara `id`. Jika perlu cakupan lain, definisikan variabel global sebelum script peta: `<script>window.APP_GEO_COUNTRY_CODES = 'sg,my';</script>` atau kosongkan string untuk pencarian global.
-
-## Usage
-
-### User Roles
-
-#### Super Admin
-- Full system access across all locations
-- User management and role assignment
-- Location creation and configuration
-- System-wide reporting and analytics
-
-#### Location Admin (Admin Lokasi)
-- Manage users within their location
-- Configure location-specific settings
-- Approve attendance and overtime requests
-- Generate location-specific reports
-
-#### Employee (Karyawan)
-- Daily attendance check-in/out
-- Task management and submission
-- Overtime request submission
-- Leave request management
-
-### Key Workflows
-
-#### Daily Attendance
-1. Employee checks in via web/mobile interface
-2. GPS validation confirms location
-3. System records check-in time and location
-4. Employee checks out at end of shift
-5. System calculates total hours worked
-
-#### Shift Assignment
-1. Admin creates shift schedules
-2. Assigns employees to specific shifts
-3. System validates shift conflicts
-4. Employees receive shift notifications
-5. Attendance system uses shift data for validation
-
-#### Overtime Management
-1. Employee submits overtime request
-2. Location admin (atau fallback Super Admin bila lokasi tidak memiliki admin) meninjau dan menyetujui
-3. System calculates overtime hours
-4. Payroll integration (if configured)
-5. Reports generated for accounting
-
-## Application Modules
-
-The following modules and menus are available in the web application. Each item lists the main routes and required roles.
-
-- Dashboard
-  - `GET /dashboard` — Overview cards, recent assignments, notices (holidays/leaves), location metrics.
-
-- Messages
-  - `GET /messages` — List conversations
-  - `GET /messages/{user}` — Conversation detail
-  - `POST /messages` — Send message
-  - `PATCH /messages/{id}/read` — Mark as read
-  - `DELETE /messages/{id}` — Delete (Super Admin)
-
-- Tasks (Employee Tasks)
-  - `GET /tasks` — List
-  - `GET /tasks/create` — Create (assign)
-  - `POST /tasks` — Store
-  - `GET /tasks/create-self` — Create task for self
-  - `POST /tasks/store-self` — Store self task
-  - `GET /tasks/{task}` — Show
-  - `GET /tasks/{task}/edit` — Edit
-  - `PATCH /tasks/{task}` — Update
-  - `DELETE /tasks/{task}` — Delete
-  - `GET /tasks/{task}/download-photo` — Download attachment (photo)
-  - `GET /tasks/{task}/download-document` — Download attachment (document)
-
-- Master Tasks (Super Admin)
-  - `GET /master-tasks` — List (Super Admin)
-  - `GET /master-tasks/create` — Create (Super Admin)
-  - `POST /master-tasks` — Store
-  - `GET /master-tasks/create-self` — Create for self
-  - `POST /master-tasks/store-self` — Store self
-  - `GET /master-tasks/{masterTask}` — Show
-  - `GET /master-tasks/{masterTask}/edit` — Edit
-  - `PATCH /master-tasks/{masterTask}` — Update
-  - `DELETE /master-tasks/{masterTask}` — Delete
-  - `GET /master-tasks/{masterTask}/download-photo` — Download photo
-  - `GET /master-tasks/{masterTask}/download-document` — Download document
-
-- Attendance
-  - `GET /attendance/checkin` — Check In/Out page
-  - `POST /attendance/checkin` — Check in
-  - `POST /attendance/checkout` — Check out
-  - `GET /attendance/report` — Attendance report
-  - `GET /attendance/export` — Export to Excel
-  - `PATCH /attendance/{id}/approval` — Update approval
-  - `GET /attendance/absences` — Absence list
-  - `GET /attendance/recap` — Recap view
-
-- Overtime
-  - `GET /overtime` — List requests
-  - `GET /overtime/create` — Create
-  - `POST /overtime` — Store
-  - `GET /overtime/{overtime}` — Show
-  - `GET /overtime/export` — Export to Excel
-  - `GET /overtime-report` — Report view
-  - `PATCH /overtime/{overtime}/approve` — Approve (Super Admin)
-
-- Holidays, Weekly Offs, Leaves
-  - Holidays (Super Admin, Admin Lokasi): `GET/POST/DELETE /holidays`
-  - Weekly Offs (Super Admin, Admin Lokasi): `GET/POST/DELETE /weekly-offs`
-  - Leaves: `GET /leaves`, `POST /leaves` (Super Admin, Admin Lokasi, Karyawan), `PATCH /leaves/{leave}/status` (Super/Admin Lokasi)
-
-- Locations
-  - Location settings: `GET /locations/{location}` show, `GET /locations/{location}/settings`, `PATCH /locations/{location}/settings`
-  - Location admins (Super Admin): `resource /location-admins`
-  - Location admin tasks (Super/Admin Lokasi): `resource /location-admin-tasks` + download routes
-  - Location change requests: `GET /location-change-requests` (index/create/store), `PATCH /location-change-requests/{id}/status` (Admin Lokasi)
-
-- Shifts
-  - Shifts (Super Admin): `resource /shifts`
-  - Location shifts (Super Admin): `resource /location-shifts`, `POST /location-shifts/{location}/attach-shift`, `DELETE /location-shifts/{location}/detach-shift/{shift}`
-
-- Employees (Karyawan)
-  - `resource /karyawans` (Super Admin, Admin Lokasi)
-
-- Two-Factor Authentication (2FA)
-  - `GET /2fa/setup` — Choose method: SMS, Email, Authenticator App
-  - `POST /2fa/setup` — Persist method (and secret for app)
-  - `GET /2fa/verify` — Enter code (email/sms/app)
-  - `POST /2fa/verify` — Verify code (enables 2FA and generates backup codes on first confirmation)
-  - `POST /2fa/disable` — Disable 2FA (requires authenticated session)
-  - Challenge flow: `GET /2fa/challenge` during login, then redirect to `2fa.verify`
-
-## Security & Middleware
-
-- Role-based authorization via Spatie Permission
-  - Roles used: `Super Admin`, `Admin Lokasi`, `Karyawan`
-  - Custom `RoleMiddleware` supports comma/pipe separated roles
-- TwoFactorMiddleware
-  - Protects authenticated routes until 2FA is verified (`session('2fa_verified')`)
-  - Skips only setup/verify routes (not disable)
-- 2FA storage
-  - `users.two_factor_secret` stored encrypted
-  - Backup codes generated and consumed on use
-  - Basic session-based brute-force guard for verification attempts
-
-## Exports
-
-- Attendance and Overtime exports using Laravel Excel
-- Files are generated through dedicated controller actions: `/attendance/export`, `/overtime/export`
-
-## Frontend & UX
-
-- Layout based on AdminLTE (Bootstrap 5)
-- Mobile-friendly sidebar
-  - Header hamburger and in-sidebar hamburger
-  - Auto-close on menu/submenu click in mobile
-  - Overlay managed to prevent interaction lock
-- Per-location branding
-  - Dynamic CSS variables for primary/secondary colors
-  - Optional custom CSS per location
-  - Optional theme stylesheet: `public/themes/{theme}.css`
-- Custom assets
-  - `public/asset/app.css` — app styles (helpers + sidebar overlay)
-  - `public/asset/app.js` — sidebar behavior and OverlayScrollbars init
-
-## Configuration
-
-- `.env` notable keys
-  - `SESSION_DRIVER=database`
-  - `QUEUE_CONNECTION=database`
-  - `CACHE_STORE=database`
-  - `MAIL_MAILER=log` (dev) — set SMTP in production
-  - Twilio (if SMS 2FA enabled): `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`
-  - Reverb (WebSocket) keys if used for real-time
-
-## Testing
-
-- Run tests
-  - `composer test` or `php artisan test`
-- Included feature tests
-  - `tests/Feature/TwoFactorAuthTest.php` — covers 2FA setup/verify/disable and backup codes
-
-## Developer Scripts
-
-- Composer
-  - `composer run setup` — one-shot local setup
-  - `composer run dev` — serve app, queue listener, and Vite dev server concurrently
-  - `composer run test` — clear config cache and run tests
-
+## Pengujian
+- Jalankan `composer run test` atau `php artisan test`.
+- Tersedia feature test 2FA (`tests/Feature/TwoFactorAuthTest.php`); tambahkan test baru untuk modul lain sesuai kebutuhan.
 
 ## Deployment
+Ikuti panduan lengkap di `DEPLOYMENT_GUIDE.md`. Ringkas: install dependency prod (`composer install --no-dev --optimize-autoloader`, `npm run build`), migrate+seed dengan `--force`, cache config/route/view, dan jalankan worker queue bila dipakai.
 
-### Production Deployment
-
-For detailed production deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
-
-#### Quick Production Setup
-
-1. **Server preparation**
-   ```bash
-   # Ubuntu/Debian
-   sudo apt update
-   sudo apt install apache2 mysql-server php8.2 php8.2-mysql php8.2-xml php8.2-curl php8.2-zip php8.2-gd php8.2-mbstring php8.2-fileinfo
-   ```
-
-2. **Application deployment**
-   ```bash
-   # Upload files to /var/www/kantorapp
-   cd /var/www/kantorapp
-   composer install --optimize-autoloader --no-dev
-   npm install && npm run build
-   ```
-
-3. **Environment configuration**
-   ```bash
-   cp .env.example .env
-   # Edit .env with production settings
-   php artisan key:generate
-   ```
-
-4. **Database setup**
-   ```bash
-   php artisan migrate --force
-   php artisan db:seed --force
-   ```
-
-5. **Optimization**
-   ```bash
-   php artisan config:cache
-   php artisan route:cache
-   php artisan view:cache
-   php artisan storage:link
-   ```
-
-6. **Queue worker (optional)**
-   ```bash
-   php artisan queue:work --daemon
-   ```
-
-### SSL Configuration
-
-```bash
-# Using Let's Encrypt
-sudo apt install certbot python3-certbot-apache
-sudo certbot --apache -d yourdomain.com
-```
-
-### Monitoring & Maintenance
-
-- **Logs**: Monitor `/storage/logs/laravel.log`
-- **Backups**: Automated daily database backups
-- **Updates**: Regular security updates and patches
-- **Performance**: Monitor response times and resource usage
-
-## Configuration
-
-### Environment Variables
-
-Key configuration options in `.env`:
-
-```env
-# Application
-APP_NAME="KantorApp"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost
-
-# Database
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_DATABASE=kantorapp
-DB_USERNAME=your_user
-DB_PASSWORD=your_password
-
-# GPS Settings
-GOOGLE_MAPS_API_KEY=your_api_key
-
-# Mail Configuration (Gmail example)
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_ENCRYPTION=tls
-MAIL_USERNAME=your_gmail_address
-MAIL_PASSWORD=your_gmail_app_password
-MAIL_FROM_ADDRESS=your_gmail_address
-MAIL_FROM_NAME="${APP_NAME}"
-
-# Email verification gate (optional)
-EMAIL_VERIFICATION_ENABLED=false
-
-# Queue (sync for local dev)
-QUEUE_CONNECTION=sync
-```
-
-### Mail & Verification Config
-
-- Gmail SMTP requires App Password (not your normal password). Enable 2‑Step Verification → App Passwords → generate for “Mail”. Use port `587` + `tls` or port `465` + `ssl`.
-- If verification is enabled (`EMAIL_VERIFICATION_ENABLED=true`), users must verify email before accessing protected routes; login will prompt resend.
-- If verification links show invalid signature, ensure `APP_URL` matches the URL you use in the browser.
-
-### Location Settings
-
-Each location can be configured with:
-- GPS coordinates and radius
-- Working hours and shifts
-- Branding colors and logo
-- Custom policies and rules
-
-## API Documentation
-
-The system includes REST API endpoints for integration:
-
-- Authentication: `/api/login`, `/api/logout`
-- Attendance: `/api/attendance/checkin`, `/api/attendance/checkout`
-- Tasks: `/api/tasks`, `/api/tasks/{id}`
-- Reports: `/api/reports/attendance`, `/api/reports/overtime`
-
-API documentation available at `/api/documentation` when in development mode.
-
-## Testing
-
-### Running Tests
-
-```bash
-# Run all tests
-php artisan test
-
-# Run specific test suite
-php artisan test --testsuite=Feature
-
-# Run with coverage
-php artisan test --coverage
-```
-
-### Test Coverage
-
-- Unit tests for models and services
-- Feature tests for critical workflows
-- Integration tests for API endpoints
-- Browser tests for UI interactions
-
-## Security
-
-### Security Features
-
-- **CSRF Protection**: All forms protected against CSRF attacks
-- **XSS Prevention**: Input sanitization and output escaping
-- **SQL Injection Prevention**: Parameterized queries
-- **Rate Limiting**: API and login attempt limiting
-- **Data Encryption**: Sensitive data encrypted at rest
-- **Audit Logging**: Complete activity logging
-
-### Security Best Practices
-
-- Regular security updates
-- Strong password policies
-- Two-factor authentication ready
-- Secure session management
-- File upload restrictions
-
-## Contributing
-
-Thank you for considering contributing to KantorApp!
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new features
-5. Ensure all tests pass
-6. Submit a pull request
-
-### Coding Standards
-
-- Follow PSR-12 coding standards
-- Use meaningful commit messages
-- Write comprehensive tests
-- Update documentation for new features
-
-## License
-
-KantorApp is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-## Support
-
-### Documentation
-- [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [API Documentation](api/documentation)
-- [User Manual](docs/user-manual.md)
-
-### Community
-- Report issues on GitHub
-- Join our Discord community
-- Check documentation for FAQs
-
-### Professional Support
-- Email: support@kantorapp.com
-- Priority support packages available
-- Custom development services
-
----
-
-**Built with ❤️ using Laravel**
-
-*Empowering businesses with intelligent workforce management*
+## Dukungan & Dokumentasi
+- Panduan deployment: `DEPLOYMENT_GUIDE.md`
+- Rencana/roadmap keamanan & shift: `TODO_SECURITY_ENHANCEMENT.md`, `TODO_SHIFT`, `TODO_PHASE2_SHIFT_SYSTEM.md`, `deskripsi_fitur_shift.md`, `TODO_ROSTER_FAIRNESS.md`
+- Pertanyaan/isu: buka tiket di repositori atau hubungi tim internal.
