@@ -1,11 +1,11 @@
-@extends('layouts.appnew')
-@section('title')
+
+<?php $__env->startSection('title'); ?>
 <div class="row">
   <div class="col-sm-12">
     <div class="page-title-box">
       <div class="btn-group float-right">
         <ol class="breadcrumb hide-phone p-0 m-0">
-          <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+          <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
           <li class="breadcrumb-item active">Dashboard</li>
         </ol>
       </div>
@@ -13,9 +13,9 @@
     </div>
   </div>
 </div>
-@endsection
-@section('content')
-@php
+<?php $__env->stopSection(); ?>
+<?php $__env->startSection('content'); ?>
+<?php
   $statCards = [];
   $secondaryCards = [];
   if($user->hasRole('Super Admin')) {
@@ -49,74 +49,76 @@
       ];
     }
   }
-@endphp
+?>
 
-@if(!empty($statCards))
+<?php if(!empty($statCards)): ?>
   <div class="row">
-    @foreach($statCards as $card)
+    <?php $__currentLoopData = $statCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
       <div class="col-md-6 col-xl-3">
         <div class="card m-b-30">
           <div class="card-body">
             <div class="d-flex align-items-center">
               <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
-                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
+                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
                 </div>
               </div>
               <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1">{{ $card['label'] }}</p>
-                @if(!empty($card['extra']))
+                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
+                <?php if(!empty($card['extra'])): ?>
                   <h5 class="mb-0">
-                    @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
-                      {{ $todayAssignmentTime }}
-                    @elseif($todayAssignment && $todayAssignment->shift)
-                      {{ $todayAssignment->shift->name }}
-                      @if(!empty($todayAssignmentTime))
-                        <span class="d-block text-muted small">{{ $todayAssignmentTime }}</span>
-                      @endif
-                    @elseif(!empty($todayAssignmentTime))
-                      <span class="text-muted small">{{ $todayAssignmentTime }}</span>
-                    @else
+                    <?php if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda'): ?>
+                      <?php echo e($todayAssignmentTime); ?>
+
+                    <?php elseif($todayAssignment && $todayAssignment->shift): ?>
+                      <?php echo e($todayAssignment->shift->name); ?>
+
+                      <?php if(!empty($todayAssignmentTime)): ?>
+                        <span class="d-block text-muted small"><?php echo e($todayAssignmentTime); ?></span>
+                      <?php endif; ?>
+                    <?php elseif(!empty($todayAssignmentTime)): ?>
+                      <span class="text-muted small"><?php echo e($todayAssignmentTime); ?></span>
+                    <?php else: ?>
                       --
-                    @endif
+                    <?php endif; ?>
                   </h5>
-                @else
-                  <h4 class="mb-0">{{ $card['value'] }}</h4>
-                @endif
+                <?php else: ?>
+                  <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
+                <?php endif; ?>
               </div>
             </div>
           </div>
         </div>
       </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
   </div>
-@endif
+<?php endif; ?>
 
-@if(!empty($secondaryCards))
+<?php if(!empty($secondaryCards)): ?>
   <div class="row">
-    @foreach($secondaryCards as $card)
+    <?php $__currentLoopData = $secondaryCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
       <div class="col-md-6 col-xl-3">
         <div class="card m-b-30">
           <div class="card-body">
             <div class="d-flex align-items-center">
               <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
-                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
+                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
                 </div>
               </div>
               <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1">{{ $card['label'] }}</p>
-                <h4 class="mb-0">{{ $card['value'] }}</h4>
+                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
+                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
               </div>
             </div>
           </div>
         </div>
       </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
   </div>
-@endif
+<?php endif; ?>
 
-@if(auth()->user()->hasRole('Karyawan'))
+<?php if(auth()->user()->hasRole('Karyawan')): ?>
   <div class="row">
     <div class="col-md-12">
       <div class="card m-b-30">
@@ -127,36 +129,39 @@
           <div class="row">
            <div class="col-md-4">
              <div class="font-weight-bold">Lokasi</div>
-             <div class="text-muted">{{ $userLocationName ?? '-' }}</div>
+             <div class="text-muted"><?php echo e($userLocationName ?? '-'); ?></div>
            </div>
            <div class="col-md-4">
              <div class="font-weight-bold">Shift (rencana)</div>
              <div class="text-muted">
-                @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
-                  {{ $todayAssignmentTime }}
-                @elseif($todayAssignment && $todayAssignment->shift)
-                  {{ $todayAssignment->shift->name }} @if(!empty($todayAssignmentTime)) ({{ $todayAssignmentTime }}) @endif
-                @elseif(!empty($todayAssignmentTime))
-                  {{ $todayAssignmentTime }}
-                @else
+                <?php if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda'): ?>
+                  <?php echo e($todayAssignmentTime); ?>
+
+                <?php elseif($todayAssignment && $todayAssignment->shift): ?>
+                  <?php echo e($todayAssignment->shift->name); ?> <?php if(!empty($todayAssignmentTime)): ?> (<?php echo e($todayAssignmentTime); ?>) <?php endif; ?>
+                <?php elseif(!empty($todayAssignmentTime)): ?>
+                  <?php echo e($todayAssignmentTime); ?>
+
+                <?php else: ?>
                   --
-                @endif
-                @if(!empty($todayPlannedDate))
-                  <div class="text-muted small">Tanggal: {{ $todayPlannedDate }}</div>
-                @endif
+                <?php endif; ?>
+                <?php if(!empty($todayPlannedDate)): ?>
+                  <div class="text-muted small">Tanggal: <?php echo e($todayPlannedDate); ?></div>
+                <?php endif; ?>
               </div>
             </div>
             <div class="col-md-4">
               <div class="font-weight-bold">Clock In / Clock Out</div>
               <div class="text-muted">
-                @php
+                <?php
                   $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
                   $co = $todayAttendance && $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : '--';
-                @endphp
-                @if(!empty($todayPlannedDate))
-                  <div class="text-muted small">{{ $todayPlannedDate }}</div>
-                @endif
-                {{ $ci }} / {{ $co }}
+                ?>
+                <?php if(!empty($todayPlannedDate)): ?>
+                  <div class="text-muted small"><?php echo e($todayPlannedDate); ?></div>
+                <?php endif; ?>
+                <?php echo e($ci); ?> / <?php echo e($co); ?>
+
               </div>
             </div>
           </div>
@@ -164,9 +169,9 @@
       </div>
     </div>
   </div>
-@endif
+<?php endif; ?>
 
-@if($user->hasRole('Admin Lokasi') && $attendanceList && $attendanceList->count() > 0)
+<?php if($user->hasRole('Admin Lokasi') && $attendanceList && $attendanceList->count() > 0): ?>
   <div class="row mt-3">
     <div class="col-12">
       <div class="card">
@@ -180,24 +185,24 @@
               <thead>
                 <tr>
                   <th style="width:50px">No</th>
-                  @if($user->hasRole('Admin Lokasi'))
+                  <?php if($user->hasRole('Admin Lokasi')): ?>
                     <th>Nama</th>
-                  @endif
+                  <?php endif; ?>
                   <th>Clock In</th>
                   <th>Clock Out</th>
                 </tr>
               </thead>
               <tbody>
-                @foreach($attendanceList as $att)
+                <?php $__currentLoopData = $attendanceList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $att): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                   <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    @if($user->hasRole('Admin Lokasi'))
-                      <td class="text-break">{{ optional($att->user)->name ?? 'Unknown' }}</td>
-                    @endif
-                    <td>{{ $att->check_in_time ? $att->check_in_time->format('H:i') : '--' }}</td>
-                    <td>{{ $att->check_out_time ? $att->check_out_time->format('H:i') : '--' }}</td>
+                    <td><?php echo e($loop->iteration); ?></td>
+                    <?php if($user->hasRole('Admin Lokasi')): ?>
+                      <td class="text-break"><?php echo e(optional($att->user)->name ?? 'Unknown'); ?></td>
+                    <?php endif; ?>
+                    <td><?php echo e($att->check_in_time ? $att->check_in_time->format('H:i') : '--'); ?></td>
+                    <td><?php echo e($att->check_out_time ? $att->check_out_time->format('H:i') : '--'); ?></td>
                   </tr>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
               </tbody>
             </table>
           </div>
@@ -205,10 +210,10 @@
       </div>
     </div>
   </div>
-@endif
+<?php endif; ?>
 
-@if(!$user->hasRole('Karyawan'))
-  @php
+<?php if(!$user->hasRole('Karyawan')): ?>
+  <?php
     $extraStats = [
       ['label' => 'Total Users', 'value' => $totalUsers, 'icon' => 'mdi-account-multiple', 'color' => 'info'],
       ['label' => 'Total Divisions', 'value' => $totalDivisions, 'icon' => 'mdi-office-building', 'color' => 'secondary'],
@@ -219,51 +224,51 @@
       ['label' => 'Attendance Rate (Today)', 'value' => number_format($locationMetrics['attendance_rate_today'] ?? 0, 2) . '%', 'icon' => 'mdi-account-check', 'color' => 'success'],
       ['label' => 'Overtime (Last 30d)', 'value' => number_format($locationMetrics['overtime_hours_30d'] ?? 0, 2) . ' hrs', 'icon' => 'mdi-timer', 'color' => 'warning'],
     ];
-  @endphp
+  ?>
   <div class="row">
-    @foreach($extraStats as $card)
+    <?php $__currentLoopData = $extraStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
       <div class="col-md-6 col-xl-4">
         <div class="card m-b-30">
           <div class="card-body">
             <div class="d-flex align-items-center">
               <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
-                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
+                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
                 </div>
               </div>
               <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1">{{ $card['label'] }}</p>
-                <h4 class="mb-0">{{ $card['value'] }}</h4>
+                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
+                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
               </div>
             </div>
           </div>
         </div>
       </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
   </div>
   <div class="row">
-    @foreach($performanceStats as $card)
+    <?php $__currentLoopData = $performanceStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
       <div class="col-md-6 col-xl-4">
         <div class="card m-b-30">
           <div class="card-body">
             <div class="d-flex align-items-center">
               <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
-                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
+                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
                 </div>
               </div>
               <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1">{{ $card['label'] }}</p>
-                <h4 class="mb-0">{{ $card['value'] }}</h4>
+                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
+                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
               </div>
             </div>
           </div>
         </div>
       </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
   </div>
-@endif
-@if(!$user->hasRole('Karyawan'))
+<?php endif; ?>
+<?php if(!$user->hasRole('Karyawan')): ?>
   <!--begin::Row-->
   <div class="row" id="monthly-recap">
     <div class="col-md-12">
@@ -301,21 +306,22 @@
         <div class="card-body" id="monthly-recap-body">
           <!-- Search Form -->
           <div class="mb-3">
-            <form method="GET" action="{{ route('dashboard') }}" class="d-flex" id="monthly-recap-search">
-              <input type="text" name="search" class="form-control me-2" placeholder="Search by task title or assignee name..." value="{{ request('search') }}">
+            <form method="GET" action="<?php echo e(route('dashboard')); ?>" class="d-flex" id="monthly-recap-search">
+              <input type="text" name="search" class="form-control me-2" placeholder="Search by task title or assignee name..." value="<?php echo e(request('search')); ?>">
               <button type="submit" class="btn btn-outline-primary">Search</button>
-              @if(request('search'))
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary ms-2">Clear</a>
-              @endif
+              <?php if(request('search')): ?>
+                <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-outline-secondary ms-2">Clear</a>
+              <?php endif; ?>
             </form>
           </div>
-          @if($tasks->hasPages())
+          <?php if($tasks->hasPages()): ?>
             <div class="d-flex justify-content-center mt-4">
-              {{ $tasks->appends(request()->query())->links() }}
+              <?php echo e($tasks->appends(request()->query())->links()); ?>
+
             </div>
-          @endif
+          <?php endif; ?>
           <div class="table-responsive" id="monthly-recap-table">
-            @if($user->hasRole('Super Admin'))
+            <?php if($user->hasRole('Super Admin')): ?>
               <table class="table table-bordered table-striped table-sm">
                 <thead>
                   <tr>
@@ -328,33 +334,33 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @foreach($tasks as $task)
+                  <?php $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                      <td>{{ $loop->iteration }}</td>
-                      <td class="text-break">{{ $task->assignee->name ?? 'Unassigned' }}</td>
-                      <td class="text-break">{{ $task->title }}</td>
-                      <td class="text-break">{{ Str::limit($task->description, 50) }}</td>
+                      <td><?php echo e($loop->iteration); ?></td>
+                      <td class="text-break"><?php echo e($task->assignee->name ?? 'Unassigned'); ?></td>
+                      <td class="text-break"><?php echo e($task->title); ?></td>
+                      <td class="text-break"><?php echo e(Str::limit($task->description, 50)); ?></td>
                       <td>
-                        @switch($task->status)
-                          @case('pending')
+                        <?php switch($task->status):
+                          case ('pending'): ?>
                             <span class="badge text-bg-warning">Pending</span>
-                            @break
-                          @case('in_progress')
+                            <?php break; ?>
+                          <?php case ('in_progress'): ?>
                             <span class="badge text-bg-info">In Progress</span>
-                            @break
-                          @case('completed')
+                            <?php break; ?>
+                          <?php case ('completed'): ?>
                             <span class="badge text-bg-success">Completed</span>
-                            @break
-                          @default
-                            <span class="badge text-bg-secondary">{{ $task->status }}</span>
-                        @endswitch
+                            <?php break; ?>
+                          <?php default: ?>
+                            <span class="badge text-bg-secondary"><?php echo e($task->status); ?></span>
+                        <?php endswitch; ?>
                       </td>
-                      <td class="text-break">{{ $task->due_date ? $task->due_date->format('Y-m-d') : 'No due date' }}</td>
+                      <td class="text-break"><?php echo e($task->due_date ? $task->due_date->format('Y-m-d') : 'No due date'); ?></td>
                     </tr>
-                  @endforeach
+                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
               </table>
-            @else
+            <?php else: ?>
               <table class="table table-bordered table-striped table-sm">
                 <thead>
                   <tr>
@@ -366,40 +372,41 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @foreach($tasks as $task)
+                  <?php $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                      <td>{{ $loop->iteration }}</td>
-                      <td class="text-break">{{ $task->title }}</td>
-                      <td class="text-break">{{ Str::limit($task->description, 50) }}</td>
+                      <td><?php echo e($loop->iteration); ?></td>
+                      <td class="text-break"><?php echo e($task->title); ?></td>
+                      <td class="text-break"><?php echo e(Str::limit($task->description, 50)); ?></td>
                       <td>
-                        @switch($task->status)
-                          @case('pending')
+                        <?php switch($task->status):
+                          case ('pending'): ?>
                             <span class="badge text-bg-warning">Pending</span>
-                            @break
-                          @case('in_progress')
+                            <?php break; ?>
+                          <?php case ('in_progress'): ?>
                             <span class="badge text-bg-info">In Progress</span>
-                            @break
-                          @case('completed')
+                            <?php break; ?>
+                          <?php case ('completed'): ?>
                             <span class="badge text-bg-success">Completed</span>
-                            @break
-                          @default
-                            <span class="badge text-bg-secondary">{{ $task->status }}</span>
-                        @endswitch
+                            <?php break; ?>
+                          <?php default: ?>
+                            <span class="badge text-bg-secondary"><?php echo e($task->status); ?></span>
+                        <?php endswitch; ?>
                       </td>
-                      <td class="text-break">{{ $task->due_date ? $task->due_date->format('Y-m-d') : 'No due date' }}</td>
+                      <td class="text-break"><?php echo e($task->due_date ? $task->due_date->format('Y-m-d') : 'No due date'); ?></td>
                     </tr>
-                  @endforeach
+                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
               </table>
-            @endif
+            <?php endif; ?>
           </div>
         </div>
         <!-- ./card-body -->
-        @if($tasks->hasPages())
+        <?php if($tasks->hasPages()): ?>
           <div class="d-flex justify-content-center mt-3">
-            {{ $tasks->appends(request()->query())->links() }}
+            <?php echo e($tasks->appends(request()->query())->links()); ?>
+
           </div>
-        @endif
+        <?php endif; ?>
         
       </div>
       <!-- /.card -->
@@ -407,105 +414,105 @@
     <!-- /.col -->
   </div>
   <!--end::Row-->
-@endif
+<?php endif; ?>
 <!--begin::Row-->
 
 <!--end::Row-->
 <!--begin::Row: Quick Actions and Info-->
 <div class="row mt-3">
   <div class="col-md-4">
-    @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
     <div class="card m-b-30">
       <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
       <div class="card-body">
         <div class="d-grid gap-2">
-          <a class="btn btn-outline-primary" href="{{ route('attendance.checkin') }}">Attendance: Check In/Out</a>
-          @if($user->hasRole('Admin Lokasi') && $user->location_id)
-            <a class="btn btn-outline-secondary" href="{{ route('locations.settings', $user->location_id) }}">My Location Settings</a>
-          @endif
-          <a class="btn btn-outline-info" href="{{ route('tasks.create') }}">Create Task</a>
+          <a class="btn btn-outline-primary" href="<?php echo e(route('attendance.checkin')); ?>">Attendance: Check In/Out</a>
+          <?php if($user->hasRole('Admin Lokasi') && $user->location_id): ?>
+            <a class="btn btn-outline-secondary" href="<?php echo e(route('locations.settings', $user->location_id)); ?>">My Location Settings</a>
+          <?php endif; ?>
+          <a class="btn btn-outline-info" href="<?php echo e(route('tasks.create')); ?>">Create Task</a>
         </div>
       </div>
     </div>
-    @endif
+    <?php endif; ?>
   </div>
-  @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+  <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
   <div class="col-md-8">
     <div class="card m-b-30">
       <div class="card-header"><h3 class="card-title">Messages</h3></div>
       <div class="card-body">
-        <p class="mb-2">Unread: <strong>{{ $unreadMessages }}</strong></p>
-        <a class="btn btn-sm btn-primary" href="{{ route('messages.index') }}">Open Messages</a>
+        <p class="mb-2">Unread: <strong><?php echo e($unreadMessages); ?></strong></p>
+        <a class="btn btn-sm btn-primary" href="<?php echo e(route('messages.index')); ?>">Open Messages</a>
 
-        @if(auth()->user()->hasTwoFactorEnabled())
+        <?php if(auth()->user()->hasTwoFactorEnabled()): ?>
             <div class="alert alert-warning mt-3">
                 <strong>Security Recommendation:</strong> Enable two-factor authentication to better protect your account.
-                <a href="{{ route('2fa.setup') }}" class="btn btn-sm btn-warning ms-2">Enable 2FA</a>
+                <a href="<?php echo e(route('2fa.setup')); ?>" class="btn btn-sm btn-warning ms-2">Enable 2FA</a>
             </div>
-        @else
+        <?php else: ?>
             <div class="alert alert-success mt-3">
                 <strong>✓ Two-Factor Authentication Enabled</strong>
-                <small class="d-block">Method: {{ ucfirst(auth()->user()->two_factor_method) }}</small>
-                <form action="{{ route('2fa.disable') }}" method="POST" class="d-inline">
-                    @csrf
+                <small class="d-block">Method: <?php echo e(ucfirst(auth()->user()->two_factor_method)); ?></small>
+                <form action="<?php echo e(route('2fa.disable')); ?>" method="POST" class="d-inline">
+                    <?php echo csrf_field(); ?>
                     <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
                             onclick="return confirm('Are you sure you want to disable 2FA?')">Disable 2FA</button>
                 </form>
             </div>
-        @endif
+        <?php endif; ?>
       </div>
     </div>
   </div>
-  @endif
+  <?php endif; ?>
 </div>
 <!--end::Row-->
-@if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+<?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
 <!--begin::Row: Notices-->
 <div class="row mt-3">
   <div class="col-md-12">
     <div class="card">
       <div class="card-header"><h3 class="card-title">Notifikasi Libur / Izin</h3></div>
       <div class="card-body">
-        @if(!empty($todayNotices))
+        <?php if(!empty($todayNotices)): ?>
           <div class="mb-2">
             <strong>Hari ini:</strong>
             <ul class="mb-0">
-              @foreach($todayNotices as $n)
-                <li>{{ $n }}</li>
-              @endforeach
+              <?php $__currentLoopData = $todayNotices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $n): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($n); ?></li>
+              <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
           </div>
-        @else
+        <?php else: ?>
           <p class="mb-2 text-muted">Tidak ada notifikasi untuk hari ini.</p>
-        @endif
+        <?php endif; ?>
 
-        @if(!empty($upcomingNotices))
+        <?php if(!empty($upcomingNotices)): ?>
           <div class="mt-2">
             <strong>Mendatang:</strong>
             <ul class="mb-0">
-              @foreach($upcomingNotices as $item)
+              <?php $__currentLoopData = $upcomingNotices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <li>
-                  <span class="badge text-bg-light">{{ $item['date'] }}</span>
-                  @foreach($item['labels'] as $label)
-                    <span class="badge text-bg-secondary">{{ $label }}</span>
-                  @endforeach
+                  <span class="badge text-bg-light"><?php echo e($item['date']); ?></span>
+                  <?php $__currentLoopData = $item['labels']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <span class="badge text-bg-secondary"><?php echo e($label); ?></span>
+                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </li>
-              @endforeach
+              <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
           </div>
-        @else
+        <?php else: ?>
           <p class="mb-0 text-muted">Tidak ada notifikasi dalam 14 hari ke depan.</p>
-        @endif
+        <?php endif; ?>
       </div>
     </div>
   </div>
   <!-- /.col -->
 </div>
 <!--end::Row-->
-@endif
-@endsection
+<?php endif; ?>
+<?php $__env->stopSection(); ?>
 
-@section('scripts')
+<?php $__env->startSection('scripts'); ?>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const recapCard = document.getElementById('monthly-recap-card');
@@ -574,4 +581,6 @@
     }
   });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.appnew', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\www\kantorapp\resources\views/dashboard.blade.php ENDPATH**/ ?>

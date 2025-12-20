@@ -117,7 +117,7 @@
                                 <span> Dashboard </span>
                             </a>
                         </li>
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li>
                             <a href="{{ route('messages.index') }}" class="waves-effect {{ request()->routeIs('messages.*') ? 'active' : '' }}">
                                 <i class="mdi mdi-email"></i>
@@ -166,7 +166,7 @@
                             </a>
                         </li>
                         @endif
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li>
                             <a href="{{ route('location-change-requests.index') }}" class="waves-effect {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">
                                 <i class="mdi mdi-swap-horizontal"></i>
@@ -174,7 +174,7 @@
                             </a>
                         </li>
                         @endif
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li class="has_sub {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
                             <a href="javascript:void(0);" class="waves-effect">
                                 <i class="mdi mdi-calendar-check"></i> <span> Attendance </span> <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
@@ -189,7 +189,7 @@
                             </ul>
                         </li>
                         @endif
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li>
                             <a href="{{ route('overtime.index') }}" class="waves-effect {{ request()->routeIs('overtime.*') ? 'active' : '' }}">
                                 <i class="mdi mdi-timer-sand"></i>
@@ -197,7 +197,7 @@
                             </a>
                         </li>
                         @endif
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li>
                             <a href="{{ route('reports.index') }}" class="waves-effect {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                                 <i class="mdi mdi-clipboard-text"></i>
@@ -246,7 +246,7 @@
                             </a>
                         </li>
                         @endif
-                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || !$authUser->hasRole('Karyawan'))
+                        @if($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi') || $authUser->hasRole('Karyawan'))
                         <li>
                             @php
                                 if ($authUser->hasRole('Super Admin')) {

@@ -409,7 +409,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('messages.index') }}" class="nav-link {{ request()->routeIs('messages.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-chat-dots"></i>
@@ -458,7 +458,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-arrow-left-right"></i>
@@ -466,7 +466,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">
               <a href="#" class="nav-link">
                 <i class="nav-icon bi bi-calendar-check"></i>
@@ -504,7 +504,7 @@
               </ul>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('overtime.index') }}" class="nav-link {{ request()->routeIs('overtime.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clock"></i>
@@ -512,7 +512,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clipboard-check"></i>
@@ -562,7 +562,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
             <li class="nav-item">
               @php
               if (auth()->user()->hasRole('Super Admin')) {
