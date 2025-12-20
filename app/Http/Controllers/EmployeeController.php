@@ -34,7 +34,7 @@ class EmployeeController extends Controller
             $query->where('location_id', $user->location_id);
         }
 
-        $employees = $query->get();
+        $employees = $query->paginate(20);
 
         return view('karyawans.index', compact('employees'));
     }

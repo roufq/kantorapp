@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -30,7 +30,7 @@
                             <h3 class="card-title">Locations Management</h3>
                             <div class="card-tools">
                                 <a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Add Location
+                                    <i class="bi bi-plus-lg"></i> Add Location
                                 </a>
                             </div>
                         </div>
@@ -50,10 +50,10 @@
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-secondary mr-2">
-                                    <i class="fas fa-search"></i> Search
+                                    <i class="bi bi-search"></i> Search
                                 </button>
                                 <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times"></i> Clear
+                                    <i class="bi bi-x-lg"></i> Clear
                                 </a>
                             </form>
                         </div>
@@ -62,7 +62,7 @@
                             <table class="table table-hover align-middle text-nowrap">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th style="width:50px">No</th>
                                         <th>Name</th>
                                         <th>Code</th>
                                         <th>Address</th>
@@ -75,7 +75,7 @@
                                 <tbody>
                                     @forelse($locations as $location)
                                     <tr>
-                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ $loop->iteration + ($locations->currentPage()-1)*$locations->perPage() }}</td>
                                         <td>{{ $location->name }}</td>
                                         <td>
                                             <span class="badge badge-light code-badge border">{{ $location->code }}</span>
@@ -100,30 +100,30 @@
                                         </td>
                                         <td class="table-actions">
                                             <div class="btn-group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                                                     <i class="bi bi-gear"></i> Actions
                                                 </button>
-                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                <ul class="dropdown-menu dropdown-menu-right">
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('locations.show', $location) }}">
-                                                            <i class="bi bi-eye me-2"></i>View Details
+                                                            <i class="bi bi-eye mr-2"></i>View Details
                                                         </a>
                                                     </li>
                                                     @if(auth()->user()->hasRole('Super Admin'))
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('locations.settings', $location) }}">
-                                                            <i class="bi bi-sliders me-2"></i>Settings
+                                                            <i class="bi bi-sliders mr-2"></i>Settings
                                                         </a>
                                                     </li>
                                                     @endif
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('locations.edit', $location) }}">
-                                                            <i class="bi bi-pencil-square me-2"></i>Edit
+                                                            <i class="bi bi-pencil-square mr-2"></i>Edit
                                                         </a>
                                                     </li>
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('location-shifts.index') }}">
-                                                            <i class="bi bi-clock-history me-2"></i>Manage Shifts
+                                                            <i class="bi bi-clock-history mr-2"></i>Manage Shifts
                                                         </a>
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
@@ -132,7 +132,7 @@
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="dropdown-item text-danger">
-                                                                <i class="bi bi-trash me-2"></i>Delete
+                                                                <i class="bi bi-trash mr-2"></i>Delete
                                                             </button>
                                                         </form>
                                                     </li>

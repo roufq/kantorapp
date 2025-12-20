@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -36,6 +36,7 @@
           <table class="table table-bordered align-middle">
             <thead>
               <tr>
+                <th style="width:50px">No</th>
                 <th>Tanggal</th>
                 <th>Slot</th>
                 <th>Jam</th>
@@ -47,6 +48,7 @@
             <tbody>
               @forelse($roster->entries->sortBy(['date','slot_index']) as $e)
                 <tr>
+                  <td>{{ $loop->iteration }}</td>
                   <td>{{ $e->date->toDateString() }}</td>
                   <td>
                     @if($e->status === 'off')

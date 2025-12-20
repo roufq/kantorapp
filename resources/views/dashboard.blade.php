@@ -1,256 +1,136 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
-<div class="container-fluid">
-            <!--begin::Row-->
-            <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">Dashboard</h3></div>
-              <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-end">
-                  <li class="breadcrumb-item"><a href="#">Home</a></li>
-                  <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                </ol>
-              </div>
-            </div>
-            <!--end::Row-->
-          </div>
+<div class="row">
+  <div class="col-sm-12">
+    <div class="page-title-box">
+      <div class="btn-group float-right">
+        <ol class="breadcrumb hide-phone p-0 m-0">
+          <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+          <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+      </div>
+      <h4 class="page-title">Dashboard</h4>
+    </div>
+  </div>
+</div>
 @endsection
 @section('content')
-<!-- Info boxes -->
-@if($user->hasRole('Super Admin'))
+@php
+  $statCards = [];
+  $secondaryCards = [];
+  if($user->hasRole('Super Admin')) {
+    $statCards = [
+      ['label' => 'Total Super Admins', 'value' => $totalMasters, 'icon' => 'mdi-account-key', 'color' => 'primary'],
+      ['label' => 'Total Employees', 'value' => $totalEmployees, 'icon' => 'mdi-account-group', 'color' => 'danger'],
+      ['label' => 'Total Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
+      ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'],
+    ];
+  } elseif($user->hasRole('Admin Lokasi')) {
+    $statCards = [
+      ['label' => 'Employees (My Location)', 'value' => $totalKaryawans, 'icon' => 'mdi-account-group', 'color' => 'danger'],
+      ['label' => 'Total Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
+      ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'],
+      ['label' => 'Absences Today', 'value' => $absencesTodayCount ?? 0, 'icon' => 'mdi-alert-circle', 'color' => 'info'],
+    ];
+    $secondaryCards = [
+      ['label' => 'Clock In (Saya)', 'value' => ($todayAttendance && $todayAttendance->check_in_time) ? $todayAttendance->check_in_time->format('H:i') : '--', 'icon' => 'mdi-clock-start', 'color' => 'info'],
+      ['label' => 'Clock Out (Saya)', 'value' => ($todayAttendance && $todayAttendance->check_out_time) ? $todayAttendance->check_out_time->format('H:i') : '--', 'icon' => 'mdi-clock-end', 'color' => 'dark'],
+    ];
+  } else {
+    $statCards = [
+      ['label' => 'My Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
+    ];
+    if($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi') || !$user->hasRole('Karyawan')) {
+      $statCards[] = ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'];
+      $statCards[] = ['label' => 'Today\'s Shift', 'value' => '', 'icon' => 'mdi-calendar-clock', 'color' => 'info', 'extra' => true];
+      $statCards[] = ['label' => 'Clock In', 'value' => ($todayAttendance && $todayAttendance->check_in_time) ? $todayAttendance->check_in_time->format('H:i') : '--', 'icon' => 'mdi-clock-start', 'color' => 'secondary'];
+      $secondaryCards = [
+        ['label' => 'Clock Out', 'value' => ($todayAttendance && $todayAttendance->check_out_time) ? $todayAttendance->check_out_time->format('H:i') : '--', 'icon' => 'mdi-clock-end', 'color' => 'dark'],
+      ];
+    }
+  }
+@endphp
+
+@if(!empty($statCards))
   <div class="row">
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-primary shadow-sm">
-          <i class="bi bi-person-fill-gear"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Super Admins</span>
-          <span class="info-box-number">{{ $totalMasters }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-danger shadow-sm">
-          <i class="bi bi-people-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Employees</span>
-          <span class="info-box-number">{{ $totalEmployees }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-success shadow-sm">
-          <i class="bi bi-check-circle-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Tasks</span>
-          <span class="info-box-number">{{ $totalTasks }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-warning shadow-sm">
-          <i class="bi bi-chat-text-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Unread Messages</span>
-          <span class="info-box-number">{{ $unreadMessages }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-@elseif($user->hasRole('Admin Lokasi'))
-  <div class="row">
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-danger shadow-sm">
-          <i class="bi bi-people-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Employees (My Location)</span>
-          <span class="info-box-number">{{ $totalKaryawans }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-success shadow-sm">
-          <i class="bi bi-check-circle-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Tasks</span>
-          <span class="info-box-number">{{ $totalTasks }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-warning shadow-sm">
-          <i class="bi bi-chat-text-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Unread Messages</span>
-          <span class="info-box-number">{{ $unreadMessages }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-danger shadow-sm">
-          <i class="bi bi-x-octagon-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Absences Today</span>
-          <span class="info-box-number">{{ $absencesTodayCount ?? 0 }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-light shadow-sm">
-          <i class="bi bi-clock-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Clock In (Saya)</span>
-          <span class="info-box-number">
-            @if($todayAttendance && $todayAttendance->check_in_time)
-              {{ $todayAttendance->check_in_time->format('H:i') }}
-            @else
-              --
-            @endif
-          </span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-dark shadow-sm">
-          <i class="bi bi-clock-history"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Clock Out (Saya)</span>
-          <span class="info-box-number">
-            @if($todayAttendance && $todayAttendance->check_out_time)
-              {{ $todayAttendance->check_out_time->format('H:i') }}
-            @else
-              --
-            @endif
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-@else
-  <div class="row">
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-success shadow-sm">
-          <i class="bi bi-check-circle-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">My Tasks</span>
-          <span class="info-box-number">{{ $totalTasks }}</span>
-        </div>
-      </div>
-    </div>
-    @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-warning shadow-sm">
-          <i class="bi bi-chat-text-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Unread Messages</span>
-          <span class="info-box-number">{{ $unreadMessages }}</span>
-        </div>
-      </div>
-    </div>
-    @endif
-    @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="info-box">
-          <span class="info-box-icon text-bg-info shadow-sm">
-            <i class="bi bi-calendar3"></i>
-          </span>
-          <div class="info-box-content">
-           <span class="info-box-text">Today's Shift</span>
-           <span class="info-box-number">
-              @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
-                <div>{{ $todayAssignmentTime }}</div>
-              @elseif($todayAssignment && $todayAssignment->shift)
-                {{ $todayAssignment->shift->name }}
-                @if(!empty($todayAssignmentTime))
-                  <div class="text-muted small">{{ $todayAssignmentTime }}</div>
+    @foreach($statCards as $card)
+      <div class="col-md-6 col-xl-3">
+        <div class="card m-b-30">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
+                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 text-right">
+                <p class="text-muted mb-1">{{ $card['label'] }}</p>
+                @if(!empty($card['extra']))
+                  <h5 class="mb-0">
+                    @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
+                      {{ $todayAssignmentTime }}
+                    @elseif($todayAssignment && $todayAssignment->shift)
+                      {{ $todayAssignment->shift->name }}
+                      @if(!empty($todayAssignmentTime))
+                        <span class="d-block text-muted small">{{ $todayAssignmentTime }}</span>
+                      @endif
+                    @elseif(!empty($todayAssignmentTime))
+                      <span class="text-muted small">{{ $todayAssignmentTime }}</span>
+                    @else
+                      --
+                    @endif
+                  </h5>
+                @else
+                  <h4 class="mb-0">{{ $card['value'] }}</h4>
                 @endif
-              @elseif(!empty($todayAssignmentTime))
-                <div class="text-muted small">{{ $todayAssignmentTime }}</div>
-              @else
-                --
-              @endif
-           </span>
-         </div>
-       </div>
-    </div>
-    @endif
-    @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-light shadow-sm">
-          <i class="bi bi-clock-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Clock In</span>
-          <span class="info-box-number">
-            @if($todayAttendance && $todayAttendance->check_in_time)
-              {{ $todayAttendance->check_in_time->format('H:i') }}
-            @else
-              --
-            @endif
-          </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-dark shadow-sm">
-          <i class="bi bi-clock-history"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Clock Out</span>
-          <span class="info-box-number">
-            @if($todayAttendance && $todayAttendance->check_out_time)
-              {{ $todayAttendance->check_out_time->format('H:i') }}
-            @else
-              --
-            @endif
-          </span>
-        </div>
-      </div>
-    </div>
+    @endforeach
   </div>
-  @endif
-  @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
-  <!-- Lokasi & Jadwal Hari Ini -->
+@endif
+
+@if(!empty($secondaryCards))
+  <div class="row">
+    @foreach($secondaryCards as $card)
+      <div class="col-md-6 col-xl-3">
+        <div class="card m-b-30">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
+                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 text-right">
+                <p class="text-muted mb-1">{{ $card['label'] }}</p>
+                <h4 class="mb-0">{{ $card['value'] }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    @endforeach
+  </div>
+@endif
+
+@if(auth()->user()->hasRole('Karyawan'))
   <div class="row">
     <div class="col-md-12">
-      <div class="card mb-3">
+      <div class="card m-b-30">
         <div class="card-header">
           <h5 class="card-title mb-0">Lokasi & Jadwal Hari Ini</h5>
         </div>
         <div class="card-body">
           <div class="row">
            <div class="col-md-4">
-             <div class="fw-semibold">Lokasi</div>
+             <div class="font-weight-bold">Lokasi</div>
              <div class="text-muted">{{ $userLocationName ?? '-' }}</div>
            </div>
            <div class="col-md-4">
-             <div class="fw-semibold">Shift (rencana)</div>
+             <div class="font-weight-bold">Shift (rencana)</div>
              <div class="text-muted">
                 @if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda')
                   {{ $todayAssignmentTime }}
@@ -267,7 +147,7 @@
               </div>
             </div>
             <div class="col-md-4">
-              <div class="fw-semibold">Clock In / Clock Out</div>
+              <div class="font-weight-bold">Clock In / Clock Out</div>
               <div class="text-muted">
                 @php
                   $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
@@ -284,7 +164,6 @@
       </div>
     </div>
   </div>
-  @endif
 @endif
 
 @if($user->hasRole('Admin Lokasi') && $attendanceList && $attendanceList->count() > 0)
@@ -300,6 +179,7 @@
             <table class="table table-bordered table-sm align-middle mb-0">
               <thead>
                 <tr>
+                  <th style="width:50px">No</th>
                   @if($user->hasRole('Admin Lokasi'))
                     <th>Nama</th>
                   @endif
@@ -310,6 +190,7 @@
               <tbody>
                 @foreach($attendanceList as $att)
                   <tr>
+                    <td>{{ $loop->iteration }}</td>
                     @if($user->hasRole('Admin Lokasi'))
                       <td class="text-break">{{ optional($att->user)->name ?? 'Unknown' }}</td>
                     @endif
@@ -327,117 +208,100 @@
 @endif
 
 @if(!$user->hasRole('Karyawan'))
-  <!-- Additional Info boxes -->
+  @php
+    $extraStats = [
+      ['label' => 'Total Users', 'value' => $totalUsers, 'icon' => 'mdi-account-multiple', 'color' => 'info'],
+      ['label' => 'Total Divisions', 'value' => $totalDivisions, 'icon' => 'mdi-office-building', 'color' => 'secondary'],
+      ['label' => 'Total Employees', 'value' => $totalKaryawans, 'icon' => 'mdi-account-badge-horizontal', 'color' => 'dark'],
+    ];
+    $performanceStats = [
+      ['label' => 'Task Completion Rate', 'value' => number_format($locationMetrics['task_completion_rate'] ?? 0, 2) . '%', 'icon' => 'mdi-clipboard-check', 'color' => 'primary'],
+      ['label' => 'Attendance Rate (Today)', 'value' => number_format($locationMetrics['attendance_rate_today'] ?? 0, 2) . '%', 'icon' => 'mdi-account-check', 'color' => 'success'],
+      ['label' => 'Overtime (Last 30d)', 'value' => number_format($locationMetrics['overtime_hours_30d'] ?? 0, 2) . ' hrs', 'icon' => 'mdi-timer', 'color' => 'warning'],
+    ];
+  @endphp
   <div class="row">
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-info shadow-sm">
-          <i class="bi bi-people-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Users</span>
-          <span class="info-box-number">{{ $totalUsers }}</span>
+    @foreach($extraStats as $card)
+      <div class="col-md-6 col-xl-4">
+        <div class="card m-b-30">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
+                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 text-right">
+                <p class="text-muted mb-1">{{ $card['label'] }}</p>
+                <h4 class="mb-0">{{ $card['value'] }}</h4>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-secondary shadow-sm">
-          <i class="bi bi-building-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Divisions</span>
-          <span class="info-box-number">{{ $totalDivisions }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-dark shadow-sm">
-          <i class="bi bi-person-badge-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Total Employees</span>
-          <span class="info-box-number">{{ $totalKaryawans }}</span>
-        </div>
-      </div>
-    </div>
+    @endforeach
   </div>
-  <!-- Location Performance Metrics -->
   <div class="row">
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-primary shadow-sm">
-          <i class="bi bi-clipboard2-check"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Task Completion Rate</span>
-          <span class="info-box-number">{{ number_format($locationMetrics['task_completion_rate'] ?? 0, 2) }}%</span>
+    @foreach($performanceStats as $card)
+      <div class="col-md-6 col-xl-4">
+        <div class="card m-b-30">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-{{ $card['color'] ?? 'primary' }} text-white">
+                  <i class="mdi {{ $card['icon'] ?? 'mdi-information' }}"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 text-right">
+                <p class="text-muted mb-1">{{ $card['label'] }}</p>
+                <h4 class="mb-0">{{ $card['value'] }}</h4>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-success shadow-sm">
-          <i class="bi bi-person-check-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Attendance Rate (Today)</span>
-          <span class="info-box-number">{{ number_format($locationMetrics['attendance_rate_today'] ?? 0, 2) }}%</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4">
-      <div class="info-box">
-        <span class="info-box-icon text-bg-warning shadow-sm">
-          <i class="bi bi-alarm-fill"></i>
-        </span>
-        <div class="info-box-content">
-          <span class="info-box-text">Overtime (Last 30d)</span>
-          <span class="info-box-number">{{ number_format($locationMetrics['overtime_hours_30d'] ?? 0, 2) }} hrs</span>
-        </div>
-      </div>
-    </div>
+    @endforeach
   </div>
 @endif
 @if(!$user->hasRole('Karyawan'))
   <!--begin::Row-->
-  <div class="row">
+  <div class="row" id="monthly-recap">
     <div class="col-md-12">
-      <div class="card mb-4">
-        <div class="card-header">
+      <div class="card mb-4" id="monthly-recap-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="card-title">Monthly Recap Report</h5>
           <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
-              <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-              <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
+            <button type="button" class="btn btn-tool" data-report-toggle="collapse" aria-label="Collapse">
+              <i class="bi bi-dash-lg collapse-icon"></i>
+              <i class="bi bi-plus-lg expand-icon d-none"></i>
             </button>
             <div class="btn-group">
               <button
                 type="button"
                 class="btn btn-tool dropdown-toggle"
                 data-bs-toggle="dropdown"
+                aria-label="Actions"
               >
                 <i class="bi bi-wrench"></i>
               </button>
               <div class="dropdown-menu dropdown-menu-end" role="menu">
-                <a href="#" class="dropdown-item">Action</a>
-                <a href="#" class="dropdown-item">Another action</a>
-                <a href="#" class="dropdown-item"> Something else here </a>
-                <a class="dropdown-divider"></a>
-                <a href="#" class="dropdown-item">Separated link</a>
+                <a href="#" class="dropdown-item report-action" data-report-action="refresh">Refresh data</a>
+                <a href="#" class="dropdown-item report-action" data-report-action="clear-search">Clear search</a>
+                <a href="#" class="dropdown-item report-action" data-report-action="export-csv">Export CSV (visible)</a>
+                <div class="dropdown-divider"></div>
+                <a href="#" class="dropdown-item report-action" data-report-action="print">Print table</a>
               </div>
             </div>
-            <button type="button" class="btn btn-tool" data-lte-toggle="card-remove">
+            <button type="button" class="btn btn-tool" data-report-toggle="remove" aria-label="Close">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
         </div>
         <!-- /.card-header -->
-        <div class="card-body">
+        <div class="card-body" id="monthly-recap-body">
           <!-- Search Form -->
           <div class="mb-3">
-            <form method="GET" action="{{ route('dashboard') }}" class="d-flex">
+            <form method="GET" action="{{ route('dashboard') }}" class="d-flex" id="monthly-recap-search">
               <input type="text" name="search" class="form-control me-2" placeholder="Search by task title or assignee name..." value="{{ request('search') }}">
               <button type="submit" class="btn btn-outline-primary">Search</button>
               @if(request('search'))
@@ -450,11 +314,12 @@
               {{ $tasks->appends(request()->query())->links() }}
             </div>
           @endif
-          <div class="table-responsive">
+          <div class="table-responsive" id="monthly-recap-table">
             @if($user->hasRole('Super Admin'))
               <table class="table table-bordered table-striped table-sm">
                 <thead>
                   <tr>
+                    <th style="width:50px">No</th>
                     <th>Employee Name</th>
                     <th>Title</th>
                     <th>Description</th>
@@ -465,6 +330,7 @@
                 <tbody>
                   @foreach($tasks as $task)
                     <tr>
+                      <td>{{ $loop->iteration }}</td>
                       <td class="text-break">{{ $task->assignee->name ?? 'Unassigned' }}</td>
                       <td class="text-break">{{ $task->title }}</td>
                       <td class="text-break">{{ Str::limit($task->description, 50) }}</td>
@@ -492,6 +358,7 @@
               <table class="table table-bordered table-striped table-sm">
                 <thead>
                   <tr>
+                    <th style="width:50px">No</th>
                     <th>Title</th>
                     <th>Description</th>
                     <th>Status</th>
@@ -501,6 +368,7 @@
                 <tbody>
                   @foreach($tasks as $task)
                     <tr>
+                      <td>{{ $loop->iteration }}</td>
                       <td class="text-break">{{ $task->title }}</td>
                       <td class="text-break">{{ Str::limit($task->description, 50) }}</td>
                       <td>
@@ -547,7 +415,7 @@
 <div class="row mt-3">
   <div class="col-md-4">
     @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
-    <div class="card">
+    <div class="card m-b-30">
       <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
       <div class="card-body">
         <div class="d-grid gap-2">
@@ -563,7 +431,7 @@
   </div>
   @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || !auth()->user()->hasRole('Karyawan'))
   <div class="col-md-8">
-    <div class="card">
+    <div class="card m-b-30">
       <div class="card-header"><h3 class="card-title">Messages</h3></div>
       <div class="card-body">
         <p class="mb-2">Unread: <strong>{{ $unreadMessages }}</strong></p>
@@ -638,4 +506,72 @@
 @endsection
 
 @section('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const recapCard = document.getElementById('monthly-recap-card');
+    if (!recapCard) return;
+
+    const body = document.getElementById('monthly-recap-body');
+    const searchForm = document.getElementById('monthly-recap-search');
+    const tableWrap = document.getElementById('monthly-recap-table');
+    const collapseBtn = recapCard.querySelector('[data-report-toggle="collapse"]');
+    const removeBtn = recapCard.querySelector('[data-report-toggle="remove"]');
+
+    function toggleCollapse() {
+      if (!body) return;
+      const collapsed = body.classList.toggle('d-none');
+      collapseBtn.querySelector('.collapse-icon')?.classList.toggle('d-none', collapsed);
+      collapseBtn.querySelector('.expand-icon')?.classList.toggle('d-none', !collapsed);
+    }
+
+    function removeCard() {
+      recapCard.classList.add('d-none');
+    }
+
+    collapseBtn?.addEventListener('click', toggleCollapse);
+    removeBtn?.addEventListener('click', removeCard);
+
+    recapCard.querySelectorAll('.report-action').forEach(function (actionLink) {
+      actionLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        const action = this.dataset.reportAction;
+        if (action === 'refresh') {
+          window.location.reload();
+        } else if (action === 'clear-search' && searchForm) {
+          const input = searchForm.querySelector('input[name="search"]');
+          if (input) {
+            input.value = '';
+            searchForm.submit();
+          }
+        } else if (action === 'export-csv') {
+          exportTableToCsv();
+        } else if (action === 'print') {
+          window.print();
+        }
+      });
+    });
+
+    function exportTableToCsv() {
+      if (!tableWrap) return;
+      const table = tableWrap.querySelector('table');
+      if (!table) return;
+      let csv = [];
+      table.querySelectorAll('tr').forEach(function (row) {
+        const cols = Array.from(row.querySelectorAll('th,td')).map(function (cell) {
+          return '"' + (cell.innerText || '').replace(/"/g, '""') + '"';
+        });
+        csv.push(cols.join(','));
+      });
+      const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'monthly-recap.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  });
+</script>
 @endsection

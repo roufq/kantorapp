@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -68,6 +68,7 @@
                             <table class="table table-hover text-nowrap">
                                 <thead>
                                     <tr>
+                                        <th style="width:50px">No</th>
                                         <th>Location</th>
                                         <th>Code</th>
                                         <th>Assigned Shifts</th>
@@ -77,6 +78,7 @@
                                 <tbody>
                                     @forelse($locations as $location)
                                         <tr>
+                                            <td>{{ $loop->iteration + ($locations->currentPage()-1)*$locations->perPage() }}</td>
                                             <td>{{ $location->name }}</td>
                                             <td>{{ $location->code }}</td>
                                             <td>

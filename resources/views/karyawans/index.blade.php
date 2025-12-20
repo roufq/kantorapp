@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
             <!--begin::Row-->
@@ -43,7 +43,7 @@
                         @foreach($employees as $employee)
                        
                             <tr>
-                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ $loop->iteration + ($employees->currentPage()-1)*$employees->perPage() }}</td>
                                 <td>{{ $employee->nama }}</td>
                                 <td>{{ $employee->email }}</td>
                                 <td>{{ $employee->jabatan }}</td>
@@ -65,6 +65,9 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer">
+                {{ $employees->links() }}
             </div>
         </div>
     </div>

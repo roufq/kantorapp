@@ -1,5 +1,5 @@
 @php use Carbon\Carbon; @endphp
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
@@ -16,7 +16,7 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="GET" class="row g-2 align-items-end">
+        <form method="GET" class="row g-3 align-items-end">
             @if(auth()->user()->hasRole('Super Admin'))
                 <div class="col-md-3">
                     <label class="form-label">Lokasi</label>
@@ -30,12 +30,12 @@
             @endif
             <div class="col-md-3">
                 <label class="form-label">Karyawan</label>
-            <select name="employee_id" class="form-select">
-                <option value="">Pilih karyawan</option>
-                @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" @selected($employeeId == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
-                @endforeach
-            </select>
+                <select name="employee_id" class="form-select">
+                    <option value="">Pilih karyawan</option>
+                    @foreach($employees as $emp)
+                        <option value="{{ $emp->id }}" @selected($employeeId == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Tanggal Mulai</label>
@@ -45,11 +45,11 @@
                 <label class="form-label">Tanggal Selesai</label>
                 <input type="date" name="end_date" value="{{ $endDate }}" class="form-control">
             </div>
-            <div class="col-md-12 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Terapkan</button>
-                <a href="{{ route('work-recaps.index') }}" class="btn btn-outline-secondary">Reset</a>
+            <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-1">
+                <button type="submit" class="btn btn-primary waves-effect waves-light">Terapkan</button>
+                <a href="{{ route('work-recaps.index') }}" class="btn btn-outline-secondary waves-effect">Reset</a>
                 @if($employeeId)
-                    <button type="submit" name="export" value="1" class="btn btn-outline-success">Export PDF</button>
+                    <button type="submit" name="export" value="1" class="btn btn-outline-success waves-effect">Export PDF</button>
                 @endif
             </div>
         </form>
@@ -101,6 +101,7 @@
             <table class="table table-striped mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Task</th>
                         <th>Slot</th>
                         <th>Menit</th>
@@ -110,6 +111,7 @@
                 <tbody>
                     @forelse($slotDetails as $slot)
                         <tr>
+                            <td>{{ $loop->iteration }}</td>
                             <td>{{ $slot->task->title ?? 'Task #'.$slot->task_id }}</td>
                             <td>{{ $slot->name }}</td>
                             <td>{{ $slot->minutes }}</td>
@@ -133,6 +135,7 @@
             <table class="table table-striped mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Tanggal</th>
                         <th>Check-in</th>
                         <th>Check-out</th>
@@ -142,6 +145,7 @@
                 <tbody>
                     @forelse($attendanceDetails as $att)
                         <tr>
+                            <td>{{ $loop->iteration }}</td>
                             <td>{{ optional($att->check_in_time)->format('d M Y') }}</td>
                             <td>{{ optional($att->check_in_time)->format('H:i') }}</td>
                             <td>{{ optional($att->check_out_time)->format('H:i') }}</td>

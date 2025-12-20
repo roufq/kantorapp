@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -71,6 +71,7 @@
             <table class="table table-bordered">
               <thead>
                 <tr>
+                  <th style="width:50px">No</th>
                   <th>Tanggal</th>
                   <th>Slot</th>
                   <th>Jam</th>
@@ -81,6 +82,7 @@
               <tbody>
                 @foreach($roster->entries->sortBy(['date','slot_index']) as $e)
                   <tr>
+                    <td>{{ $loop->iteration }}</td>
                     <td>{{ $e->date->toDateString() }}</td>
                     <td>{{ $e->slot_index + 1 }}</td>
                     <td>

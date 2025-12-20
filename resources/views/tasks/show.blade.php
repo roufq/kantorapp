@@ -1,7 +1,7 @@
 @php
     use Illuminate\Support\Facades\Storage;
 @endphp
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('title')
 <div class="container-fluid">

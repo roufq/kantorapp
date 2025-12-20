@@ -53,7 +53,41 @@ class MessageController extends Controller
                 ->get();
         }
 
-        return view('messages.index', compact('conversations', 'users'));
+        // Build contact list (allowed users + ones you've chatted with) with last message info
+        $contacts = $users->mapWithKeys(function ($u) {
+            return [
+                $u->id => [
+                    'user' => $u,
+                    'last_message' => null,
+                    'last_message_at' => null,
+                ],
+            ];
+        });
+
+        foreach ($conversations as $otherId => $msgs) {
+            $last = $msgs->sortByDesc('created_at')->first();
+            // Ensure contact exists even if not in allowed users list (fallback)
+            if (!$contacts->has($otherId)) {
+                $otherUser = $last->sender_id == $user->id ? $last->receiver : $last->sender;
+                $contacts->put($otherId, [
+                    'user' => $otherUser,
+                    'last_message' => null,
+                    'last_message_at' => null,
+                ]);
+            }
+            $contact = $contacts->get($otherId);
+            $contact['last_message'] = $last;
+            $contact['last_message_at'] = $last->created_at;
+            $contacts->put($otherId, $contact);
+        }
+
+        // Sort by last message desc, then name
+        $contacts = $contacts->sortBy([
+            ['last_message_at', 'desc'],
+            ['user.name', 'asc'],
+        ]);
+
+        return view('messages.index', compact('conversations', 'users', 'contacts'));
     }
 
     public function store(Request $request)

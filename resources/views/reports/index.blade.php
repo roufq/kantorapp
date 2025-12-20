@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -42,6 +42,7 @@
             <table class="table table-striped align-middle">
               <thead>
                 <tr>
+                  <th style="width:50px">No</th>
                   <th>Tiket</th>
                   <th>Judul</th>
                   <th>Pelapor</th>
@@ -54,6 +55,7 @@
               <tbody>
                 @forelse($reports as $report)
                   <tr>
+                    <td>{{ $loop->iteration + ($reports->currentPage()-1)*$reports->perPage() }}</td>
                     <td class="fw-semibold">{{ $report->ticket_number }}</td>
                     <td>{{ $report->title }}</td>
                     <td>{{ $report->reporter?->name ?? '-' }}</td>

@@ -35,10 +35,13 @@ class ShiftRosterController extends Controller
     public function calendar(Request $request)
     {
         $auth = auth()->user();
-        $weekStart = $request->filled('week_start')
+        $focusDate = $request->filled('week_start')
             ? Carbon::parse($request->week_start)
-            : Carbon::now()->startOfWeek();
+            : Carbon::now();
+        $weekStart = $focusDate->copy()->startOfWeek();
         $weekEnd = $weekStart->copy()->addDays(6);
+        $monthStart = $focusDate->copy()->startOfMonth();
+        $monthEnd = $focusDate->copy()->endOfMonth();
 
         $locationId = $auth->hasRole('Super Admin')
             ? ($request->input('location_id') ?: $auth->location_id)
@@ -62,17 +65,17 @@ class ShiftRosterController extends Controller
 
         $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
             ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get()
             ->groupBy(fn($e) => $e->date->toDateString());
 
         $leaves = EmployeeLeave::with('user')
             ->where('status', 'approved')
-            ->where(function ($q) use ($weekStart, $weekEnd) {
-                $q->whereBetween('start_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-                    ->orWhere(function ($sub) use ($weekStart, $weekEnd) {
-                        $sub->whereDate('start_date', '<=', $weekEnd->toDateString())
-                            ->whereDate('end_date', '>=', $weekStart->toDateString());
+            ->where(function ($q) use ($monthStart, $monthEnd) {
+                $q->whereBetween('start_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                    ->orWhere(function ($sub) use ($monthStart, $monthEnd) {
+                        $sub->whereDate('start_date', '<=', $monthEnd->toDateString())
+                            ->whereDate('end_date', '>=', $monthStart->toDateString());
                     });
             })
             ->get()
@@ -98,56 +101,75 @@ class ShiftRosterController extends Controller
             }
         }
 
-        $weekData = [];
-        for ($i = 0; $i < 7; $i++) {
-            $date = $weekStart->copy()->addDays($i)->toDateString();
-            $rows = collect();
+        $calendarEvents = collect();
 
-            if ($rosterEntries->has($date)) {
-                $rows = $rosterEntries[$date]->map(function ($entry) {
-                    $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
-                    $slot = $slots[$entry->slot_index] ?? null;
-                    $time = $entry->status === 'off'
-                        ? 'Hari libur'
-                        : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
-                    return [
-                        'user' => $entry->user,
-                        'status' => $entry->status,
-                        'time' => $time,
-                        'notes' => $entry->notes,
-                    ];
-                });
+        foreach ($rosterEntries as $date => $entries) {
+            foreach ($entries as $entry) {
+                $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
+                $slot = $slots[$entry->slot_index] ?? null;
+                $time = $entry->status === 'off'
+                    ? 'Hari libur'
+                    : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
+
+                $calendarEvents->push([
+                    'title' => ($entry->user->name ?? '-') . ' • ' . $time,
+                    'start' => $entry->date->toDateString(),
+                    'allDay' => true,
+                    'className' => match ($entry->status) {
+                        'off' => 'fc-event-off',
+                        'leave' => 'fc-event-leave',
+                        'missing' => 'fc-event-missing',
+                        default => 'fc-event-on',
+                    },
+                    'notes' => $entry->notes,
+                    'status' => $entry->status,
+                    'time' => $time,
+                ]);
             }
+        }
 
-            if ($leavesPerDate->has($date)) {
-                $leaveRows = $leavesPerDate[$date]->map(function ($leave) {
-                    return [
-                        'user' => $leave->user,
-                        'status' => 'leave',
-                        'time' => 'Cuti/Izin',
-                        'notes' => $leave->type ? ($leave->type . ($leave->reason ? ' - ' . $leave->reason : '')) : $leave->reason,
-                    ];
-                });
-                $rows = $rows->merge($leaveRows);
+        foreach ($leavesPerDate as $date => $leavesForDate) {
+            foreach ($leavesForDate as $leave) {
+                $calendarEvents->push([
+                    'title' => ($leave->user?->name ?? '-') . ' • Cuti/Izin',
+                    'start' => $date,
+                    'allDay' => true,
+                    'className' => 'fc-event-leave',
+                    'notes' => $leave->type ? ($leave->type . ($leave->reason ? ' - ' . $leave->reason : '')) : $leave->reason,
+                    'status' => 'leave',
+                    'time' => 'Cuti/Izin',
+                ]);
             }
+        }
 
-            if ($rows->isEmpty()) {
-                $rows = collect([[
-                    'user' => null,
+        $datesWithEvents = $calendarEvents->pluck('start')->unique();
+        $period = new \DatePeriod(
+            $monthStart,
+            new \DateInterval('P1D'),
+            $monthEnd->copy()->addDay()
+        );
+        foreach ($period as $d) {
+            $dateStr = $d->format('Y-m-d');
+            if (!$datesWithEvents->contains($dateStr)) {
+                $calendarEvents->push([
+                    'title' => 'Belum ada jadwal',
+                    'start' => $dateStr,
+                    'allDay' => true,
+                    'className' => 'fc-event-missing',
                     'status' => 'missing',
-                    'time' => 'Shift belum ada',
+                    'time' => null,
                     'notes' => null,
-                ]]);
+                ]);
             }
-
-            $weekData[$date] = $rows;
         }
 
         return view('shifts.rosters.calendar', [
             'locations' => $locations,
             'locationId' => $locationId,
-            'weekStart' => $weekStart,
-            'weekData' => $weekData,
+            'focusDate' => $focusDate,
+            'monthStart' => $monthStart,
+            'monthEnd' => $monthEnd,
+            'calendarEvents' => $calendarEvents->values(),
         ]);
     }
 

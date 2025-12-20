@@ -222,7 +222,6 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::post('/users/{user}/demote-to-employee', [UserController::class, 'demoteToEmployee'])->middleware('role:Super Admin')->name('users.demote.employee');
     // Removed masters management; Super Admin role manages all directly
     Route::resource('divisions', DivisionController::class)->middleware('role:Super Admin');
-    Route::resource('karyawans', EmployeeController::class);
 
     Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
     // Location Settings (Super Admin and Admin Lokasi for own location)
@@ -314,7 +313,6 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     });
 
     // Attendance reports
-    Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
     Route::get('/attendance/absences', [AttendanceController::class, 'absences'])->name('attendance.absences');
     Route::get('/attendance/recap', [AttendanceController::class, 'recap'])->name('attendance.recap');
     Route::get('/attendance/recap/export', [AttendanceController::class, 'exportRecap'])->name('attendance.recap.export');

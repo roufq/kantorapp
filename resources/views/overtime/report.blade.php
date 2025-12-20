@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="container">
@@ -9,35 +9,43 @@
 
                 <div class="card-body">
                     {{-- Filters --}}
-                    <form method="GET" action="{{ route('overtime.report') }}" class="mb-4">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label for="search" class="form-label">Search</label>
+                    <form method="GET" action="{{ route('overtime.report') }}" class="mb-4 overtime-filter">
+                        <div class="form-row overtime-filter-labels">
+                            <div class="col-md-3 mb-2 overtime-filter-search">
+                                <label for="search" class="form-label mb-1">Search</label>
+                            </div>
+                            <div class="col-md-2 mb-2 overtime-filter-tight overtime-filter-center overtime-filter-status">
+                                <label for="status" class="form-label mb-1">Status</label>
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label for="start_date" class="form-label mb-1">Start Date</label>
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label for="end_date" class="form-label mb-1">End Date</label>
+                            </div>
+                            <div class="col-md-3 mb-2 d-none d-md-block"></div>
+                        </div>
+                        <div class="form-row align-items-center overtime-filter-inputs ">
+                            <div class="col-md-3 mb-2 overtime-filter-search">
                                 <input type="text" name="search" id="search" class="form-control" placeholder="Reason or employee name..." value="{{ request('search') }}">
                             </div>
-                            <div class="col-md-2">
-                                <label for="status" class="form-label">Status</label>
-                                <select name="status" id="status" class="form-control">
+                            <div class="col-md-2 mb-2 overtime-filter-tight overtime-filter-center overtime-filter-status overtime-filter-status-shift">
+                                <select name="status" id="status" class="form-control w-100 overtime-filter-status-select">
                                     <option value="">All Status</option>
                                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                                     <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <label for="start_date" class="form-label">Start Date</label>
+                            <div class="col-md-2 mb-2">
                                 <input type="date" name="start_date" id="start_date" class="form-control" value="{{ request('start_date') }}">
                             </div>
-                            <div class="col-md-2">
-                                <label for="end_date" class="form-label">End Date</label>
+                            <div class="col-md-2 mb-2">
                                 <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date') }}">
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary">Filter</button>
-                                    <a href="{{ route('overtime.export', request()->query()) }}" class="btn btn-success">Export to Excel</a>
-                                </div>
+                            <div class="col-md-3 mb-2 d-flex align-items-end justify-content-md-end">
+                                <button type="submit" class="btn btn-primary mr-2">Filter</button>
+                                <a href="{{ route('overtime.export', request()->query()) }}" class="btn btn-success">Export to Excel</a>
                             </div>
                         </div>
                     </form>
@@ -46,25 +54,27 @@
                     <table class="table table-striped">
                         <thead>
                             <tr>
+                                <th style="width:50px">No</th>
                                 <th>Employee</th>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Duration (Minutes)</th>
                                 <th>Reason</th>
-                                <th>Status</th>
+                                <th class="col-status">Status</th>
                                 <th>Approvals</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($overtimes as $overtime)
                                 <tr>
+                                    <td>{{ $loop->iteration + (method_exists($overtimes, 'currentPage') ? ($overtimes->currentPage()-1)*$overtimes->perPage() : 0) }}</td>
                                     <td>{{ $overtime->user->name }}</td>
                                     <td>{{ $overtime->date->format('d M Y') }}</td>
                                     <td>{{ $overtime->start_time_wib }} - {{ $overtime->end_time_wib }} WIB</td>
                                     <td>{{ number_format($overtime->duration_minutes, 0) }} minutes</td>
                                     <td>{{ Str::limit($overtime->reason, 50) }}</td>
-                                    <td>
-                                        <span class="badge
+                                    <td class="col-status">
+                                        <span class="badge status-badge
                                             @if($overtime->status === 'approved') bg-success
                                             @elseif($overtime->status === 'rejected') bg-danger
                                             @else bg-warning

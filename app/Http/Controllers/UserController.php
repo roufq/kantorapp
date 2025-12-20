@@ -23,7 +23,7 @@ class UserController extends Controller
         if (!$authUser->hasRole('Super Admin')) {
             $query->where('location_id', $authUser->location_id);
         }
-        $employees = $query->get();
+        $employees = $query->paginate(20);
         return view('users.index', compact('employees'));
     }
 

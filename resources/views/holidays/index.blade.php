@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
   <div class="row">
@@ -93,12 +93,13 @@
         <table class="table table-sm table-bordered">
           <thead>
             <tr>
-              <th>Tanggal</th><th>Nama</th><th>Jenis</th><th>Lokasi</th><th>Aksi</th>
+              <th style="width:50px">No</th><th>Tanggal</th><th>Nama</th><th>Jenis</th><th>Lokasi</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             @forelse($holidays as $h)
             <tr>
+              <td>{{ $loop->iteration + (method_exists($holidays,'currentPage') ? ($holidays->currentPage()-1)*$holidays->perPage() : 0) }}</td>
               <td>{{ $h->date->format('Y-m-d') }}</td>
               <td>{{ $h->name }}</td>
               <td>{{ $h->is_national ? 'Nasional' : 'Lokal' }}</td>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
   <div class="row">
@@ -65,6 +65,7 @@
     <table class="table table-bordered table-striped table-sm">
       <thead>
         <tr>
+          <th style="width:50px">No</th>
           <th>User</th>
           <th>Location</th>
           <th>Total Days</th>
@@ -79,6 +80,7 @@
       <tbody>
         @forelse($rows as $r)
         <tr>
+          <td>{{ $loop->iteration }}</td>
           <td>{{ $r['user']->name }}</td>
           <td>{{ optional($r['location'])->name }}</td>
           <td>{{ $r['totalDays'] }}</td>

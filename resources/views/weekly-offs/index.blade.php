@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
   <div class="row">
@@ -80,12 +80,13 @@
         <table class="table table-sm table-bordered">
           <thead>
             <tr>
-              <th>Hari</th><th>User</th><th>Lokasi</th><th>Aksi</th>
+              <th style="width:50px">No</th><th>Hari</th><th>User</th><th>Lokasi</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             @forelse($offs as $o)
             <tr>
+              <td>{{ $loop->iteration + (method_exists($offs,'currentPage') ? ($offs->currentPage()-1)*$offs->perPage() : 0) }}</td>
               <td>{{ ucfirst($o->day_of_week) }}</td>
               <td>{{ $o->user_id ? optional(\App\Models\User::find($o->user_id))->name : '-' }}</td>
               <td>{{ $o->location_id ? optional(\App\Models\Location::find($o->location_id))->name : (auth()->user()->hasRole('Admin Lokasi') ? 'Lokasi Saya' : '-') }}</td>

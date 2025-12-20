@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="container-fluid">
@@ -79,6 +79,7 @@
                     <table class="table table-striped">
                         <thead>
                             <tr>
+                                <th style="width:50px">No</th>
                                 <th>User</th>
                                 <th>Employee Name</th>
                                 <th>Shift</th>
@@ -94,6 +95,7 @@
                         <tbody>
                             @foreach($attendances as $attendance)
                                 <tr>
+                                    <td>{{ $loop->iteration + ($attendances->currentPage()-1)*$attendances->perPage() }}</td>
                                     <td>{{ $attendance->user->name }}</td>
                                     <td>{{ $attendance->user->employee->nama ?? 'N/A' }}</td>
                                     <td>{{ optional($attendance->shift)->name ?? '-' }}</td>

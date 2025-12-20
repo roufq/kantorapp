@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
@@ -8,18 +8,18 @@
             <p class="text-muted mb-0">Kirim permintaan pindah lokasi dengan alasan yang jelas.</p>
         </div>
         <div>
-            <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">kembali</a>
+            <a href="{{ route('location-change-requests.index') }}" class="btn btn-outline-secondary waves-effect waves-light">Kembali</a>
         </div>
     </div>
 </div>
-<div class="container">
-    <h1>Create Location Change Request</h1>
 
-    <form action="{{ route('location-change-requests.store') }}" method="POST">
+<div class="card">
+    <div class="card-body">
+        <form action="{{ route('location-change-requests.store') }}" method="POST" class="row g-3">
         @csrf
         @if(isset($users) && $users)
-        <div class="form-group mb-3">
-            <label for="user_id">Employee</label>
+        <div class="col-md-6">
+            <label for="user_id" class="form-label">Employee</label>
             <div class="searchable-dropdown position-relative" data-placeholder="-- Pilih user --">
                 <input type="hidden" name="user_id" id="user_id" value="{{ old('user_id', '') }}" required>
                 <button type="button" class="form-select text-start searchable-toggle">-- Pilih user --</button>
@@ -37,8 +37,8 @@
             <small class="text-muted d-block mt-1">Klik untuk membuka dropdown, lalu ketik untuk mencari nama/email.</small>
         </div>
         @endif
-        <div class="form-group">
-            <label for="target_location_id">Target Location</label>
+        <div class="col-md-6">
+            <label for="target_location_id" class="form-label">Target Location</label>
             <div class="searchable-dropdown position-relative" data-placeholder="-- Pilih lokasi --">
                 <input type="hidden" name="target_location_id" id="target_location_id" value="{{ old('target_location_id', $locations->first()->id ?? '') }}" required>
                 <button type="button" class="form-select text-start searchable-toggle">-- Pilih lokasi --</button>
@@ -53,29 +53,41 @@
             </div>
             <small class="text-muted d-block mt-1">Ketik untuk mencari lokasi tujuan.</small>
         </div>
-        <div class="form-group">
-            <label for="reason">Reason</label>
-            <textarea name="reason" id="reason" class="form-control" rows="3" required></textarea>
+        <div class="col-md-12">
+            <label for="reason" class="form-label">Reason</label>
+            <textarea name="reason" id="reason" class="form-control" rows="3" required>{{ old('reason') }}</textarea>
         </div>
-        <div class="form-group mb-3">
-            <label for="request_date">Effective Date</label>
-            <input type="date" class="form-control" id="request_date" name="request_date" value="{{ now()->toDateString() }}" required>
-            <small class="text-muted">Tanggal berlaku perpindahan (untuk sementara berlaku pada tanggal ini).</small>
+        <div class="col-12">
+            <div class="row g-2 align-items-center">
+                <div class="col-lg-4 col-md-6">
+                    <label for="request_date" class="form-label">Effective Date</label>
+                    <input type="date" class="form-control" id="request_date" name="request_date" value="{{ old('request_date', now()->toDateString()) }}" required>
+                    <small class="text-muted">Tanggal berlaku perpindahan (untuk sementara berlaku pada tanggal ini).</small>
+                </div>
+                @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-check mb-1">
+                        <input type="checkbox" class="form-check-input" id="is_permanent" name="is_permanent" value="1" {{ old('is_permanent') ? 'checked' : '' }}>
+                        <label for="is_permanent" class="form-check-label">Permanent transfer</label>
+                    </div>
+                    <small class="text-muted d-block">Uncheck for one-day move; approval still required.</small>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-check mb-1">
+                        <input type="checkbox" class="form-check-input" id="approve_now" name="approve_now" value="1" {{ old('approve_now') ? 'checked' : '' }}>
+                        <label for="approve_now" class="form-check-label">Approve now</label>
+                    </div>
+                    <small class="text-muted d-block">Centang untuk langsung menyetujui tanpa menunggu proses.</small>
+                </div>
+                @endif
+            </div>
         </div>
-        @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
-        <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="is_permanent" name="is_permanent" value="1">
-            <label for="is_permanent" class="form-check-label">Permanent transfer</label>
-            <div><small class="text-muted">Uncheck for one-day move; approval still required.</small></div>
+        <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-2">
+            <button type="submit" class="btn btn-primary waves-effect waves-light">Submit Request</button>
+            <a href="{{ route('location-change-requests.index') }}" class="btn btn-outline-secondary waves-effect">Batal</a>
         </div>
-        <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="approve_now" name="approve_now" value="1">
-            <label for="approve_now" class="form-check-label">Approve now</label>
-            <div><small class="text-muted">Centang untuk langsung menyetujui tanpa menunggu proses.</small></div>
-        </div>
-        @endif
-        <button type="submit" class="btn btn-primary">Submit Request</button>
-    </form>
+        </form>
+    </div>
 </div>
 @endsection
 

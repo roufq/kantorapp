@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+﻿@extends('layouts.appnew')
 
 @section('content')
 <div class="row">
@@ -147,6 +147,7 @@
             <table class="table" id="settings-table">
               <thead>
                 <tr>
+                  <th style="width:50px">No</th>
                   <th>Key</th>
                   <th>Value</th>
                   <th>Type</th>
@@ -156,6 +157,7 @@
               <tbody>
                 @foreach($location->locationSettings as $idx => $setting)
                 <tr>
+                  <td class="row-no">{{ $loop->iteration }}</td>
                   <td><input type="text" name="settings[{{ $idx }}][key]" value="{{ $setting->key }}" class="form-control" required></td>
                   <td><input type="text" name="settings[{{ $idx }}][value]" value='{{ is_string($setting->value) ? $setting->value : json_encode($setting->value) }}' class="form-control" required></td>
                   <td>
@@ -343,6 +345,7 @@
     const idx = tbody.children.length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td class="row-no"></td>
       <td><input type="text" name="settings[${idx}][key]" class="form-control" required></td>
       <td><input type="text" name="settings[${idx}][value]" class="form-control" required></td>
       <td>
@@ -356,12 +359,20 @@
       <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Remove</button></td>
     `;
     tbody.appendChild(tr);
+    renumberRows();
   }
 
   function removeRow(btn) {
     const tr = btn.closest('tr');
     tr.parentNode.removeChild(tr);
+    renumberRows();
+  }
+
+  function renumberRows() {
+    document.querySelectorAll('#settings-table tbody tr').forEach((row, idx) => {
+      const noCell = row.querySelector('.row-no');
+      if (noCell) noCell.textContent = idx + 1;
+    });
   }
 </script>
 @endsection
-

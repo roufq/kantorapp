@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <!--begin::Row-->
 <div class="row">

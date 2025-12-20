@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="row">
@@ -22,7 +22,7 @@
                         <p><strong>Departemen:</strong> {{ $karyawan->departemen }}</p>
                         <p><strong>Tanggal Lahir:</strong> {{ $karyawan->tanggal_lahir ? $karyawan->tanggal_lahir->format('d M Y') : '-' }}</p>
                         <p><strong>Tanggal Masuk Kerja:</strong> {{ $karyawan->tanggal_masuk_kerja ? $karyawan->tanggal_masuk_kerja->format('d M Y') : '-' }}</p>
-                        <p><strong>Divisi:</strong> {{ $karyawan->division->nama }}</p>
+                        <p><strong>Divisi:</strong> {{ $karyawan->division->nama ?? 'N/A' }}</p>
                         <p><strong>Lokasi:</strong> {{ $karyawan->location->name ?? 'N/A' }}</p>
 
                         <p><strong>Super Admin:</strong> {{ $karyawan->master ? $karyawan->master->name : 'N/A' }}</p>

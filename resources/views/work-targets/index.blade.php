@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
@@ -57,6 +57,7 @@
             <table class="table table-striped mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Lokasi</th>
                         <th>Karyawan (opsional)</th>
                         <th>Bulan</th>
@@ -68,6 +69,7 @@
                 <tbody>
                     @forelse($targets as $target)
                         <tr>
+                            <td>{{ $loop->iteration }}</td>
                             <td>{{ $target->location->name ?? $target->location->nama ?? 'Lokasi #'.$target->location_id }}</td>
                             <td>{{ $target->employee?->nama ?? '-' }}</td>
                             <td>{{ sprintf('%02d', $target->month) }}-{{ $target->year }}</td>

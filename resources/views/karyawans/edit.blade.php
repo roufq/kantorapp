@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
@@ -19,6 +19,15 @@
                 <h3 class="card-title">Edit Employee</h3>
             </div>
             <div class="card-body">
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <form action="{{ route('karyawans.update', $karyawan) }}" method="POST">
                     @csrf
                     @method('PATCH')
@@ -64,7 +73,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="tanggal_lahir" class="form-label">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" class="form-control" id="tanggal_lahir" value="{{ old('tanggal_lahir', $karyawan->tanggal_lahir) }}">
+                            <input type="date" name="tanggal_lahir" class="form-control" id="tanggal_lahir" value="{{ old('tanggal_lahir', optional($karyawan->tanggal_lahir)->format('Y-m-d')) }}">
                             @error('tanggal_lahir')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
@@ -97,7 +106,7 @@
                                 <input type="hidden" name="location_id" value="{{ auth()->user()->location_id }}">
                             @else
                                 <select name="location_id" class="form-control" id="location_id" required>
-                                    <option value="">Pilih Lokasi (Opsional)</option>
+                                    <option value="">Pilih Lokasi</option>
                                     @foreach($locations as $location)
                                         <option value="{{ $location->id }}" {{ old('location_id', $karyawan->location_id) == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
                                     @endforeach

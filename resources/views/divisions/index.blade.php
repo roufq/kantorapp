@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
             <!--begin::Row-->
@@ -28,7 +28,7 @@
                 <table class="table table-hover text-nowrap">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="width:50px">No</th>
                             <th>Nama</th>
                             <th>Actions</th>
                         </tr>
@@ -36,7 +36,7 @@
                     <tbody>
                         @foreach($divisions as $division)
                             <tr>
-                                <td>{{ $division->id }}</td>
+                                <td>{{ $loop->iteration + ($divisions->currentPage()-1)*$divisions->perPage() }}</td>
                                 <td>{{ $division->nama }}</td>
                                 <td>
                                     <a href="{{ route('divisions.show', $division) }}" class="btn btn-sm btn-outline-info">View</a>
@@ -51,6 +51,9 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer">
+                {{ $divisions->links() }}
             </div>
         </div>
     </div>

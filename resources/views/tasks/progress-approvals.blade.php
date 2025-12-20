@@ -1,5 +1,5 @@
 @php use Illuminate\Support\Facades\Storage; @endphp
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
@@ -56,6 +56,7 @@
             <table class="table table-striped mb-0 align-middle">
                 <thead>
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Judul</th>
                         <th>Assignee</th>
                         <th>Dibuat oleh</th>
@@ -68,6 +69,7 @@
                 <tbody>
                 @forelse($pendingTaskCreations ?? [] as $task)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td>{{ $task->title }}</td>
                         <td>{{ optional($task->assignee)->name }}</td>
                         <td>{{ optional($task->assigner)->name }}</td>
@@ -102,6 +104,7 @@
             <table class="table table-hover mb-0 align-middle">
                 <thead>
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Judul</th>
                         <th>Assignee</th>
                         <th>Lokasi</th>
@@ -117,6 +120,7 @@
                         $needsTaskApproval = $task->requires_approval && $task->approval_status === 'pending';
                     @endphp
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td>
                             {{ $task->title }}
                             @if($needsTaskApproval)
@@ -154,6 +158,7 @@
             <table class="table table-sm table-striped mb-0 align-middle">
                 <thead>
                     <tr>
+                        <th style="width:50px">No</th>
                         <th>Task</th>
                         <th>Assignee</th>
                         <th>Dikirim Oleh</th>
@@ -165,6 +170,7 @@
                 <tbody>
                 @forelse($pendingUpdates as $update)
                     <tr>
+                        <td>{{ $loop->iteration + ($pendingUpdates->currentPage()-1)*$pendingUpdates->perPage() }}</td>
                         <td>{{ $update->task->title }}</td>
                         <td>{{ optional($update->task->assignee)->name }}</td>
                         <td>{{ $update->user->name }}</td>

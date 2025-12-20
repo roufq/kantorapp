@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
   <div class="row">
@@ -54,6 +54,7 @@
     <table class="table table-bordered table-striped table-sm">
       <thead>
         <tr>
+          <th style="width:50px">No</th>
           <th>Date</th>
           <th>User</th>
           <th>Location</th>
@@ -64,6 +65,7 @@
       <tbody>
         @forelse($absences as $a)
           <tr>
+            <td>{{ $loop->iteration + ($absences->currentPage()-1)*$absences->perPage() }}</td>
             <td>{{ $a->date->format('Y-m-d') }}</td>
             <td>{{ optional($a->user)->name }}</td>
             <td>{{ optional($a->location)->name }}</td>
@@ -80,4 +82,3 @@
   
 </div>
 @endsection
-

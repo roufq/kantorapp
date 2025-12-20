@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
             <!--begin::Row-->
@@ -28,7 +28,7 @@
                 <table class="table table-hover text-nowrap">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="width:50px">No</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
@@ -40,7 +40,7 @@
                     <tbody>
                         @foreach($employees as $employee)
                             <tr>
-                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ $loop->iteration + ($employees->currentPage()-1)*$employees->perPage() }}</td>
                                 <td>{{ $employee->name }}</td>
                                 <td>{{ $employee->email }}</td>
                                 <td>

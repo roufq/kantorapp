@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 @section('title')
 <div class="container-fluid">
   <div class="row">
@@ -55,12 +55,13 @@
         <table class="table table-sm table-bordered">
           <thead>
             <tr>
-              <th>Karyawan</th><th>Rentang</th><th>Tipe</th><th>Status</th><th>Alasan</th><th>Aksi</th>
+              <th style="width:50px">No</th><th>Karyawan</th><th>Rentang</th><th>Tipe</th><th>Status</th><th>Alasan</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             @forelse($leaves as $lv)
             <tr>
+              <td>{{ $loop->iteration + ($leaves->currentPage()-1)*$leaves->perPage() }}</td>
               <td>{{ optional($lv->user)->name }}</td>
               <td>{{ $lv->start_date->format('Y-m-d') }} s/d {{ $lv->end_date->format('Y-m-d') }}</td>
               <td>{{ ucfirst($lv->type) }}</td>
@@ -100,4 +101,3 @@
   </div>
 </div>
 @endsection
-

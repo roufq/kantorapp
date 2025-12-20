@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="content-wrapper">
@@ -31,6 +31,7 @@
           <table class="table table-hover align-middle">
             <thead>
               <tr>
+                <th style="width:50px">No</th>
                 <th>Lokasi</th>
                 <th>Shift</th>
                 <th>Minggu</th>
@@ -41,6 +42,7 @@
             <tbody>
               @forelse($rosters as $r)
               <tr>
+                <td>{{ $loop->iteration + ($rosters->currentPage()-1)*$rosters->perPage() }}</td>
                 <td>{{ $r->location->name ?? '-' }}</td>
                 <td>{{ $r->locationShift->shift->name ?? 'Shift' }}</td>
                 <td>{{ $r->week_start->toDateString() }} s/d {{ $r->week_end->toDateString() }}</td>
