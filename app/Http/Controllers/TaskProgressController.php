@@ -25,6 +25,17 @@ class TaskProgressController extends Controller
             return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
         }
 
+        $slotStatus = $task->getSlotCompositionStatus();
+        if (!$slotStatus['complete']) {
+            $message = 'Komposisi slot belum lengkap. ';
+            if ($slotStatus['duration_minutes'] !== null) {
+                $message .= 'Total persentase ' . $slotStatus['total_percent'] . '% dan total menit ' . $slotStatus['total_minutes'] . ' dari ' . $slotStatus['duration_minutes'] . ' menit. Lengkapi slot terlebih dahulu.';
+            } else {
+                $message .= 'Total persentase ' . $slotStatus['total_percent'] . '%. Lengkapi slot terlebih dahulu.';
+            }
+            return redirect()->route('tasks.show', $task)->with('error', $message);
+        }
+
         // Authorization: The user must be the assignee, or an admin
         $isAssignee = $task->assigned_to === $user->id;
         $isAdmin = $user->hasRole(['Super Admin', 'Admin Lokasi']);
@@ -49,6 +60,17 @@ class TaskProgressController extends Controller
 
         if (!$task->slots()->exists()) {
             return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
+        }
+
+        $slotStatus = $task->getSlotCompositionStatus();
+        if (!$slotStatus['complete']) {
+            $message = 'Komposisi slot belum lengkap. ';
+            if ($slotStatus['duration_minutes'] !== null) {
+                $message .= 'Total persentase ' . $slotStatus['total_percent'] . '% dan total menit ' . $slotStatus['total_minutes'] . ' dari ' . $slotStatus['duration_minutes'] . ' menit. Lengkapi slot terlebih dahulu.';
+            } else {
+                $message .= 'Total persentase ' . $slotStatus['total_percent'] . '%. Lengkapi slot terlebih dahulu.';
+            }
+            return redirect()->route('tasks.show', $task)->with('error', $message);
         }
 
         // Authorization: The user must be the assignee, or an admin

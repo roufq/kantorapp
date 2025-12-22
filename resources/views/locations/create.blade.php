@@ -1,44 +1,21 @@
 ﻿@extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h1 class="h3 mb-1">Tambah Lokasi</h1>
-            <p class="text-muted mb-0">Lengkapi detail lokasi baru untuk keperluan operasional dan penugasan.</p>
-        </div>
-        <div>
-            <a href="{{ route('locations.index') }}" class="text-decoration-none">Kembali</a>
-        </div>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Tambah Lokasi</h3>
+        <p class="text-muted mb-0">Lengkapi detail lokasi baru untuk keperluan operasional dan penugasan.</p>
     </div>
+    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
 </div>
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Add New Location</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('locations.index') }}">Locations</a></li>
-                        <li class="breadcrumb-item active">Create</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
-
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-12">
-                    <div class="card card-primary">
-                        <div class="card-header">
+                    <div class="card">
+                        <div class="card-header bg-light">
                             <h3 class="card-title">Location Information</h3>
                         </div>
                         <!-- /.card-header -->
@@ -278,7 +255,7 @@
                             <!-- /.card-body -->
 
                             <div class="card-footer">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-secondary">
                                     <i class="fas fa-save"></i> Create Location
                                 </button>
                                 <a href="{{ route('locations.index') }}" class="btn btn-secondary">

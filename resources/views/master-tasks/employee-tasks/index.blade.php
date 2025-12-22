@@ -1,22 +1,11 @@
 @extends('layouts.appnew')
-@section('title')
-<!--begin::Row-->
-<div class="row">
-  <div class="col-sm-6"><h3 class="mb-0">Employee Tasks</h3></div>
-  <div class="col-sm-6">
-    <ol class="breadcrumb float-sm-end">
-      <li class="breadcrumb-item"><a href="#">Home</a></li>
-      <li class="breadcrumb-item"><a href="{{ route('master-tasks.index') }}">Tasks</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Employee Tasks</li>
-    </ol>
-  </div>
-</div>
-<!--end::Row-->
-@endsection
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Employee Tasks</h1>
-    <a href="{{ route('master-tasks.create') }}" class="btn btn-primary">Assign Task</a>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Tugas Karyawan</h3>
+        <p class="text-muted mb-0">Daftar tugas yang ditugaskan ke karyawan.</p>
+    </div>
+    <a href="{{ route('master-tasks.create') }}" class="btn btn-primary btn-sm">Assign Task</a>
 </div>
 
 <!-- Search Form -->

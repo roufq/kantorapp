@@ -1,29 +1,19 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-    <!--begin::Row-->
-    <div class="row">
-        <div class="col-sm-6"><h3 class="mb-0">Task Details</h3></div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-end">
-                <li class="breadcrumb-item"><a href="#">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('master-tasks.index') }}">Tasks</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ $masterTask->title }}</li>
-            </ol>
-        </div>
-    </div>
-    <!--end::Row-->
-</div>
-@endsection
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Detail Master Task</h3>
+        <p class="text-muted mb-0">{{ $masterTask->title }}</p>
+    </div>
+    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">{{ $masterTask->title }}</h3>
                 <div class="card-tools">
-                    <a href="{{ route('master-tasks.index') }}" class="btn btn-secondary btn-sm">Back</a>
                     <a href="{{ route('master-tasks.edit', $masterTask) }}" class="btn btn-primary btn-sm">Edit</a>
                     <form action="{{ route('master-tasks.destroy', $masterTask) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this task?')">
                         @csrf

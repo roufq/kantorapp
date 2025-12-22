@@ -1,9 +1,12 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <h1 class="h4 mb-1">Edit Target Jam Kerja</h1>
-    <p class="text-muted mb-0">Perbarui menit kerja per lokasi (opsional per karyawan) untuk bulan tertentu.</p>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Edit Target Jam Kerja</h3>
+        <p class="text-muted mb-0">Perbarui menit kerja per lokasi (opsional per karyawan) untuk bulan tertentu.</p>
+    </div>
+    <a href="{{ route('work-targets.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
 </div>
 
 <div class="card">

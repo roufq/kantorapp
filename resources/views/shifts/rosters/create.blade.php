@@ -2,26 +2,15 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Buat Roster Mingguan</h1>
-          <p class="text-muted mb-0">Pilih lokasi, shift lokasi, karyawan, dan pola off.</p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('shifts.rosters.index') }}">Rosters</a></li>
-            <li class="breadcrumb-item active">Create</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Buat Roster Mingguan</h3>
+          <p class="text-muted mb-0">Pilih lokasi, shift lokasi, karyawan, dan pola off.</p>
+        </div>
+        <a href="{{ route('shifts.rosters.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+      </div>
       @if($errors->any())
         <div class="alert alert-danger">
           <ul class="mb-0">@foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach</ul>

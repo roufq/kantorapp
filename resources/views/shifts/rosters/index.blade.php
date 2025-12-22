@@ -2,30 +2,19 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Weekly Rosters</h1>
-          <p class="text-muted mb-0">Daftar roster mingguan per lokasi (factory/non-office).</p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-            <li class="breadcrumb-item active">Rosters</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Roster Mingguan</h3>
+          <p class="text-muted mb-0">Daftar roster mingguan per lokasi (factory/non-office).</p>
+        </div>
+        <a href="{{ route('shifts.rosters.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Buat Roster</a>
+      </div>
       @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Roster Per Lokasi</h3>
-          <a href="{{ route('shifts.rosters.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Buat Roster</a>
         </div>
         <div class="card-body table-responsive p-0">
           <table class="table table-hover align-middle">

@@ -2,37 +2,23 @@
 
 @section('content')
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Locations</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item active">Locations</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
-
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
+            <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h3 class="mb-1">Lokasi</h3>
+                    <p class="text-muted mb-0">Kelola data lokasi beserta statusnya.</p>
+                </div>
+                <a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg"></i> Tambah Lokasi
+                </a>
+            </div>
             <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Locations Management</h3>
-                            <div class="card-tools">
-                                <a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-lg"></i> Add Location
-                                </a>
-                            </div>
                         </div>
                         <!-- /.card-header -->
 
@@ -67,7 +53,6 @@
                                         <th>Code</th>
                                         <th>Address</th>
                                         <th>Timezone</th>
-                                        <th>Schedule Type</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -82,15 +67,6 @@
                                         </td>
                                         <td>{{ $location->address ?: '-' }}</td>
                                         <td>{{ $location->timezone }}</td>
-                                        <td>
-                                            @if($location->schedule_type === 'shifts')
-                                                <span class="badge badge-primary">Shift-Based</span>
-                                            @elseif($location->schedule_type === 'daily')
-                                                <span class="badge badge-info">Daily Schedule</span>
-                                            @else
-                                                Not Set
-                                            @endif
-                                        </td>
                                         <td>
                                             @if($location->is_active)
                                                 <span class="badge badge-success">Active</span>

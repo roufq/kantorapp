@@ -90,6 +90,26 @@ class Task extends Model
         $this->applyProgress($approvedPercent);
     }
 
+    public function getSlotCompositionStatus(): array
+    {
+        $totalPercent = round((float) $this->slots()->sum('percentage'), 2);
+        if (abs($totalPercent - 100) <= 0.05) {
+            $totalPercent = 100.0;
+        }
+
+        $percentComplete = abs($totalPercent - 100) <= 0.01;
+        $totalMinutes = (int) $this->slots()->sum('minutes');
+        $durationMinutes = $this->duration_minutes ? (int) $this->duration_minutes : null;
+        $minutesComplete = $durationMinutes === null ? true : $totalMinutes === $durationMinutes;
+
+        return [
+            'complete' => $percentComplete && $minutesComplete,
+            'total_percent' => $totalPercent,
+            'total_minutes' => $totalMinutes,
+            'duration_minutes' => $durationMinutes,
+        ];
+    }
+
     public static function determineCreationApproval(User $creator, User $assignee): array
     {
         // Default: approved immediately

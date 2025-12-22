@@ -2,31 +2,28 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div>
-        <h1 class="m-0">{{ $report->title }}</h1>
-        <p class="text-secondary mb-0">Tiket: {{ $report->ticket_number }}</p>
-      </div>
-      <div class="d-flex gap-2">
-        <a href="{{ route('reports.index') }}" class="btn btn-light">Kembali</a>
-        @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
-        <a href="{{ route('reports.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Buat Laporan</a>
-        @endif
-        @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
-        <a href="{{ route('reports.edit', $report) }}" class="btn btn-secondary">Edit</a>
-        <form action="{{ route('reports.destroy', $report) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus laporan ini?')">
-          @csrf
-          @method('DELETE')
-          <button type="submit" class="btn btn-danger">Hapus</button>
-        </form>
-        @endif
-      </div>
-    </div>
-  </div>
-
   <div class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">{{ $report->title }}</h3>
+          <p class="text-muted mb-0">Tiket: {{ $report->ticket_number }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{{ route('reports.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+          @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
+          <a href="{{ route('reports.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Buat Laporan</a>
+          @endif
+          @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
+          <a href="{{ route('reports.edit', $report) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+          <form action="{{ route('reports.destroy', $report) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus laporan ini?')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger btn-sm">Hapus</button>
+          </form>
+          @endif
+        </div>
+      </div>
       @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif

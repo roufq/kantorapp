@@ -1,14 +1,18 @@
 @extends('layouts.appnew')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Detail Pesan</h3>
+        <p class="text-muted mb-0">Chat dengan {{ $user->name }}</p>
+    </div>
+    <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Chat with {{ $user->name }}</h3>
-                <div class="card-tools">
-                    <a href="{{ route('messages.index') }}" class="btn btn-sm btn-secondary">Back to Conversations</a>
-                </div>
+                <h3 class="card-title">Chat dengan {{ $user->name }}</h3>
             </div>
             <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                 @foreach($messages as $message)

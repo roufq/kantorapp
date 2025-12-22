@@ -1,18 +1,11 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-sm-6"><h3 class="mb-0">Holidays</h3></div>
-    <div class="col-sm-6">
-      <ol class="breadcrumb float-sm-end">
-        <li class="breadcrumb-item"><a href="#">Home</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Holidays</li>
-      </ol>
-    </div>
+@section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+  <div>
+    <h3 class="mb-1">Hari Libur</h3>
+    <p class="text-muted mb-0">Kelola daftar hari libur nasional maupun lokal.</p>
   </div>
 </div>
-@endsection
-@section('content')
 <div class="row">
   <div class="col-12 mb-3">
     <div class="card">

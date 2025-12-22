@@ -2,26 +2,15 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Edit / Rolling Roster</h1>
-          <p class="text-muted mb-0">{{ $roster->location->name ?? '-' }} | {{ $roster->locationShift->shift->name ?? 'Shift' }}</p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('shifts.rosters.index') }}">Rosters</a></li>
-            <li class="breadcrumb-item active">Edit</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Edit / Rolling Roster</h3>
+          <p class="text-muted mb-0">{{ $roster->location->name ?? '-' }} | {{ $roster->locationShift->shift->name ?? 'Shift' }}</p>
+        </div>
+        <a href="{{ route('shifts.rosters.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+      </div>
       @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
       @if($errors->any())
         <div class="alert alert-danger">

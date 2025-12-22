@@ -1,13 +1,19 @@
 @extends('layouts.appnew')
 
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Detail Karyawan</h3>
+        <p class="text-muted mb-0">{{ $karyawan->nama }}</p>
+    </div>
+    <a href="{{ route('karyawans.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Employee Details</h3>
                 <div class="card-tools">
-                    <a href="{{ route('karyawans.index') }}" class="btn btn-sm btn-secondary">Back to List</a>
                     <a href="{{ route('karyawans.edit', $karyawan) }}" class="btn btn-sm btn-primary">Edit</a>
                 </div>
             </div>

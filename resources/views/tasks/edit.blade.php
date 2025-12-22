@@ -32,6 +32,16 @@
                 <h3 class="card-title">Edit Task</h3>
             </div>
             <div class="card-body">
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <div class="fw-semibold mb-1">Validasi gagal:</div>
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <form action="{{ route('tasks.update', $task) }}" method="POST">
                     @csrf
                     @method('PATCH')
@@ -120,7 +130,7 @@
                                 <input type="text" name="slots[0][name]" class="form-control" placeholder="Nama / Tujuan">
                             </div>
                             <div class="col-md-3">
-                                <input type="number" name="slots[0][percentage]" class="form-control" min="1" max="100" placeholder="%">
+                                <input type="number" name="slots[0][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="%">
                             </div>
                             <div class="col-md-3">
                                 <input type="number" name="slots[0][minutes]" class="form-control" min="1" placeholder="Menit">

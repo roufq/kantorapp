@@ -1,26 +1,17 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-sm-6"><h3 class="mb-0">Location Admins</h3></div>
-    <div class="col-sm-6">
-      <ol class="breadcrumb float-sm-end">
-        <li class="breadcrumb-item"><a href="#">Home</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Location Admins</li>
-      </ol>
-    </div>
-  </div>
-</div>
-@endsection
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h3 class="mb-1">Admin Lokasi</h3>
+    <p class="text-muted mb-0">Kelola akun admin lokasi dan penempatannya.</p>
+  </div>
+  <a href="{{ route('location-admins.create') }}" class="btn btn-primary btn-sm">Tambah Admin</a>
+</div>
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title">Admins</h3>
-        <div class="card-tools">
-          <a href="{{ route('location-admins.create') }}" class="btn btn-sm btn-primary">Add Admin</a>
-        </div>
       </div>
       <div class="card-body table-responsive p-0">
         <table class="table table-hover text-nowrap">

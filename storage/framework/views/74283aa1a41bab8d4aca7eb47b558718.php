@@ -1,4 +1,11 @@
 <?php $__env->startSection('content'); ?>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Overtime Report</h3>
+        <p class="text-muted mb-0">Rekap pengajuan lembur berdasarkan filter.</p>
+    </div>
+    <a href="<?php echo e(route('overtime.index')); ?>" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="container">
     <div class="row">
         <div class="col-md-12">

@@ -200,7 +200,7 @@ class TaskController extends Controller
                     'minutes' => (int) $slot['minutes'],
                     'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                     'created_by' => $user->id,
-                    'status' => 'draft',
+                    'status' => 'pending',
                 ]);
                 TaskSlotHistory::create([
                     'task_slot_id' => $newSlot->id,
@@ -390,13 +390,13 @@ class TaskController extends Controller
                         continue;
                     }
                     $before = $slotModel->toArray();
-                    $slotModel->delete();
                     TaskSlotHistory::create([
                         'task_slot_id' => $slotModel->id,
                         'action' => 'deleted',
                         'data_before' => $before,
                         'actor_id' => $user->id,
                     ]);
+                    $slotModel->delete();
                 }
 
                 $task->recalcProgressFromSlots();
@@ -639,7 +639,7 @@ class TaskController extends Controller
                 'minutes' => (int) $slot['minutes'],
                 'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                 'created_by' => $user->id,
-                'status' => 'draft',
+                'status' => 'pending',
             ]);
             TaskSlotHistory::create([
                 'task_slot_id' => $newSlot->id,

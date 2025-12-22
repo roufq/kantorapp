@@ -62,12 +62,19 @@ class ShiftRosterController extends Controller
         }
 
         $users = User::where('location_id', $locationId)->orderBy('name')->get();
+        $locationCategories = $locationModel->shifts->map(function ($shift) {
+            return $shift->pivot->category ?? $shift->category;
+        })->filter()->unique()->values();
+        $locationCategory = $locationCategories->first();
 
-        $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
-            ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
-            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-            ->get()
-            ->groupBy(fn($e) => $e->date->toDateString());
+        $rosterEntries = collect();
+        if ($locationCategory !== 'office') {
+            $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
+                ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
+                ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->get()
+                ->groupBy(fn($e) => $e->date->toDateString());
+        }
 
         $leaves = EmployeeLeave::with('user')
             ->where('status', 'approved')
@@ -103,28 +110,67 @@ class ShiftRosterController extends Controller
 
         $calendarEvents = collect();
 
-        foreach ($rosterEntries as $date => $entries) {
-            foreach ($entries as $entry) {
-                $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
-                $slot = $slots[$entry->slot_index] ?? null;
-                $time = $entry->status === 'off'
-                    ? 'Hari libur'
-                    : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
+        if ($locationCategory === 'office') {
+            $locationShifts = LocationShift::with('shift')
+                ->where('location_id', $locationId)
+                ->where('category', 'office')
+                ->get();
 
-                $calendarEvents->push([
-                    'title' => ($entry->user->name ?? '-') . ' • ' . $time,
-                    'start' => $entry->date->toDateString(),
-                    'allDay' => true,
-                    'className' => match ($entry->status) {
-                        'off' => 'fc-event-off',
-                        'leave' => 'fc-event-leave',
-                        'missing' => 'fc-event-missing',
-                        default => 'fc-event-on',
-                    },
-                    'notes' => $entry->notes,
-                    'status' => $entry->status,
-                    'time' => $time,
-                ]);
+            $period = new \DatePeriod(
+                $monthStart,
+                new \DateInterval('P1D'),
+                $monthEnd->copy()->addDay()
+            );
+
+            foreach ($period as $d) {
+                $dateStr = $d->format('Y-m-d');
+                $dayKey = strtolower($d->format('l'));
+                foreach ($locationShifts as $locationShift) {
+                    $slots = $locationShift->normalizedSlots();
+                    foreach ($slots as $slot) {
+                        if (!empty($slot['days'])) {
+                            $dayList = array_map('strtolower', $slot['days']);
+                            if (!in_array($dayKey, $dayList, true)) {
+                                continue;
+                            }
+                        }
+                        $time = ($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?');
+                        $calendarEvents->push([
+                            'title' => $locationShift->shift?->name ?? 'Office Shift',
+                            'start' => $dateStr,
+                            'allDay' => true,
+                            'className' => 'fc-event-on',
+                            'notes' => null,
+                            'status' => 'on',
+                            'time' => $time,
+                        ]);
+                    }
+                }
+            }
+        } else {
+            foreach ($rosterEntries as $date => $entries) {
+                foreach ($entries as $entry) {
+                    $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
+                    $slot = $slots[$entry->slot_index] ?? null;
+                    $time = $entry->status === 'off'
+                        ? 'Hari libur'
+                        : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
+
+                    $calendarEvents->push([
+                        'title' => ($entry->user->name ?? '-') . ' - ' . $time,
+                        'start' => $entry->date->toDateString(),
+                        'allDay' => true,
+                        'className' => match ($entry->status) {
+                            'off' => 'fc-event-off',
+                            'leave' => 'fc-event-leave',
+                            'missing' => 'fc-event-missing',
+                            default => 'fc-event-on',
+                        },
+                        'notes' => $entry->notes,
+                        'status' => $entry->status,
+                        'time' => $time,
+                    ]);
+                }
             }
         }
 

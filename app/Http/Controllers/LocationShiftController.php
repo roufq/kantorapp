@@ -70,6 +70,13 @@ class LocationShiftController extends Controller
                 ->withInput();
         }
 
+        $categories = $this->collectSelectedCategories($request);
+        if (count($categories) > 1) {
+            return redirect()->back()
+                ->withErrors(['shift_ids' => 'Satu lokasi hanya boleh menggunakan satu jenis shift (Office atau Non Office). Pilih shift dengan kategori yang sama.'])
+                ->withInput();
+        }
+
         $location = Location::findOrFail($request->location_id);
         $syncData = $this->buildPivotSyncData($request);
         $location->shifts()->sync($syncData);
@@ -133,6 +140,13 @@ class LocationShiftController extends Controller
                 ->withInput();
         }
 
+        $categories = $this->collectSelectedCategories($request);
+        if (count($categories) > 1) {
+            return redirect()->back()
+                ->withErrors(['shift_ids' => 'Satu lokasi hanya boleh menggunakan satu jenis shift (Office atau Non Office). Pilih shift dengan kategori yang sama.'])
+                ->withInput();
+        }
+
         $syncData = $this->buildPivotSyncData($request);
 
         // Sync shifts for this location
@@ -176,6 +190,17 @@ class LocationShiftController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $shift = Shift::findOrFail($request->shift_id);
+        $existingCategories = $location->shifts->map(function ($shiftItem) {
+            return $shiftItem->pivot->category ?? $shiftItem->category;
+        })->filter()->unique()->values();
+        $newCategory = $shift->category ?? 'office';
+        if ($existingCategories->isNotEmpty() && !$existingCategories->contains($newCategory)) {
+            return response()->json([
+                'errors' => ['shift_id' => ['Satu lokasi hanya boleh menggunakan satu jenis shift (Office atau Non Office).']],
+            ], 422);
         }
 
         if (!$location->shifts()->where('shift_id', $request->shift_id)->exists()) {
@@ -255,5 +280,27 @@ class LocationShiftController extends Controller
         }
 
         return $syncData;
+    }
+
+    private function collectSelectedCategories(Request $request): array
+    {
+        $shiftIds = $request->input('shift_ids', []);
+        if (empty($shiftIds)) {
+            return [];
+        }
+
+        $shifts = Shift::whereIn('id', $shiftIds)->get()->keyBy('id');
+        $categoryInput = $request->input('shift_category', []);
+        $categories = [];
+
+        foreach ($shiftIds as $shiftId) {
+            $shift = $shifts->get($shiftId);
+            $category = $categoryInput[$shiftId] ?? ($shift ? $shift->category : null);
+            if ($category) {
+                $categories[$category] = true;
+            }
+        }
+
+        return array_keys($categories);
     }
 }

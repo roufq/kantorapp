@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="{{ asset('NewAsset/assets/css/bootstrap.min.css') }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('NewAsset/assets/css/icons.css') }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('NewAsset/assets/css/style.css') }}" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous">
     <!-- Extra icon CDN to ensure all mdi icons are available -->
     <link rel="stylesheet" href="https://cdn.materialdesignicons.com/7.4.47/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" crossorigin="anonymous">
@@ -150,7 +151,7 @@
                             </a>
                         </li>
                         @endif
-                        @if($authUser->hasAnyRole(['Super Admin','Admin Lokasi']))
+                        @if($authUser->hasAnyRole(['Super Admin','Admin Lokasi','Karyawan']))
                         <li>
                             <a href="{{ route('shifts.rosters.calendar') }}" class="waves-effect {{ request()->routeIs('shifts.rosters.calendar') ? 'active' : '' }}">
                                 <i class="mdi mdi-calendar-clock"></i>

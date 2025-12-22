@@ -3,14 +3,9 @@
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h1 class="h4 mb-1">Rekap Jam Kerja Bulanan</h1>
-            <p class="text-muted mb-0">Total menit dari slot tugas yang disetujui + kehadiran (jika ada).</p>
-        </div>
-        <div>
-            <a href="{{ route('tasks.index') }}" class="text-decoration-none">Kembali ke Tasks</a>
-        </div>
+    <div>
+        <h3 class="mb-1">Rekap Jam Kerja Bulanan</h3>
+        <p class="text-muted mb-0">Total menit dari slot tugas yang disetujui + kehadiran (jika ada).</p>
     </div>
 </div>
 

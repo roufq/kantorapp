@@ -2,22 +2,21 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div>
-        <h1 class="m-0">Laporan</h1>
-        <p class="text-secondary mb-0">Pantau laporan karyawan dan approval</p>
-      </div>
-      @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
-      <a href="{{ route('reports.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Buat Laporan
-      </a>
-      @endif
-    </div>
-  </div>
-
   <div class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Laporan</h3>
+          <p class="text-muted mb-0">Pantau laporan karyawan dan approval</p>
+        </div>
+        <div class="d-flex gap-2">
+          @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
+          <a href="{{ route('reports.create') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Buat Laporan
+          </a>
+          @endif
+        </div>
+      </div>
       <div class="card">
         <div class="card-body">
           <form method="GET" class="row g-2 mb-3">

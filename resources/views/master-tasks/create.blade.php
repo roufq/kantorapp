@@ -1,30 +1,11 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-            <!--begin::Row-->
-            <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">Assign Task</h3></div>
-              <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-end">
-                  <li class="breadcrumb-item"><a href="{{ route('master-tasks.index') }}">Super Admin Tasks</a></li>
-                  <li class="breadcrumb-item active" aria-current="page">Assign Task</li>
-                </ol>
-              </div>
-            </div>
-            <!--end::Row-->
-          </div>
-@endsection
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h1 class="h3 mb-1">Assign Master Task</h1>
-            <p class="text-muted mb-0">Super Admin dapat menetapkan tugas ke Super Admin lain atau karyawan.</p>
-        </div>
-        <div>
-            <a href="{{ route('master-tasks.index') }}" class="text-decoration-none">Kembali</a>
-        </div>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Assign Master Task</h3>
+        <p class="text-muted mb-0">Super Admin dapat menetapkan tugas ke Super Admin lain atau karyawan.</p>
     </div>
+    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
 </div>
 <div class="row">
     <div class="col-12">

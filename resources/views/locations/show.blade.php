@@ -1,26 +1,14 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Location Details</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('locations.index') }}">Locations</a></li>
-                        <li class="breadcrumb-item active">{{ $location->name }}</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Detail Lokasi</h3>
+        <p class="text-muted mb-0">{{ $location->name }}</p>
     </div>
-    <!-- /.content-header -->
-
+    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
+<div class="content-wrapper">
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">

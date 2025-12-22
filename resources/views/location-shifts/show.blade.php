@@ -1,27 +1,14 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Location Shift Details</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('location-shifts.index') }}">Location Shifts</a></li>
-                        <li class="breadcrumb-item active">Show</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Location Shift Details</h3>
+        <p class="text-muted mb-0">Detail shift yang terpasang di lokasi.</p>
     </div>
-    <!-- /.content-header -->
-
-    <!-- Main content -->
+    <a href="{{ route('location-shifts.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
+<div class="content-wrapper">
     <section class="content">
         <div class="container-fluid">
             <div class="row">

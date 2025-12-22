@@ -1,20 +1,11 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-            <!--begin::Row-->
-            <div class="row">
-              <div class="col-sm-6"><h3 class="mb-0">Messages</h3></div>
-              <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-end">
-                  <li class="breadcrumb-item"><a href="#">Home</a></li>
-                  <li class="breadcrumb-item active" aria-current="page">Messages</li>
-                </ol>
-              </div>
-            </div>
-            <!--end::Row-->
-          </div>
-@endsection
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Messages</h3>
+        <p class="text-muted mb-0">Kelola percakapan dengan pengguna lain.</p>
+    </div>
+</div>
 @php
   $activeUserId = request('user_id') ?? ($contacts->keys()->first() ?? null);
   $activeMessages = ($activeUserId && $conversations->has($activeUserId)) ? $conversations[$activeUserId] : collect();

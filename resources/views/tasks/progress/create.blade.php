@@ -1,24 +1,13 @@
 @extends('layouts.appnew')
 
-@section('title')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-6">
-            <h3 class="mb-0">Update Progress: {{ $task->title }}</h3>
-        </div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-end">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('tasks.index') }}">Tasks</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Update Progress</li>
-            </ol>
-        </div>
-    </div>
-</div>
-@endsection
-
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Update Progress: {{ $task->title }}</h3>
+        <p class="text-muted mb-0">Kirim bukti progres slot untuk tugas ini.</p>
+    </div>
+    <a href="{{ route('tasks.show', $task) }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -27,6 +16,25 @@
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3">Kirim bukti per slot berupa link. Progres tugas akan otomatis dihitung dari slot yang disetujui.</p>
+                @php
+                    $slotStatus = $task->getSlotCompositionStatus();
+                    $missingPercent = max(0, round(100 - $slotStatus['total_percent'], 2));
+                    $missingMinutes = $slotStatus['duration_minutes'] !== null
+                        ? max(0, $slotStatus['duration_minutes'] - $slotStatus['total_minutes'])
+                        : null;
+                    $slotIncomplete = !$slotStatus['complete'];
+                    $slotAlertMessage = 'Komposisi slot belum lengkap. ';
+                    if ($slotStatus['duration_minutes'] !== null) {
+                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '% dan ' . $missingMinutes . ' menit. Lengkapi slot terlebih dahulu.';
+                    } else {
+                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '%. Lengkapi slot terlebih dahulu.';
+                    }
+                @endphp
+                @if($slotIncomplete)
+                    <div class="alert alert-warning">
+                        {{ $slotAlertMessage }}
+                    </div>
+                @endif
                 @if($task->slots->isEmpty())
                     <div class="alert alert-warning mb-0">
                         Belum ada slot untuk tugas ini. Hubungi Admin Lokasi/Super Admin untuk menambahkan slot sebelum mengirim progres.
@@ -49,7 +57,12 @@
                         <div class="d-flex justify-content-between flex-wrap gap-2">
                             <div>
                                 <div class="fw-semibold">{{ $slot->name }} ({{ $slot->percentage }}% | {{ $slot->minutes }} menit)</div>
-                                <div class="small text-muted">Status: <span class="badge text-bg-{{ $slot->status === 'approved' ? 'success' : ($slot->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($slot->status) }}</span></div>
+                                @php
+                                    $statusClass = $slot->status === 'approved'
+                                        ? 'badge badge-success'
+                                        : ($slot->status === 'rejected' ? 'badge badge-danger' : 'badge badge-warning');
+                                @endphp
+                                <div class="small text-muted">Status: <span class="{{ $statusClass }}">{{ ucfirst($slot->status) }}</span></div>
                                 @if($slot->rejection_reason)
                                     <div class="text-danger small">Alasan reject: {{ $slot->rejection_reason }}</div>
                                 @endif
@@ -75,7 +88,7 @@
                         @endphp
                         <div class="mt-2">
                             @if($slotCanSubmit)
-                                <form action="{{ route('task-slots.submit', $slot) }}" method="POST" class="row g-2 align-items-end">
+                                <form action="{{ route('task-slots.submit', $slot) }}" method="POST" class="row g-2 align-items-end" @if($slotIncomplete) onsubmit="alert('{{ $slotAlertMessage }}'); return false;" @endif>
                                     @csrf
                                     <div class="col-md-6">
                                         <label class="form-label">Link</label>
@@ -92,7 +105,11 @@
                                 </form>
                             @else
                                 <div class="alert alert-light border small mb-0">
-                                    Bukti slot sudah dikirim dan menunggu/approved. Ajukan ulang hanya setelah status di-reject.
+                                    @if($slot->status === 'approved')
+                                        Slot sudah disetujui.
+                                    @else
+                                        Bukti slot sudah dikirim dan menunggu approval. Ajukan ulang hanya setelah status di-reject.
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -117,7 +134,7 @@
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                             <div>
                                 <div class="fw-semibold">Progress {{ $update->progress }}%</div>
-                                <div class="small text-muted">Dikirim oleh {{ $update->user->name }} • {{ $update->created_at->format('d M Y H:i') }}</div>
+                                <div class="small text-muted">Dikirim oleh {{ $update->user->name }} @ {{ $update->created_at->format('d M Y H:i') }}</div>
                                 <div class="mt-1">
                                     <span class="badge text-bg-{{ $update->approval_status === 'approved' ? 'success' : ($update->approval_status === 'rejected' ? 'danger' : 'warning') }}">
                                         {{ ucfirst($update->approval_status) }}

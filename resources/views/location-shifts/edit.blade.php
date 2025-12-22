@@ -13,31 +13,11 @@
     </div>
 </div>
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Manage Shifts for {{ $location->name }}</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('location-shifts.index') }}">Location Shifts</a></li>
-                        <li class="breadcrumb-item active">Edit</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
-
-    <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-12">
-                    <div class="card card-primary">
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Manage Shifts for {{ $location->name }} ({{ $location->code }})</h3>
                         </div>
@@ -48,8 +28,8 @@
                             @csrf
                             @method('PUT')
                             <div class="card-body">
-                                <div class="alert alert-info">
-                                    <h5><i class="icon fas fa-info"></i> Current Location</h5>
+                                <div class="alert alert-light border">
+                                    <h5><i class="icon fas fa-info text-muted"></i> Current Location</h5>
                                     <strong>{{ $location->name }}</strong> ({{ $location->code }})<br>
                                     <small>{{ $location->address }}</small>
                                 </div>
@@ -57,7 +37,7 @@
                                 <div class="form-group">
                                     <label for="shift_ids">Pilih Shift <span class="text-danger">*</span></label>
                                     <div class="border p-3" style="max-height: 480px; overflow-y: auto;">
-                                        <div class="mb-2 fw-semibold text-primary">Office</div>
+                                        <div class="mb-2 fw-semibold text-muted">Office</div>
                                         @foreach($allShifts->where('category','office') as $shift)
                                             @continue($shift->code === 'WKND_OFF')
                                             @php
@@ -99,7 +79,7 @@
                                                     <div class="mt-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                                             <span class="fw-semibold">Time Slots (per lokasi)</span>
-                                                            <button type="button" class="btn btn-outline-primary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
                                                         </div>
                                                         <div class="slot-container" data-shift="{{ $shift->id }}" data-next-index="{{ $nextIndex }}">
                                                             @foreach($slots as $idx => $slot)
@@ -133,7 +113,7 @@
                                         </div>
                                         @endforeach
 
-                                        <div class="mb-2 mt-3 fw-semibold text-info">Non Office</div>
+                                        <div class="mb-2 mt-3 fw-semibold text-muted">Non Office</div>
                                         @foreach($allShifts->where('category','non_office') as $shift)
                                             @php
                                                 $checked = in_array($shift->id, $assignedShiftIds);
@@ -148,7 +128,7 @@
                                                 }
                                                 $nextIndex = is_array($slots) ? count($slots) : 0;
                                             @endphp
-                                            <div class="card mb-3 shadow-sm border-info">
+                                            <div class="card mb-3 shadow-sm border">
                                                 <div class="card-body">
                                                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                                                         <div class="d-flex align-items-start gap-2">
@@ -170,7 +150,7 @@
                                                     <div class="mt-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                                             <span class="fw-semibold">Time Slots (per lokasi)</span>
-                                                            <button type="button" class="btn btn-outline-primary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
                                                         </div>
                                                         <div class="slot-container" data-shift="{{ $shift->id }}" data-next-index="{{ $nextIndex }}">
                                                             @foreach($slots as $idx => $slot)

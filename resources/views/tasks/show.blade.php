@@ -1,27 +1,20 @@
 @php
     use Illuminate\Support\Facades\Storage;
+    use App\Models\TaskSlotHistory;
 @endphp
 @extends('layouts.appnew')
 
-@section('title')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-6"><h3 class="mb-0">Task Detail</h3></div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-end">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('tasks.index') }}">Tasks</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Task Detail</li>
-            </ol>
-        </div>
-    </div>
-</div>
-@endsection
-
 @section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Task Detail</h3>
+        <p class="text-muted mb-0">{{ $task->title }}</p>
+    </div>
+    <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-lg-8">
-        <div class="card">
+        <div class="card" id="taskDetailCard">
             <div class="card-header d-flex justify-content-between align-items-center">
                  <h4 class="card-title mb-0">{{ $task->title }}</h4>
                  <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-outline-secondary">Back to List</a>
@@ -100,16 +93,108 @@
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card h-100">
+        <div class="card h-100" id="historyProgressCard">
+            <div class="card-header">
+                <h6 class="mb-0">History Progress</h6>
+            </div>
+            <div class="card-body" id="historyProgressBody" style="overflow-y:auto;">
+                @php
+                    $slotHistory = TaskSlotHistory::query()
+                        ->whereIn('task_slot_id', $task->slots->pluck('id'))
+                        ->whereIn('action', ['approved', 'rejected'])
+                        ->with(['actor', 'slot.attachments'])
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+                @endphp
+                @forelse($slotHistory as $history)
+                    <div class="border rounded p-2 mb-3">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                @php
+                                    $data = $history->data_after ?? $history->data_before ?? [];
+                                    $slotName = $data['name'] ?? optional($history->slot)->name ?? '-';
+                                    $slotPercent = $data['percentage'] ?? optional($history->slot)->percentage ?? 0;
+                                    $slotMinutes = $data['minutes'] ?? optional($history->slot)->minutes ?? 0;
+                                    $statusClass = $history->action === 'approved' ? 'badge badge-success' : 'badge badge-danger';
+                                    $attachments = optional($history->slot)->attachments
+                                        ? $history->slot->attachments
+                                            ->where('type', 'link')
+                                            ->filter(function ($att) use ($history) {
+                                                return $att->created_at && $history->created_at && $att->created_at->lte($history->created_at);
+                                            })
+                                            ->sortByDesc('created_at')
+                                            ->values()
+                                        : collect();
+                                    $latestLink = $attachments->first();
+                                    $detailPayload = [
+                                        'name' => $slotName,
+                                        'percentage' => $slotPercent,
+                                        'minutes' => $slotMinutes,
+                                        'status' => $history->action,
+                                        'actor' => $history->actor ? $history->actor->name : '-',
+                                        'action_at' => $history->created_at ? $history->created_at->format('d M Y H:i') : '-',
+                                        'rejection_reason' => $data['rejection_reason'] ?? null,
+                                        'link' => $latestLink ? $latestLink->path_or_url : null,
+                                    ];
+                                @endphp
+                                <div class="fw-semibold">
+                                    {{ $slotName }} ({{ $slotPercent }}% | {{ $slotMinutes }} menit)
+                                </div>
+                                <div class="small text-muted">
+                                    <span class="{{ $statusClass }}">{{ ucfirst($history->action) }}</span>
+                                    @if($history->actor)
+                                        <span class="text-muted">oleh {{ $history->actor->name }} @ {{ $history->created_at->format('d M Y H:i') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary btn-sm history-detail-btn" data-toggle="modal" data-target="#historyDetailModal" data-details='@json($detailPayload)'>Detail</button>
+                            </div>
+                        </div>
+                        @if($history->action === 'rejected' && !empty($data['rejection_reason']))
+                            <div class="mt-2 text-danger small"><strong>Alasan penolakan:</strong> {{ $data['rejection_reason'] }}</div>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-muted mb-0">Belum ada history progress.</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Slot Progres</h6>
             </div>
             <div class="card-body">
+                @php
+                    $slotStatus = $task->getSlotCompositionStatus();
+                    $missingPercent = max(0, round(100 - $slotStatus['total_percent'], 2));
+                    $missingMinutes = $slotStatus['duration_minutes'] !== null
+                        ? max(0, $slotStatus['duration_minutes'] - $slotStatus['total_minutes'])
+                        : null;
+                    $slotIncomplete = !$slotStatus['complete'];
+                    $slotAlertMessage = 'Komposisi slot belum lengkap. ';
+                    if ($slotStatus['duration_minutes'] !== null) {
+                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '% dan ' . $missingMinutes . ' menit. Lengkapi slot terlebih dahulu.';
+                    } else {
+                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '%. Lengkapi slot terlebih dahulu.';
+                    }
+                @endphp
+                <div id="slotIncompleteAlert" class="alert alert-warning small {{ $slotIncomplete ? '' : 'd-none' }}">
+                    <span id="slotIncompleteMessage">{{ $slotAlertMessage }}</span>
+                </div>
                 @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
                     <div class="mb-3">
-                        <button class="btn btn-sm btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#addSlotFormSide">Tambah Slot</button>
+                        <button class="btn btn-sm btn-outline-primary w-100" type="button" id="addSlotToggleBtn" data-toggle="collapse" data-target="#addSlotFormSide" aria-expanded="false" aria-controls="addSlotFormSide" @if(!$slotIncomplete) disabled @endif>
+                            Tambah Slot
+                        </button>
+                        <div class="small text-muted mt-1">Tombol ini nonaktif jika total persentase sudah 100% dan total menit sudah sesuai durasi task.</div>
                         <div class="collapse mt-2" id="addSlotFormSide">
-                            <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2">
+                            <div id="addSlotFormError" class="alert alert-danger small d-none"></div>
+                            <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2" id="addSlotFormSideForm">
                                 @csrf
                                 <div class="col-6">
                                     <label class="form-label">Nama</label>
@@ -117,110 +202,285 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">% (0-100)</label>
-                                    <input type="number" name="percentage" class="form-control form-control-sm" min="1" max="100" required>
+                                    <input type="number" name="percentage" class="form-control form-control-sm" min="1" max="100" step="0.01" value="{{ old('percentage', $missingPercent > 0 ? $missingPercent : '') }}" required>
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Menit</label>
-                                    <input type="number" name="minutes" class="form-control form-control-sm" min="1" required>
+                                    <input type="number" name="minutes" class="form-control form-control-sm" min="1" value="{{ old('minutes', $missingMinutes && $missingMinutes > 0 ? $missingMinutes : '') }}" required>
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Urutan</label>
                                     <input type="number" name="order" class="form-control form-control-sm" min="0" value="0">
                                 </div>
-                                <div class="col-12">
+                                <div class="col-12 mt-2">
                                     <button type="submit" class="btn btn-primary btn-sm w-100">Simpan Slot</button>
-                                    <div class="small text-muted mt-1">Pastikan total persen=100% dan total menit ≤ durasi task.</div>
+                                    <div class="small text-muted mt-1">Pastikan total persen = 100% dan total menit = durasi task (jika diisi).</div>
                                 </div>
                             </form>
                         </div>
                     </div>
                 @endif
-                @forelse($task->slots as $slot)
-                    <div class="border rounded p-2 mb-3">
-                        <div class="d-flex justify-content-between flex-wrap gap-2">
-                            <div>
-                                <div class="fw-semibold">{{ $slot->name }} ({{ $slot->percentage }}% | {{ $slot->minutes }} menit)</div>
-                                <div class="small text-muted">Status:
-                                    <span class="badge text-bg-{{ $slot->status === 'approved' ? 'success' : ($slot->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($slot->status) }}</span>
-                                    @if($slot->approved_at)
-                                        <span class="text-muted">oleh {{ optional($slot->approver)->name }} @ {{ $slot->approved_at->format('d M Y H:i') }}</span>
-                                    @endif
-                                </div>
-                                @if($slot->rejection_reason)
-                                    <div class="text-danger small">Alasan reject: {{ $slot->rejection_reason }}</div>
-                                @endif
-                            </div>
-                            <div class="d-flex align-items-start gap-2 flex-wrap">
-                                @php
-                                    $canApprove = $slot->status === 'pending' && (
-                                        auth()->user()->hasRole('Super Admin') ||
-                                        (auth()->user()->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === auth()->user()->location_id)
-                                    );
-                                    $canManage = auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']);
-                                @endphp
-                                @if($canApprove)
-                                    <form action="{{ route('task-slots.approve', $slot) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                                    </form>
-                                    <form action="{{ route('task-slots.reject', $slot) }}" method="POST" class="d-flex align-items-start gap-2">
-                                        @csrf
-                                        <textarea name="reason" class="form-control form-control-sm" placeholder="Alasan reject" rows="1" required style="min-width: 180px;"></textarea>
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
-                                    </form>
-                                @endif
-                                @if($canManage)
-                                    <form action="{{ route('tasks.slots.destroy', [$task, $slot]) }}" method="POST" onsubmit="return confirm('Hapus slot ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm">Hapus</button>
-                                    </form>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="mt-2">
-                            <div class="fw-semibold small mb-1">Lampiran Link</div>
-                            @php $linkAttachments = $slot->attachments->where('type','link'); @endphp
-                            <div class="d-flex flex-wrap gap-2">
-                                @forelse($linkAttachments as $att)
-                                    <a href="{{ $att->path_or_url }}" target="_blank" class="btn btn-sm btn-outline-primary">Link {{ $loop->iteration }}</a>
-                                @empty
-                                    <span class="text-muted small">Belum ada lampiran.</span>
-                                @endforelse
-                            </div>
-                        </div>
-
-                        @php
-                            $slotCanSubmit = ($slot->status === 'rejected') || ($slot->status === 'pending' && $slot->attachments->where('type','link')->isEmpty());
-                        @endphp
-                        <div class="mt-2">
-                            @if($slotCanSubmit)
-                                <form action="{{ route('task-slots.submit', $slot) }}" method="POST" class="row g-2 align-items-end">
-                                    @csrf
-                                    <div class="col-12">
-                                        <label class="form-label">Link</label>
-                                        <input type="url" name="link" class="form-control form-control-sm" placeholder="https://" required>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Catatan</label>
-                                        <textarea name="note" class="form-control form-control-sm" rows="1" placeholder="Opsional"></textarea>
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-sm btn-primary w-100">Submit Bukti Slot (Link)</button>
-                                    </div>
-                                </form>
-                            @else
-                                <div class="alert alert-light border small mb-0">
-                                    Bukti slot sudah dikirim dan menunggu/approved. Ajukan ulang hanya setelah status di-reject.
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-muted mb-0">Belum ada slot progres.</p>
-                @endforelse
+                <div id="taskSlotList" data-duration-minutes="{{ $task->duration_minutes ?? '' }}">
+                    @forelse($task->slots as $slot)
+                        @include('tasks.partials.slot-card', [
+                            'task' => $task,
+                            'slot' => $slot,
+                            'slotIncomplete' => $slotIncomplete,
+                            'slotAlertMessage' => $slotAlertMessage,
+                        ])
+                    @empty
+                        <p class="text-muted mb-0" id="taskSlotEmpty">Belum ada slot progres.</p>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
 </div>
+<div class="modal fade" id="historyDetailModal" tabindex="-1" role="dialog" aria-labelledby="historyDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyDetailModalLabel">Detail History Slot</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2"><strong>Nama Slot:</strong> <span id="historyDetailName">-</span></div>
+                <div class="mb-2"><strong>Persentase:</strong> <span id="historyDetailPercent">-</span></div>
+                <div class="mb-2"><strong>Menit:</strong> <span id="historyDetailMinutes">-</span></div>
+                <div class="mb-2"><strong>Status:</strong> <span id="historyDetailStatus">-</span></div>
+                <div class="mb-2"><strong>Diproses Oleh:</strong> <span id="historyDetailActor">-</span></div>
+                <div class="mb-2"><strong>Waktu:</strong> <span id="historyDetailTime">-</span></div>
+                <div class="mb-2"><strong>Alasan Reject:</strong> <span id="historyDetailReason">-</span></div>
+                <div class="mb-2">
+                    <strong>Link:</strong>
+                    <div id="historyDetailLinks" class="mt-1 d-flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('addSlotFormSideForm');
+        const list = document.getElementById('taskSlotList');
+        const alertBox = document.getElementById('slotIncompleteAlert');
+        const alertMessage = document.getElementById('slotIncompleteMessage');
+        const errorBox = document.getElementById('addSlotFormError');
+        const addSlotToggleBtn = document.getElementById('addSlotToggleBtn');
+        const taskDetailCard = document.getElementById('taskDetailCard');
+        const historyCard = document.getElementById('historyProgressCard');
+        const historyBody = document.getElementById('historyProgressBody');
+        if (!form || !list) return;
+
+        let slotIncomplete = @json($slotIncomplete);
+        let slotAlertText = @json($slotAlertMessage);
+        const percentInput = form.querySelector('input[name="percentage"]');
+        const minutesInput = form.querySelector('input[name="minutes"]');
+        const durationRaw = list.getAttribute('data-duration-minutes');
+        const durationMinutes = durationRaw ? parseInt(durationRaw, 10) : null;
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        const round2 = (value) => Math.round(value * 100) / 100;
+
+        const buildStatusFromDom = () => {
+            let totalPercent = 0;
+            let totalMinutes = 0;
+            list.querySelectorAll('.slot-card').forEach((card) => {
+                const pct = parseFloat(card.getAttribute('data-percentage') || '0');
+                const mins = parseInt(card.getAttribute('data-minutes') || '0', 10);
+                totalPercent += isNaN(pct) ? 0 : pct;
+                totalMinutes += isNaN(mins) ? 0 : mins;
+            });
+            totalPercent = round2(totalPercent);
+            if (Math.abs(totalPercent - 100) <= 0.05) {
+                totalPercent = 100;
+            }
+            const percentComplete = Math.abs(totalPercent - 100) <= 0.01;
+            const minutesComplete = durationMinutes === null ? true : totalMinutes === durationMinutes;
+            const complete = percentComplete && minutesComplete;
+            const missingPercent = Math.max(0, round2(100 - totalPercent));
+            const missingMinutes = durationMinutes === null ? null : Math.max(0, durationMinutes - totalMinutes);
+            let message = 'Komposisi slot belum lengkap. ';
+            if (durationMinutes !== null) {
+                message += 'Kurang ' + missingPercent + '% dan ' + missingMinutes + ' menit. Lengkapi slot terlebih dahulu.';
+            } else {
+                message += 'Kurang ' + missingPercent + '%. Lengkapi slot terlebih dahulu.';
+            }
+            return {
+                complete,
+                total_percent: totalPercent,
+                total_minutes: totalMinutes,
+                duration_minutes: durationMinutes,
+                missing_percent: missingPercent,
+                missing_minutes: missingMinutes,
+                message,
+            };
+        };
+
+        const applyStatus = (status) => {
+            slotIncomplete = !status.complete;
+            slotAlertText = status.message;
+            if (alertMessage) {
+                alertMessage.textContent = status.message;
+            }
+            if (alertBox) {
+                alertBox.classList.toggle('d-none', status.complete);
+            }
+            if (addSlotToggleBtn) {
+                addSlotToggleBtn.disabled = status.complete;
+            }
+            if (percentInput) {
+                percentInput.value = status.missing_percent > 0 ? status.missing_percent : '';
+            }
+            if (minutesInput) {
+                minutesInput.value = (status.duration_minutes !== null && status.missing_minutes > 0) ? status.missing_minutes : '';
+            }
+        };
+
+        document.addEventListener('submit', function (event) {
+            const target = event.target;
+            if (target && target.matches('form[data-slot-submit="1"]') && slotIncomplete) {
+                event.preventDefault();
+                alert(slotAlertText || 'Komposisi slot belum lengkap.');
+            }
+        });
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            if (errorBox) {
+                errorBox.classList.add('d-none');
+                errorBox.textContent = '';
+            }
+
+            const formData = new FormData(form);
+            let response;
+            try {
+                response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+            } catch (error) {
+                if (errorBox) {
+                    errorBox.textContent = 'Gagal mengirim data. Coba lagi.';
+                    errorBox.classList.remove('d-none');
+                }
+                return;
+            }
+
+            let data = null;
+            if (!response.ok) {
+                try {
+                    data = await response.json();
+                } catch (error) {
+                    data = null;
+                }
+
+                if (response.status === 422 && data && data.errors) {
+                    const messages = [];
+                    Object.values(data.errors).forEach((items) => {
+                        items.forEach((item) => messages.push(item));
+                    });
+                    if (errorBox) {
+                        errorBox.textContent = messages.join(' ');
+                        errorBox.classList.remove('d-none');
+                    }
+                    return;
+                }
+
+                if (errorBox) {
+                    const message = data && (data.message || data.error) ? (data.message || data.error) : 'Gagal menambahkan slot. Coba lagi.';
+                    errorBox.textContent = message + ' (HTTP ' + response.status + ')';
+                    errorBox.classList.remove('d-none');
+                }
+                return;
+            }
+
+            try {
+                data = await response.json();
+            } catch (error) {
+                if (errorBox) {
+                    errorBox.textContent = 'Respon server tidak valid. Coba lagi.';
+                    errorBox.classList.remove('d-none');
+                }
+                return;
+            }
+            if (data.slot_html) {
+                list.insertAdjacentHTML('beforeend', data.slot_html);
+                const empty = document.getElementById('taskSlotEmpty');
+                if (empty) {
+                    empty.remove();
+                }
+            }
+            form.reset();
+            if (data.slot_status) {
+                applyStatus(data.slot_status);
+            } else {
+                applyStatus(buildStatusFromDom());
+            }
+        });
+
+        const syncHistoryHeight = () => {
+            if (!taskDetailCard || !historyCard || !historyBody) return;
+            const detailHeight = taskDetailCard.offsetHeight;
+            const header = historyCard.querySelector('.card-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            const padding = 24;
+            const bodyHeight = Math.max(200, detailHeight - headerHeight - padding);
+            historyBody.style.maxHeight = bodyHeight + 'px';
+        };
+
+        syncHistoryHeight();
+        window.addEventListener('resize', syncHistoryHeight);
+
+        document.querySelectorAll('.history-detail-btn').forEach((item) => {
+            item.addEventListener('click', () => {
+                const details = item.getAttribute('data-details');
+                if (!details) return;
+                let payload = null;
+                try {
+                    payload = JSON.parse(details);
+                } catch (error) {
+                    payload = null;
+                }
+                if (!payload) return;
+                const statusText = payload.status ? payload.status.charAt(0).toUpperCase() + payload.status.slice(1) : '-';
+                document.getElementById('historyDetailName').textContent = payload.name || '-';
+                document.getElementById('historyDetailPercent').textContent = (payload.percentage ?? '-') + '%';
+                document.getElementById('historyDetailMinutes').textContent = (payload.minutes ?? '-') + ' menit';
+                document.getElementById('historyDetailStatus').textContent = statusText;
+                document.getElementById('historyDetailActor').textContent = payload.actor || '-';
+                document.getElementById('historyDetailTime').textContent = payload.action_at || '-';
+                document.getElementById('historyDetailReason').textContent = payload.rejection_reason || '-';
+                const linksWrap = document.getElementById('historyDetailLinks');
+                if (linksWrap) {
+                    linksWrap.innerHTML = '';
+                    if (payload.link) {
+                        const a = document.createElement('a');
+                        a.href = payload.link;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        a.className = 'btn btn-sm btn-outline-primary';
+                        a.textContent = 'Link';
+                        linksWrap.appendChild(a);
+                    } else {
+                        const span = document.createElement('span');
+                        span.className = 'text-muted small';
+                        span.textContent = 'Belum ada link.';
+                        linksWrap.appendChild(span);
+                    }
+                }
+            });
+        });
+    });
+</script>
 @endsection

@@ -2,26 +2,14 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Shift Scheduler (Non-Office)</h1>
-          <p class="text-muted mb-0">Buat jadwal cepat untuk karyawan non-office, termasuk libur mingguan bergilir.</p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('shifts.scheduler') }}">Shifts</a></li>
-            <li class="breadcrumb-item active">Scheduler</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border">
+        <div>
+          <h3 class="mb-1">Shift Scheduler (Non-Office)</h3>
+          <p class="text-muted mb-0">Buat jadwal cepat untuk karyawan non-office, termasuk libur mingguan bergilir.</p>
+        </div>
+      </div>
       @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif

@@ -13,31 +13,11 @@
     </div>
 </div>
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Assign Shifts to Location</h1>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('location-shifts.index') }}">Location Shifts</a></li>
-                        <li class="breadcrumb-item active">Create</li>
-                    </ol>
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
-
-    <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-12">
-                    <div class="card card-primary">
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Assign Shifts to Location</h3>
                         </div>
@@ -67,7 +47,7 @@
                                 <div class="form-group">
                                     <label for="shift_ids">Pilih Shift <span class="text-danger">*</span></label>
                                     <div class="border p-3" style="max-height: 480px; overflow-y: auto;">
-                                        <div class="mb-2 fw-semibold text-primary">Office</div>
+                                        <div class="mb-2 fw-semibold text-muted">Office</div>
                                         @foreach($shifts->where('category','office') as $shift)
                                             @continue($shift->code === 'WKND_OFF')
                                             @php
@@ -109,7 +89,7 @@
                                                     <div class="mt-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                                             <span class="fw-semibold">Time Slots (per lokasi)</span>
-                                                            <button type="button" class="btn btn-outline-primary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
                                                         </div>
                                                         <div class="slot-container" data-shift="{{ $shift->id }}" data-next-index="{{ $nextIndex }}">
                                                             @foreach($slots as $idx => $slot)
@@ -143,7 +123,7 @@
                                             </div>
                                         @endforeach
 
-                                        <div class="mb-2 mt-3 fw-semibold text-info">Non Office</div>
+                                        <div class="mb-2 mt-3 fw-semibold text-muted">Non Office</div>
                                         @foreach($shifts->where('category','non_office') as $shift)
                                             @php
                                                 $checked = in_array($shift->id, old('shift_ids', []));
@@ -158,7 +138,7 @@
                                                 }
                                                 $nextIndex = is_array($slots) ? count($slots) : 0;
                                             @endphp
-                                            <div class="card mb-3 shadow-sm border-info">
+                                            <div class="card mb-3 shadow-sm border">
                                                 <div class="card-body">
                                                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                                                         <div class="d-flex align-items-start gap-2">
@@ -180,7 +160,7 @@
                                                     <div class="mt-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                                             <span class="fw-semibold">Time Slots (per lokasi)</span>
-                                                            <button type="button" class="btn btn-outline-primary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm add-slot" data-shift="{{ $shift->id }}">Tambah Slot</button>
                                                         </div>
                                                         <div class="slot-container" data-shift="{{ $shift->id }}" data-next-index="{{ $nextIndex }}">
                                                             @foreach($slots as $idx => $slot)

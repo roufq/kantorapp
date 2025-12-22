@@ -110,7 +110,7 @@ class TaskSlotController extends Controller
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
             'created_by' => Auth::id(),
-            'status' => 'draft',
+            'status' => 'pending',
         ]);
 
         TaskSlotHistory::create([
@@ -119,6 +119,38 @@ class TaskSlotController extends Controller
             'data_after' => $slot->toArray(),
             'actor_id' => Auth::id(),
         ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $slotStatus = $task->getSlotCompositionStatus();
+            $missingPercent = max(0, round(100 - $slotStatus['total_percent'], 2));
+            $missingMinutes = $slotStatus['duration_minutes'] !== null
+                ? max(0, $slotStatus['duration_minutes'] - $slotStatus['total_minutes'])
+                : null;
+            $slotAlertMessage = 'Komposisi slot belum lengkap. ';
+            if ($slotStatus['duration_minutes'] !== null) {
+                $slotAlertMessage .= 'Kurang ' . $missingPercent . '% dan ' . $missingMinutes . ' menit. Lengkapi slot terlebih dahulu.';
+            } else {
+                $slotAlertMessage .= 'Kurang ' . $missingPercent . '%. Lengkapi slot terlebih dahulu.';
+            }
+
+            return response()->json([
+                'slot_html' => view('tasks.partials.slot-card', [
+                    'task' => $task,
+                    'slot' => $slot,
+                    'slotIncomplete' => !$slotStatus['complete'],
+                    'slotAlertMessage' => $slotAlertMessage,
+                ])->render(),
+                'slot_status' => [
+                    'complete' => $slotStatus['complete'],
+                    'total_percent' => $slotStatus['total_percent'],
+                    'total_minutes' => $slotStatus['total_minutes'],
+                    'duration_minutes' => $slotStatus['duration_minutes'],
+                    'missing_percent' => $missingPercent,
+                    'missing_minutes' => $missingMinutes,
+                    'message' => $slotAlertMessage,
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Slot ditambahkan.');
     }
@@ -153,7 +185,7 @@ class TaskSlotController extends Controller
             'percentage' => round((float) $data['percentage'], 2),
             'minutes' => $data['minutes'],
             'order' => $data['order'] ?? 0,
-            'status' => 'draft',
+            'status' => 'pending',
             'approved_by' => null,
             'approved_at' => null,
             'rejection_reason' => null,
@@ -180,14 +212,13 @@ class TaskSlotController extends Controller
         }
 
         $before = $slot->toArray();
-        $slot->delete();
-
         TaskSlotHistory::create([
             'task_slot_id' => $slot->id,
             'action' => 'deleted',
             'data_before' => $before,
             'actor_id' => Auth::id(),
         ]);
+        $slot->delete();
 
         $task->recalcProgressFromSlots();
 
@@ -197,6 +228,20 @@ class TaskSlotController extends Controller
     public function submit(Request $request, TaskSlot $slot)
     {
         $this->ensureCanSubmit($slot);
+
+        $task = $slot->task;
+        if ($task) {
+            $slotStatus = $task->getSlotCompositionStatus();
+            if (!$slotStatus['complete']) {
+                $message = 'Komposisi slot belum lengkap. ';
+                if ($slotStatus['duration_minutes'] !== null) {
+                    $message .= 'Total persentase ' . $slotStatus['total_percent'] . '% dan total menit ' . $slotStatus['total_minutes'] . ' dari ' . $slotStatus['duration_minutes'] . ' menit. Lengkapi slot terlebih dahulu.';
+                } else {
+                    $message .= 'Total persentase ' . $slotStatus['total_percent'] . '%. Lengkapi slot terlebih dahulu.';
+                }
+                return back()->withErrors(['link' => $message]);
+            }
+        }
 
         // Hanya boleh submit pertama kali (pending tanpa lampiran) atau setelah reject
         $hasAttachments = $slot->attachments()->exists();

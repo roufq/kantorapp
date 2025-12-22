@@ -1,9 +1,12 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <h1 class="h4 mb-1">Edit Rekap Jam Kerja</h1>
-    <p class="text-muted mb-0">Perbarui rekap manual untuk karyawan per lokasi dan bulan.</p>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Edit Rekap Jam Kerja</h3>
+        <p class="text-muted mb-0">Perbarui rekap manual untuk karyawan per lokasi dan bulan.</p>
+    </div>
+    <a href="{{ route('work-recaps.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
 </div>
 
 <div class="card">

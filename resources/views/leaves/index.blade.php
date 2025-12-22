@@ -1,18 +1,11 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-sm-6"><h3 class="mb-0">Leaves</h3></div>
-    <div class="col-sm-6">
-      <ol class="breadcrumb float-sm-end">
-        <li class="breadcrumb-item"><a href="#">Home</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Leaves</li>
-      </ol>
-    </div>
+@section('content')
+<div class="bg-light p-3 mb-3 rounded border">
+  <div>
+    <h3 class="mb-1">Leaves</h3>
+    <p class="text-muted mb-0">Kelola pengajuan izin dan cuti karyawan.</p>
   </div>
 </div>
-@endsection
-@section('content')
 <div class="row">
   <div class="col-md-5">
     <div class="card">

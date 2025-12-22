@@ -1,23 +1,13 @@
 @extends('layouts.appnew')
-@section('title')
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-sm-6"><h3 class="mb-0">Location Tasks</h3></div>
-    <div class="col-sm-6">
-      <ol class="breadcrumb float-sm-end">
-        <li class="breadcrumb-item"><a href="#">Home</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Location Tasks</li>
-      </ol>
-    </div>
-  </div>
-</div>
-@endsection
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1>Tasks in My Location</h1>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <a href="{{ route('tasks.progress.approvals') }}" class="btn btn-warning me-2">Approval Progress</a>
-    <a href="{{ route('location-admin-tasks.create') }}" class="btn btn-primary">Assign Task</a>
+    <h3 class="mb-1">Tugas Lokasi</h3>
+    <p class="text-muted mb-0">Daftar tugas yang dibuat untuk lokasi Anda.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ route('tasks.progress.approvals') }}" class="btn btn-warning btn-sm">Approval Progress</a>
+    <a href="{{ route('location-admin-tasks.create') }}" class="btn btn-primary btn-sm">Assign Task</a>
   </div>
 </div>
 

@@ -1,12 +1,12 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-center">
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <h1 class="h4 mb-1">Pilih Lokasi Aktif</h1>
-    <p class="text-muted mb-0">Super Admin dapat memilih lokasi untuk men-scope dashboard & data.</p>
+    <h3 class="mb-1">Pilih Lokasi Aktif</h3>
+    <p class="text-muted mb-0">Super Admin dapat memilih lokasi untuk men-scope dashboard dan data.</p>
   </div>
-  <a href="{{ route('dashboard') }}" class="text-decoration-none">Kembali</a>
+  <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
  </div>
 
 <div class="card">

@@ -130,7 +130,7 @@ class LocationAdminTaskController extends Controller
                 'minutes' => (int) $slot['minutes'],
                 'order' => isset($slot['order']) ? (int) $slot['order'] : $idx,
                 'created_by' => $user->id,
-                'status' => 'draft',
+                'status' => 'pending',
             ]);
             TaskSlotHistory::create([
                 'task_slot_id' => $newSlot->id,
