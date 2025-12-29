@@ -11,6 +11,7 @@ use App\Models\EmployeeWorkRecap;
 use App\Models\User;
 use App\Notifications\TaskSlotSubmittedNotification;
 use App\Notifications\TaskSlotApprovalNotification;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -333,14 +334,24 @@ class TaskSlotController extends Controller
                     'actor_id' => Auth::id(),
                 ]);
 
+                AuditLogger::record('task_slot_approved', $slot, [
+                    'status' => $before['status'] ?? null,
+                    'approved_by' => $before['approved_by'] ?? null,
+                ], [
+                    'status' => $slot->status,
+                    'approved_by' => $slot->approved_by,
+                ], [
+                    'task_id' => $slot->task_id,
+                ]);
+
                 $slot->task->recalcProgressFromSlots();
             });
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
 
-        if ($slot->task && $slot->task->assignee) {
-            $slot->task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
+        if ($task->assignee) {
+            $task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
         }
 
         return back()->with('success', 'Slot disetujui.');
@@ -377,6 +388,16 @@ class TaskSlotController extends Controller
                         'data_after' => $slot->toArray(),
                         'actor_id' => Auth::id(),
                     ]);
+
+                    AuditLogger::record('task_slot_approved', $slot, [
+                        'status' => $before['status'] ?? null,
+                        'approved_by' => $before['approved_by'] ?? null,
+                    ], [
+                        'status' => $slot->status,
+                        'approved_by' => $slot->approved_by,
+                    ], [
+                        'task_id' => $slot->task_id,
+                    ]);
                 }
 
                 $task->recalcProgressFromSlots();
@@ -385,8 +406,10 @@ class TaskSlotController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        if ($slot->task && $slot->task->assignee) {
-            $slot->task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
+        if ($task->assignee) {
+            foreach ($pendingSlots as $slot) {
+                $task->assignee->notify(new TaskSlotApprovalNotification($slot, 'approved'));
+            }
         }
 
         return back()->with('success', 'Semua slot pending pada tugas ini telah disetujui.');
@@ -414,6 +437,18 @@ class TaskSlotController extends Controller
             'data_before' => $before,
             'data_after' => $slot->toArray(),
             'actor_id' => Auth::id(),
+        ]);
+
+        AuditLogger::record('task_slot_rejected', $slot, [
+            'status' => $before['status'] ?? null,
+            'approved_by' => $before['approved_by'] ?? null,
+            'rejection_reason' => $before['rejection_reason'] ?? null,
+        ], [
+            'status' => $slot->status,
+            'approved_by' => $slot->approved_by,
+            'rejection_reason' => $slot->rejection_reason,
+        ], [
+            'task_id' => $slot->task_id,
         ]);
 
         $slot->task->recalcProgressFromSlots();
@@ -454,6 +489,18 @@ class TaskSlotController extends Controller
                     'data_before' => $before,
                     'data_after' => $slot->toArray(),
                     'actor_id' => Auth::id(),
+                ]);
+
+                AuditLogger::record('task_slot_rejected', $slot, [
+                    'status' => $before['status'] ?? null,
+                    'approved_by' => $before['approved_by'] ?? null,
+                    'rejection_reason' => $before['rejection_reason'] ?? null,
+                ], [
+                    'status' => $slot->status,
+                    'approved_by' => $slot->approved_by,
+                    'rejection_reason' => $slot->rejection_reason,
+                ], [
+                    'task_id' => $slot->task_id,
                 ]);
             }
 

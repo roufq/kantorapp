@@ -15,6 +15,11 @@
             <i class="bi bi-plus-lg me-1"></i>Buat Laporan
           </a>
           @endif
+          @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
+          <a href="{{ route('reports.employee-performance') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-graph-up me-1"></i>Performa Karyawan
+          </a>
+          @endif
         </div>
       </div>
       <div class="card">

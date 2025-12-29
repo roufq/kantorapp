@@ -75,9 +75,12 @@
                     </form>
 
                     
-                    <div class="mb-3">
-                        <a href="<?php echo e(route('attendance.export', request()->query())); ?>" class="btn btn-success">
-                            <i class="fas fa-download"></i> Export to Excel
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <a href="<?php echo e(route('attendance.export', array_merge(request()->query(), ['format' => 'xlsx']))); ?>" class="btn btn-success">
+                            <i class="fas fa-download"></i> Export Excel
+                        </a>
+                        <a href="<?php echo e(route('attendance.export', array_merge(request()->query(), ['format' => 'csv']))); ?>" class="btn btn-outline-success">
+                            <i class="fas fa-file-csv"></i> Export CSV
                         </a>
                     </div>
 

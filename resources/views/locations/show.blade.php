@@ -14,16 +14,16 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-8">
-                    <div class="card card-primary">
+                    <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h3 class="card-title">Location Information</h3>
                             <div class="card-tools">
                                 @if(auth()->user()->hasRole('Super Admin'))
-                                <a href="{{ route('locations.settings', $location) }}" class="btn btn-primary btn-sm me-1">
+                                <a href="{{ route('locations.settings', $location) }}" class="btn btn-outline-secondary btn-sm me-1">
                                     <i class="bi bi-gear"></i> Settings
                                 </a>
                                 @endif
-                                <a href="{{ route('locations.edit', $location) }}" class="btn btn-warning btn-sm">
+                                <a href="{{ route('locations.edit', $location) }}" class="btn btn-outline-secondary btn-sm">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
                             </div>
@@ -111,7 +111,7 @@
 
                 <div class="col-md-4">
                     <!-- Users at this location -->
-                    <div class="card card-info">
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Users at this Location</h3>
                         </div>
@@ -141,7 +141,7 @@
                     </div>
 
                     <!-- Recent Attendances -->
-                    <div class="card card-success">
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Recent Attendances</h3>
                         </div>

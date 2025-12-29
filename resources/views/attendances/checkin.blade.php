@@ -57,7 +57,7 @@
 
                     <div id="geolocation-error" class="alert alert-danger" style="display: none;"></div>
                     <div id="geolocation-info" class="alert alert-secondary" style="display:none;"></div>
-                    <div id="manual-mode-info" class="alert alert-info" style="display: none;">Manual check-in is enabled. Please fill in the location manually.</div>
+                    <div id="manual-mode-info" class="alert alert-info" style="display: none;"></div>
 
                     <h4>Check In / Check Out</h4>
 
@@ -67,24 +67,36 @@
                         <div class="alert alert-success">You have completed your attendance for today. Checked out at {{ $todayAttendance->check_out_time->format('H:i:s') }}</div>
                     @else
                         {{-- Check In Form --}}
-                        <form id="checkinForm" method="POST" action="{{ route('attendance.checkin.post') }}">
+                        <form id="checkinForm" method="POST" action="{{ route('attendance.checkin.post') }}" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" id="latitude" name="latitude">
                             <input type="hidden" id="longitude" name="longitude">
                             <input type="hidden" id="accuracy" name="accuracy">
+                            <input type="hidden" id="device_id" name="device_id">
                             <div class="mb-3">
                                 <label class="form-label">Location</label>
                                 <input type="text" id="locationDisplay" class="form-control" readonly placeholder="Click 'Get GPS Location' to fetch your current location">
-                                <div id="manualInputs" class="row mt-2" style="display:none;">
-                                    <div class="col-md-6 mb-2">
-                                        <input type="number" step="any" class="form-control" id="manual_latitude" placeholder="Latitude (e.g. -6.2)">
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <input type="number" step="any" class="form-control" id="manual_longitude" placeholder="Longitude (e.g. 106.8)">
-                                    </div>
-                                </div>
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
-                                <button type="button" class="btn btn-info mt-1" onclick="enableManualCheckin()">Manual Check-in</button>
+                                <small class="text-muted d-block mt-1">Aktifkan GPS dan pastikan akurasi lokasi baik.</small>
+                            </div>
+                            <input type="hidden" name="check_in_selfie_data" id="check_in_selfie_data">
+                            <div class="mb-3">
+                                <label class="form-label">Selfie Check In</label>
+                                <div class="border rounded p-2">
+                                    <video id="checkinVideo" class="w-100 rounded" autoplay playsinline muted style="max-height:260px;"></video>
+                                    <canvas id="checkinCanvas" class="d-none"></canvas>
+                                    <img id="checkinPreview" class="w-100 rounded d-none" alt="Selfie check-in preview">
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="checkinStartCamera">Aktifkan Kamera</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="checkinCapture" disabled>Ambil Selfie</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="checkinRetake">Ulangi</button>
+                                </div>
+                                <div class="mt-2 d-none" id="checkinFallback">
+                                    <input type="file" name="check_in_photo" class="form-control" accept="image/*" capture="user">
+                                    <small class="text-muted">Fallback: upload foto jika kamera tidak tersedia.</small>
+                                </div>
+                                <small class="text-muted d-block mt-2">Wajib selfie dengan kamera depan saat check-in.</small>
                             </div>
                             <button type="submit" class="btn btn-primary" id="checkinBtn" disabled>Check In</button>
                         </form>
@@ -94,15 +106,35 @@
                         <hr>
 
                         {{-- Check Out Form --}}
-                        <form id="checkoutForm" method="POST" action="{{ route('attendance.checkout') }}">
+                        <form id="checkoutForm" method="POST" action="{{ route('attendance.checkout') }}" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" id="checkout_latitude" name="latitude">
                             <input type="hidden" id="checkout_longitude" name="longitude">
                             <input type="hidden" id="checkout_accuracy" name="accuracy">
+                            <input type="hidden" id="checkout_device_id" name="device_id">
                             <div class="mb-3">
                                 <label class="form-label">Location</label>
                                 <div id="checkoutLocationDisplay" class="form-control" readonly>Click "Get GPS Location" to fetch your current location</div>
                                 <button type="button" class="btn btn-secondary mt-1" onclick="getLocation()">Get GPS Location</button>
+                            </div>
+                            <input type="hidden" name="check_out_selfie_data" id="check_out_selfie_data">
+                            <div class="mb-3">
+                                <label class="form-label">Selfie Check Out</label>
+                                <div class="border rounded p-2">
+                                    <video id="checkoutVideo" class="w-100 rounded" autoplay playsinline muted style="max-height:260px;"></video>
+                                    <canvas id="checkoutCanvas" class="d-none"></canvas>
+                                    <img id="checkoutPreview" class="w-100 rounded d-none" alt="Selfie check-out preview">
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="checkoutStartCamera">Aktifkan Kamera</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="checkoutCapture" disabled>Ambil Selfie</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="checkoutRetake">Ulangi</button>
+                                </div>
+                                <div class="mt-2 d-none" id="checkoutFallback">
+                                    <input type="file" name="check_out_photo" class="form-control" accept="image/*" capture="user">
+                                    <small class="text-muted">Fallback: upload foto jika kamera tidak tersedia.</small>
+                                </div>
+                                <small class="text-muted d-block mt-2">Wajib selfie dengan kamera depan saat check-out.</small>
                             </div>
                             <button type="submit" class="btn btn-warning" id="checkoutBtn" disabled>Check Out</button>
                         </form>
@@ -123,7 +155,11 @@
                                 const infoDiv = document.getElementById('geolocation-info');
                                 const errDiv = document.getElementById('geolocation-error');
                                 if (errDiv) { errDiv.style.display = 'none'; errDiv.textContent = ''; }
-                                if (infoDiv) { infoDiv.style.display = 'block'; infoDiv.textContent = 'Getting location… please wait (up to 20s).'; }
+                                if (infoDiv) {
+                                    infoDiv.style.display = 'block';
+                                    infoDiv.textContent = 'Mengambil lokasi... tunggu hingga 20 detik.';
+                                    infoDiv.className = 'alert alert-secondary';
+                                }
 
                                 // First, request an immediate reading
                                 navigator.geolocation.getCurrentPosition(function(position) {
@@ -207,10 +243,10 @@
                             const infoDiv = document.getElementById('geolocation-info');
                             if (infoDiv) {
                                 infoDiv.style.display = 'block';
-                                infoDiv.textContent = 'Location: ' + location + ' (±' + Math.round(acc) + ' m)';
+                                infoDiv.textContent = 'Location: ' + location + ' (Akurasi ' + Math.round(acc) + ' m)';
                                 if (acc > 100) {
                                     infoDiv.className = 'alert alert-warning';
-                                    infoDiv.textContent += ' — Low accuracy, try enabling Wi‑Fi or use mobile device for GPS.';
+                                    infoDiv.textContent += ' Akurasi rendah, coba aktifkan GPS atau pindah ke area terbuka.';
                                 } else {
                                     infoDiv.className = 'alert alert-secondary';
                                 }
@@ -258,50 +294,132 @@
                             if (checkoutBtn) checkoutBtn.disabled = true;
                         }
 
-                        function enableManualCheckin() {
-                            // Hide error message
-                            const errorDiv = document.getElementById('geolocation-error');
-                            errorDiv.style.display = 'none';
-
-                            // Show manual mode info
-                            const manualModeDiv = document.getElementById('manual-mode-info');
-                            manualModeDiv.style.display = 'block';
-                            const infoDiv = document.getElementById('geolocation-info');
-                            if (infoDiv) infoDiv.style.display = 'none';
-
-                            // Enable buttons
-                            const checkinBtn = document.getElementById('checkinBtn');
-                            const checkoutBtn = document.getElementById('checkoutBtn');
-                            if (checkinBtn) checkinBtn.disabled = false;
-                            if (checkoutBtn) checkoutBtn.disabled = false;
-
-                            // Make location fields editable
-                            const locationDisplay = document.getElementById('locationDisplay');
-                            const checkoutLocationDisplay = document.getElementById('checkoutLocationDisplay');
-                            if (locationDisplay) locationDisplay.readOnly = false;
-                            if (checkoutLocationDisplay) checkoutLocationDisplay.readOnly = false;
-
-                            // Show manual lat/lng inputs and bind to hidden fields
-                            const manualInputs = document.getElementById('manualInputs');
-                            if (manualInputs) manualInputs.style.display = 'flex';
-                            const manualLat = document.getElementById('manual_latitude');
-                            const manualLng = document.getElementById('manual_longitude');
-                            const latitudeInput = document.getElementById('latitude');
-                            const longitudeInput = document.getElementById('longitude');
-                            const checkoutLatitudeInput = document.getElementById('checkout_latitude');
-                            const checkoutLongitudeInput = document.getElementById('checkout_longitude');
-                            function syncManual() {
-                                const lat = manualLat.value;
-                                const lng = manualLng.value;
-                                if (latitudeInput) latitudeInput.value = lat;
-                                if (longitudeInput) longitudeInput.value = lng;
-                                if (checkoutLatitudeInput) checkoutLatitudeInput.value = lat;
-                                if (checkoutLongitudeInput) checkoutLongitudeInput.value = lng;
-                                if (locationDisplay) locationDisplay.value = (lat && lng) ? (lat + ', ' + lng) : '';
+                        function ensureDeviceId() {
+                            const key = 'kantorapp_device_id';
+                            let id = localStorage.getItem(key);
+                            if (!id) {
+                                id = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                                localStorage.setItem(key, id);
                             }
-                            if (manualLat) manualLat.addEventListener('input', syncManual);
-                            if (manualLng) manualLng.addEventListener('input', syncManual);
+                            const deviceInput = document.getElementById('device_id');
+                            const checkoutDeviceInput = document.getElementById('checkout_device_id');
+                            if (deviceInput) deviceInput.value = id;
+                            if (checkoutDeviceInput) checkoutDeviceInput.value = id;
                         }
+
+                        ensureDeviceId();
+
+                        const maxSelfieBytes = 2 * 1024 * 1024;
+
+                        function setupSelfieCapture(opts) {
+                            const {
+                                videoId, canvasId, previewId, startBtnId, captureBtnId, retakeBtnId, fallbackId, dataInputId,
+                            } = opts;
+                            const video = document.getElementById(videoId);
+                            const canvas = document.getElementById(canvasId);
+                            const preview = document.getElementById(previewId);
+                            const startBtn = document.getElementById(startBtnId);
+                            const captureBtn = document.getElementById(captureBtnId);
+                            const retakeBtn = document.getElementById(retakeBtnId);
+                            const fallback = document.getElementById(fallbackId);
+                            const dataInput = document.getElementById(dataInputId);
+                            let stream = null;
+
+                            async function startCamera() {
+                                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                                    if (fallback) fallback.classList.remove('d-none');
+                                    return;
+                                }
+                                try {
+                                    stream = await navigator.mediaDevices.getUserMedia({
+                                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                                        audio: false,
+                                    });
+                                    if (video) {
+                                        video.srcObject = stream;
+                                        video.classList.remove('d-none');
+                                    }
+                                    if (fallback) fallback.classList.add('d-none');
+                                    captureBtn.disabled = false;
+                                } catch (err) {
+                                    if (fallback) fallback.classList.remove('d-none');
+                                }
+                            }
+
+                            function stopCamera() {
+                                if (stream) {
+                                    stream.getTracks().forEach((t) => t.stop());
+                                    stream = null;
+                                }
+                            }
+
+                            function captureSelfie() {
+                                if (!video || !canvas) {
+                                    return;
+                                }
+                                const width = video.videoWidth || 640;
+                                const height = video.videoHeight || 480;
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(video, 0, 0, width, height);
+                                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                                const byteSize = Math.ceil((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75);
+                                if (byteSize > maxSelfieBytes) {
+                                    alert('Ukuran selfie terlalu besar. Coba lagi dengan kondisi cahaya lebih terang.');
+                                    return;
+                                }
+                                if (dataInput) dataInput.value = dataUrl;
+                                if (preview) {
+                                    preview.src = dataUrl;
+                                    preview.classList.remove('d-none');
+                                }
+                                if (video) {
+                                    video.classList.add('d-none');
+                                }
+                                retakeBtn.classList.remove('d-none');
+                                captureBtn.disabled = true;
+                                stopCamera();
+                            }
+
+                            function resetSelfie() {
+                                if (dataInput) dataInput.value = '';
+                                if (preview) {
+                                    preview.src = '';
+                                    preview.classList.add('d-none');
+                                }
+                                if (video) video.classList.remove('d-none');
+                                retakeBtn.classList.add('d-none');
+                                captureBtn.disabled = true;
+                                startCamera();
+                            }
+
+                            if (startBtn) startBtn.addEventListener('click', startCamera);
+                            if (captureBtn) captureBtn.addEventListener('click', captureSelfie);
+                            if (retakeBtn) retakeBtn.addEventListener('click', resetSelfie);
+                        }
+
+                        setupSelfieCapture({
+                            videoId: 'checkinVideo',
+                            canvasId: 'checkinCanvas',
+                            previewId: 'checkinPreview',
+                            startBtnId: 'checkinStartCamera',
+                            captureBtnId: 'checkinCapture',
+                            retakeBtnId: 'checkinRetake',
+                            fallbackId: 'checkinFallback',
+                            dataInputId: 'check_in_selfie_data',
+                        });
+
+                        setupSelfieCapture({
+                            videoId: 'checkoutVideo',
+                            canvasId: 'checkoutCanvas',
+                            previewId: 'checkoutPreview',
+                            startBtnId: 'checkoutStartCamera',
+                            captureBtnId: 'checkoutCapture',
+                            retakeBtnId: 'checkoutRetake',
+                            fallbackId: 'checkoutFallback',
+                            dataInputId: 'check_out_selfie_data',
+                        });
 
                         // Auto-get location when page loads for check-out if user is already checked in
                         @if($todayAttendance && !$todayAttendance->check_out_time)

@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login | {{ config('app.name', 'Office App') }}</title>
+    <title>Login | Office App</title>
     <meta content="Login to access the portal" name="description">
     <link rel="shortcut icon" href="{{ asset('NewAsset/assets/images/favicon.ico') }}">
     <link href="{{ asset('NewAsset/assets/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css">
@@ -19,7 +19,8 @@
             <div class="card-body">
                 <h3 class="text-center mt-0 m-b-15">
                     <a href="{{ url('/') }}" class="logo logo-admin">
-                        <img src="{{ asset('NewAsset/assets/images/logo.png') }}" height="24" alt="logo">
+                        OFFICE APP
+                        <!-- <img src="{{ asset('NewAsset/assets/images/logo.png') }}" height="24" alt="logo"> -->
                     </a>
                 </h3>
                 <div class="p-3">

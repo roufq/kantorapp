@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Location;
 use App\Models\LocationChangeRequest;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -107,6 +108,16 @@ class LocationChangeRequestController extends Controller
             $targetUser->update(['location_id' => $lcr->target_location_id]);
         }
 
+        if ($autoApprove) {
+            AuditLogger::record('location_change_auto_approved', $lcr, null, [
+                'status' => $lcr->status,
+                'user_id' => $lcr->user_id,
+                'original_location_id' => $lcr->original_location_id,
+                'target_location_id' => $lcr->target_location_id,
+                'is_permanent' => $lcr->is_permanent,
+            ]);
+        }
+
         return redirect()->route('location-change-requests.index')->with('success', 'Request submitted successfully.');
     }
 
@@ -118,6 +129,7 @@ class LocationChangeRequestController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
+        $before = $locationChangeRequest->only(['status', 'approved_by']);
         $locationChangeRequest->update([
             'status' => $request->status,
             'approved_by' => Auth::id(),
@@ -129,6 +141,16 @@ class LocationChangeRequestController extends Controller
                 'location_id' => $locationChangeRequest->target_location_id,
             ]);
         }
+
+        AuditLogger::record('location_change_status_updated', $locationChangeRequest, $before, [
+            'status' => $locationChangeRequest->status,
+            'approved_by' => $locationChangeRequest->approved_by,
+        ], [
+            'user_id' => $locationChangeRequest->user_id,
+            'original_location_id' => $locationChangeRequest->original_location_id,
+            'target_location_id' => $locationChangeRequest->target_location_id,
+            'is_permanent' => $locationChangeRequest->is_permanent,
+        ]);
 
         return back()->with('success', 'Request status updated successfully.');
     }

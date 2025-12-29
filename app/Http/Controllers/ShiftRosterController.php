@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WeeklyRoster;
 use App\Models\WeeklyRosterEntry;
 use App\Exports\WeeklyRosterExport;
+use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -17,6 +18,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ShiftRosterController extends Controller
 {
+    private const MAX_DAILY_WORK_HOURS = 8;
+    private const MAX_WEEKLY_WORK_HOURS = 40;
+
     public function index(Request $request)
     {
         $auth = auth()->user();
@@ -286,6 +290,7 @@ class ShiftRosterController extends Controller
         $weekEnd = Carbon::parse($data['week_end']);
         $weeklyOffEvery = $data['weekly_off_every'];
         $weeklyOffLabel = $data['weekly_off_label'] ?? 'OFF';
+        $limits = $this->resolveWorkHourLimits($locationShift->location);
 
         $roster = WeeklyRoster::create([
             'location_id' => $data['location_id'],
@@ -317,6 +322,35 @@ class ShiftRosterController extends Controller
         $lastSlotByUser = [];
         $lastNightMetaByUser = [];
         $assignmentLog = [];
+        $dailyHours = [];
+        $weeklyHours = [];
+        $existingAssignmentsByUser = [];
+
+        $assignmentWindowStart = $weekStart->copy()->subDay()->toDateString();
+        $assignmentWindowEnd = $weekEnd->copy()->addDay()->toDateString();
+        $existingAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->whereIn('user_id', $users->pluck('id'))
+            ->whereBetween('date', [$assignmentWindowStart, $assignmentWindowEnd])
+            ->where('status', '!=', 'cancelled')
+            ->get()
+            ->groupBy('user_id');
+
+        foreach ($users as $user) {
+            $dailyHours[$user->id] = [];
+            $weeklyHours[$user->id] = 0;
+            $existingAssignmentsByUser[$user->id] = $existingAssignments[$user->id] ?? collect();
+            foreach ($existingAssignmentsByUser[$user->id] as $assignment) {
+                $hours = $this->calculateAssignmentHoursFromModel($assignment);
+                $assignmentDate = $assignment->date instanceof Carbon
+                    ? $assignment->date->toDateString()
+                    : Carbon::parse($assignment->date)->toDateString();
+                $dateKey = $assignmentDate;
+                $dailyHours[$user->id][$dateKey] = ($dailyHours[$user->id][$dateKey] ?? 0) + $hours;
+                if ($assignmentDate >= $weekStart->toDateString() && $assignmentDate <= $weekEnd->toDateString()) {
+                    $weeklyHours[$user->id] += $hours;
+                }
+            }
+        }
 
         $period = new \DatePeriod($weekStart, new \DateInterval('P1D'), $weekEnd->copy()->addDay());
         foreach ($period as $day) {
@@ -372,6 +406,8 @@ class ShiftRosterController extends Controller
                 }
                 // cari slot yang belum penuh
                 $chosenSlotIdx = null;
+                $chosenSlot = null;
+                $chosenHours = 0;
                 for ($i = 0; $i < count($slots); $i++) {
                     $idx = ($slotCursor + $i) % count($slots);
                     if (!isset($slots[$idx])) {
@@ -398,7 +434,49 @@ class ShiftRosterController extends Controller
                     if ($this->isNightToMorningTransition($prevSlot, $slot)) {
                         continue;
                     }
+                    $slotInterval = $this->buildSlotIntervalForDate($slot, Carbon::parse($dateStr), $locationShift->location);
+                    if (!$slotInterval) {
+                        $assignmentLog[] = [
+                            'date' => $dateStr,
+                            'slot_index' => $idx,
+                            'user_id' => $candidate->id,
+                            'reason' => 'slot_invalid_day',
+                        ];
+                        continue;
+                    }
+                    if ($this->hasTimeConflictForUser($slotInterval, $existingAssignmentsByUser[$candidate->id] ?? collect())) {
+                        $assignmentLog[] = [
+                            'date' => $dateStr,
+                            'slot_index' => $idx,
+                            'user_id' => $candidate->id,
+                            'reason' => 'time_conflict',
+                        ];
+                        continue;
+                    }
+                    $slotHours = $this->intervalHours($slotInterval);
+                    $existingDailyHours = $dailyHours[$candidate->id][$dateStr] ?? 0;
+                    $existingWeeklyHours = $weeklyHours[$candidate->id] ?? 0;
+                    if ($existingDailyHours + $slotHours > $limits['daily']) {
+                        $assignmentLog[] = [
+                            'date' => $dateStr,
+                            'slot_index' => $idx,
+                            'user_id' => $candidate->id,
+                            'reason' => 'limit_daily',
+                        ];
+                        continue;
+                    }
+                    if ($existingWeeklyHours + $slotHours > $limits['weekly']) {
+                        $assignmentLog[] = [
+                            'date' => $dateStr,
+                            'slot_index' => $idx,
+                            'user_id' => $candidate->id,
+                            'reason' => 'limit_weekly',
+                        ];
+                        continue;
+                    }
                     $chosenSlotIdx = $idx;
+                    $chosenSlot = $slot;
+                    $chosenHours = $slotHours;
                     $slotCursor = $idx + 1;
                     break;
                 }
@@ -407,7 +485,7 @@ class ShiftRosterController extends Controller
                     continue; // tidak ada slot tersedia
                 }
 
-                $slot = $slots[$chosenSlotIdx];
+                $slot = $chosenSlot ?? $slots[$chosenSlotIdx];
 
                 // Buat / ambil shift assignment aktual (deduplikasi per user+date)
                 $assignment = ShiftAssignment::updateOrCreate(
@@ -444,6 +522,10 @@ class ShiftRosterController extends Controller
                 $assignedToday[$candidate->id] = true;
                 $slotUsage[$chosenSlotIdx] += 1;
 
+                $existingAssignmentsByUser[$candidate->id] = ($existingAssignmentsByUser[$candidate->id] ?? collect())->push($assignment);
+                $dailyHours[$candidate->id][$dateStr] = ($dailyHours[$candidate->id][$dateStr] ?? 0) + $chosenHours;
+                $weeklyHours[$candidate->id] = ($weeklyHours[$candidate->id] ?? 0) + $chosenHours;
+
                 $prevNightMeta = $lastNightMetaByUser[$candidate->id] ?? ['count' => 0, 'last_date' => null];
                 $nightCount = 0;
                 if ($isNightSlot) {
@@ -478,6 +560,14 @@ class ShiftRosterController extends Controller
             'assignment_log' => $assignmentLog,
         ]);
         $roster->save();
+
+        AuditLogger::record('weekly_roster_created', $roster, null, [
+            'location_id' => $roster->location_id,
+            'location_shift_id' => $roster->location_shift_id,
+            'week_start' => $roster->week_start?->toDateString(),
+            'week_end' => $roster->week_end?->toDateString(),
+            'entries' => $roster->entries()->count(),
+        ]);
 
         return redirect()->route('shifts.rosters.show', $roster)->with('success', 'Roster minggu dibuat.');
     }
@@ -533,6 +623,40 @@ class ShiftRosterController extends Controller
             return back()->withErrors(['swap_user_a' => 'Karyawan yang dipilih tidak memiliki jadwal pada tanggal tersebut.']);
         }
 
+        $locationShift = $roster->locationShift;
+        $slots = $locationShift->normalizedSlots();
+        $slotA = $slots[$entryA->slot_index] ?? null;
+        $slotB = $slots[$entryB->slot_index] ?? null;
+        if (!$slotA || !$slotB) {
+            return back()->withErrors(['swap_user_a' => 'Slot shift tidak ditemukan untuk jadwal yang dipilih.']);
+        }
+
+        $dateObj = Carbon::parse($data['swap_date']);
+        $intervalA = $this->buildSlotIntervalForDate($slotA, $dateObj, $locationShift->location);
+        $intervalB = $this->buildSlotIntervalForDate($slotB, $dateObj, $locationShift->location);
+        if (!$intervalA || !$intervalB) {
+            return back()->withErrors(['swap_user_a' => 'Slot shift tidak berlaku untuk tanggal tersebut.']);
+        }
+
+        $userA = User::findOrFail($data['swap_user_a']);
+        $userB = User::findOrFail($data['swap_user_b']);
+        $ignoreIds = array_filter([$entryA->shift_assignment_id, $entryB->shift_assignment_id]);
+        $existingAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->whereIn('user_id', [$userA->id, $userB->id])
+            ->whereBetween('date', [$dateObj->copy()->subDay()->toDateString(), $dateObj->copy()->addDay()->toDateString()])
+            ->where('status', '!=', 'cancelled')
+            ->get()
+            ->groupBy('user_id');
+
+        if ($this->hasTimeConflictForUser($intervalB, $existingAssignments[$userA->id] ?? collect(), $ignoreIds)) {
+            return back()->withErrors(['swap_user_a' => 'Jadwal user A bentrok dengan slot baru.']);
+        }
+        if ($this->hasTimeConflictForUser($intervalA, $existingAssignments[$userB->id] ?? collect(), $ignoreIds)) {
+            return back()->withErrors(['swap_user_b' => 'Jadwal user B bentrok dengan slot baru.']);
+        }
+
+        // Bypass batas jam kerja untuk swap agar tidak memblokir rolling karyawan.
+
         // Tukar user antar entri
         $tmpUser = $entryA->user_id;
         $entryA->user_id = $entryB->user_id;
@@ -541,7 +665,6 @@ class ShiftRosterController extends Controller
         $entryB->save();
 
         // Refresh shift assignments to align with swapped users
-        $locationShift = $roster->locationShift;
         $applyAssignment = function (WeeklyRosterEntry $entry) use ($locationShift) {
             $assignment = ShiftAssignment::updateOrCreate(
                 [
@@ -562,6 +685,20 @@ class ShiftRosterController extends Controller
         $applyAssignment($entryA);
         $applyAssignment($entryB);
 
+        AuditLogger::record('weekly_roster_swapped', $roster, [
+            'swap_date' => $data['swap_date'],
+            'user_a' => $data['swap_user_a'],
+            'user_b' => $data['swap_user_b'],
+            'slot_a' => $entryA->slot_index,
+            'slot_b' => $entryB->slot_index,
+        ], [
+            'swap_date' => $data['swap_date'],
+            'user_a' => $entryA->user_id,
+            'user_b' => $entryB->user_id,
+            'slot_a' => $entryA->slot_index,
+            'slot_b' => $entryB->slot_index,
+        ]);
+
         return back()->with('success', 'Rolling karyawan berhasil.');
     }
 
@@ -571,7 +708,14 @@ class ShiftRosterController extends Controller
         if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
+        $before = [
+            'location_id' => $roster->location_id,
+            'location_shift_id' => $roster->location_shift_id,
+            'week_start' => $roster->week_start?->toDateString(),
+            'week_end' => $roster->week_end?->toDateString(),
+        ];
         $roster->delete();
+        AuditLogger::record('weekly_roster_deleted', $roster, $before, null);
         return redirect()->route('shifts.rosters.index')->with('success', 'Roster dihapus.');
     }
 
@@ -609,6 +753,153 @@ class ShiftRosterController extends Controller
             return false;
         }
         return $this->slotCrossesMidnight($slot) || $start >= '22:00';
+    }
+
+    private function resolveWorkHourLimits(?Location $location): array
+    {
+        $daily = self::MAX_DAILY_WORK_HOURS;
+        $weekly = self::MAX_WEEKLY_WORK_HOURS;
+        if ($location && is_array($location->settings)) {
+            if (!empty($location->settings['max_daily_work_hours'])) {
+                $daily = (float) $location->settings['max_daily_work_hours'];
+            }
+            if (!empty($location->settings['max_weekly_work_hours'])) {
+                $weekly = (float) $location->settings['max_weekly_work_hours'];
+            }
+        }
+        return ['daily' => $daily, 'weekly' => $weekly];
+    }
+
+    private function buildSlotIntervalForDate(array $slot, Carbon $date, ?Location $location): ?array
+    {
+        if (!empty($slot['days'])) {
+            $dayKey = strtolower($date->format('l'));
+            $dayList = array_map('strtolower', $slot['days']);
+            if (!in_array($dayKey, $dayList, true)) {
+                return null;
+            }
+        }
+        $tz = $location?->timezone ?? config('app.timezone', 'UTC');
+        $start = Carbon::parse($date->toDateString() . ' ' . $slot['start'], $tz);
+        $end = Carbon::parse($date->toDateString() . ' ' . $slot['end'], $tz);
+        if ($end->lessThanOrEqualTo($start)) {
+            $end->addDay();
+        }
+        return [$start, $end];
+    }
+
+    private function intervalHours(array $interval): float
+    {
+        return $interval[0]->diffInMinutes($interval[1]) / 60;
+    }
+
+    private function assignmentIntervals(ShiftAssignment $assignment): array
+    {
+        $location = $assignment->locationShift?->location ?? $assignment->location;
+        $tz = $location?->timezone ?? config('app.timezone', 'UTC');
+        $dateObj = Carbon::parse($assignment->date, $tz);
+        $pivot = $assignment->locationShift;
+        if (!$pivot && $assignment->shift) {
+            $pivot = new LocationShift([
+                'location_id' => $assignment->location_id,
+                'shift_id' => $assignment->shift_id,
+                'category' => $assignment->shift->category ?? null,
+                'time_slots' => $assignment->shift->time_slots ?? [],
+            ]);
+            $pivot->setRelation('shift', $assignment->shift);
+            if ($location) {
+                $pivot->setRelation('location', $location);
+            }
+        }
+        if (!$pivot) {
+            return [];
+        }
+        return $pivot->slotIntervalsForDate($dateObj);
+    }
+
+    private function hasTimeConflictForUser(array $proposedInterval, $assignments, array $ignoreIds = []): bool
+    {
+        $ignoreIds = array_filter($ignoreIds);
+        foreach ($assignments as $assignment) {
+            if (!empty($ignoreIds) && in_array($assignment->id, $ignoreIds, true)) {
+                continue;
+            }
+            $intervals = $this->assignmentIntervals($assignment);
+            foreach ($intervals as [$start, $end]) {
+                if ($proposedInterval[0]->lt($end) && $start->lt($proposedInterval[1])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private function calculateAssignmentHoursFromModel(ShiftAssignment $assignment): float
+    {
+        $intervals = $this->assignmentIntervals($assignment);
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            $minutes += $start->diffInMinutes($end);
+        }
+        return $minutes / 60;
+    }
+
+    private function checkWorkHourLimits(User $user, string $date, float $assignmentHours, array $ignoreIds = []): ?string
+    {
+        $limits = $this->resolveWorkHourLimits($user->location);
+        $dateObj = Carbon::parse($date);
+        $weekStart = $dateObj->copy()->startOfWeek(Carbon::MONDAY);
+        $weekEnd = $dateObj->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $dailyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereDate('date', $date)
+            ->when(!empty($ignoreIds), fn($q) => $q->whereNotIn('id', $ignoreIds))
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $weeklyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->when(!empty($ignoreIds), fn($q) => $q->whereNotIn('id', $ignoreIds))
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $dailyHours = $dailyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+        $weeklyHours = $weeklyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+
+        if ($dailyHours + $assignmentHours > $limits['daily']) {
+            return 'Melebihi batas jam kerja harian (' . $limits['daily'] . ' jam).';
+        }
+        if ($weeklyHours + $assignmentHours > $limits['weekly']) {
+            return 'Melebihi batas jam kerja mingguan (' . $limits['weekly'] . ' jam).';
+        }
+
+        return null;
+    }
+
+    private function summarizeWorkHours(User $user, string $date): array
+    {
+        $dateObj = Carbon::parse($date);
+        $weekStart = $dateObj->copy()->startOfWeek(Carbon::MONDAY);
+        $weekEnd = $dateObj->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $dailyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereDate('date', $date)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $weeklyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $dailyHours = $dailyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+        $weeklyHours = $weeklyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+
+        return ['daily' => $dailyHours, 'weekly' => $weeklyHours];
     }
 
     public function export(WeeklyRoster $roster)

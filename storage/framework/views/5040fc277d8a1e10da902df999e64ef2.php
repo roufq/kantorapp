@@ -2,26 +2,15 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Buat Roster Mingguan</h1>
-          <p class="text-muted mb-0">Pilih lokasi, shift lokasi, karyawan, dan pola off.</p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?php echo e(route('shifts.rosters.index')); ?>">Rosters</a></li>
-            <li class="breadcrumb-item active">Create</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Buat Roster Mingguan</h3>
+          <p class="text-muted mb-0">Pilih lokasi, shift lokasi, karyawan, dan pola off.</p>
+        </div>
+        <a href="<?php echo e(route('shifts.rosters.index')); ?>" class="btn btn-outline-secondary btn-sm">Kembali</a>
+      </div>
       <?php if($errors->any()): ?>
         <div class="alert alert-danger">
           <ul class="mb-0"><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $err): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($err); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></ul>

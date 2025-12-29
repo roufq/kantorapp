@@ -3,6 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmployeeLeave;
+use App\Models\EmployeeLeaveBalance;
+use App\Services\WorkdayService;
+use App\Services\AuditLogger;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +23,8 @@ class LeaveController extends Controller
             $q->where('user_id', $auth->id);
         }
         $leaves = $q->orderBy('start_date','desc')->paginate(15);
-        return view('leaves.index', compact('leaves'));
+        $balanceSummary = $this->buildAnnualBalanceSummary($auth, (int) now()->format('Y'));
+        return view('leaves.index', compact('leaves', 'balanceSummary'));
     }
 
     public function store(Request $request)
@@ -40,6 +46,23 @@ class LeaveController extends Controller
             return back()->withErrors(['start_date' => 'Rentang tanggal bertabrakan dengan pengajuan lain.'])->withInput();
         }
 
+        if ($request->type === 'annual') {
+            $startYear = Carbon::parse($request->start_date)->year;
+            $endYear = Carbon::parse($request->end_date)->year;
+            if ($startYear !== $endYear) {
+                return back()->withErrors(['end_date' => 'Cuti tahunan harus berada dalam tahun yang sama.'])->withInput();
+            }
+            $year = $startYear;
+            $balanceSummary = $this->buildAnnualBalanceSummary($auth, $year);
+            $requestedDays = $this->countChargeableLeaveDays($auth, $request->start_date, $request->end_date);
+            if ($requestedDays <= 0) {
+                return back()->withErrors(['start_date' => 'Tidak ada hari kerja dalam rentang tanggal yang dipilih.'])->withInput();
+            }
+            if ($requestedDays > $balanceSummary['remaining']) {
+                return back()->withErrors(['start_date' => 'Saldo cuti tahunan tidak cukup. Sisa: ' . $balanceSummary['remaining'] . ' hari.'])->withInput();
+            }
+        }
+
         EmployeeLeave::create([
             'user_id' => $auth->id,
             'location_id' => $auth->location_id,
@@ -59,9 +82,14 @@ class LeaveController extends Controller
         $request->validate([
             'status' => 'required|in:pending,approved,rejected',
         ]);
+        $before = $leave->only(['status', 'approved_by']);
         $leave->update([
             'status' => $request->status,
             'approved_by' => $request->status === 'approved' ? $auth->id : null,
+        ]);
+        AuditLogger::record('leave_status_updated', $leave, $before, [
+            'status' => $leave->status,
+            'approved_by' => $leave->approved_by,
         ]);
         // Kirim notifikasi ke karyawan terkait
         try {
@@ -74,5 +102,68 @@ class LeaveController extends Controller
         } catch (\Throwable $e) {}
 
         return back()->with('success','Leave status updated');
+    }
+
+    private function buildAnnualBalanceSummary($user, int $year): array
+    {
+        $balance = EmployeeLeaveBalance::firstOrCreate(
+            ['user_id' => $user->id, 'year' => $year],
+            ['annual_quota' => 12, 'carry_over' => 0]
+        );
+
+        $used = $this->countApprovedAnnualLeaveDays($user, $year);
+        $totalQuota = $balance->annual_quota + $balance->carry_over;
+        $remaining = max(0, $totalQuota - $used);
+
+        return [
+            'year' => $year,
+            'quota' => $balance->annual_quota,
+            'carry_over' => $balance->carry_over,
+            'used' => $used,
+            'remaining' => $remaining,
+        ];
+    }
+
+    private function countApprovedAnnualLeaveDays($user, int $year): int
+    {
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
+        $leaves = EmployeeLeave::where('user_id', $user->id)
+            ->where('type', 'annual')
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $yearEnd->toDateString())
+            ->whereDate('end_date', '>=', $yearStart->toDateString())
+            ->get();
+
+        $total = 0;
+        foreach ($leaves as $leave) {
+            $start = Carbon::parse($leave->start_date)->max($yearStart);
+            $end = Carbon::parse($leave->end_date)->min($yearEnd);
+            $total += $this->countChargeableLeaveDays($user, $start, $end);
+        }
+
+        return $total;
+    }
+
+    private function countChargeableLeaveDays($user, $startDate, $endDate): int
+    {
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->startOfDay();
+        if ($start->gt($end)) {
+            [$start, $end] = [$end, $start];
+        }
+
+        $count = 0;
+        foreach (CarbonPeriod::create($start, $end) as $date) {
+            if (WorkdayService::isWeeklyOff($user, $date)) {
+                continue;
+            }
+            if (WorkdayService::isHolidayForUser($user, $date)) {
+                continue;
+            }
+            $count++;
+        }
+        return $count;
     }
 }

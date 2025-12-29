@@ -6,6 +6,13 @@
     <p class="text-muted mb-0">Kelola pengajuan izin dan cuti karyawan.</p>
   </div>
 </div>
+@if(isset($balanceSummary))
+  <div class="alert alert-secondary">
+    <strong>Saldo Cuti Tahunan {{ $balanceSummary['year'] }}:</strong>
+    Total {{ $balanceSummary['quota'] + $balanceSummary['carry_over'] }} hari
+    (Terpakai {{ $balanceSummary['used'] }} • Sisa {{ $balanceSummary['remaining'] }})
+  </div>
+@endif
 <div class="row">
   <div class="col-md-5">
     <div class="card">

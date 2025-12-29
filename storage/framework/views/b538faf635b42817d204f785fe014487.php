@@ -15,6 +15,11 @@
             <i class="bi bi-plus-lg me-1"></i>Buat Laporan
           </a>
           <?php endif; ?>
+          <?php if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan'])): ?>
+          <a href="<?php echo e(route('reports.employee-performance')); ?>" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-graph-up me-1"></i>Performa Karyawan
+          </a>
+          <?php endif; ?>
         </div>
       </div>
       <div class="card">

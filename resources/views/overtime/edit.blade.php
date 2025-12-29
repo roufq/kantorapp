@@ -51,6 +51,11 @@
                         <label for="reason" class="form-label">Reason for Overtime</label>
                         <textarea name="reason" class="form-control" id="reason" rows="4" required placeholder="Please explain why you need to work overtime...">{{ old('reason', $overtime->reason) }}</textarea>
                     </div>
+                    @if(isset($limits))
+                        <div class="alert alert-secondary">
+                            Batas lembur: {{ $limits['daily'] }} jam/hari, {{ $limits['weekly'] }} jam/minggu.
+                        </div>
+                    @endif
 
                     @php $isEmployee = auth()->user()->hasRole('Karyawan'); @endphp
 
@@ -60,8 +65,16 @@
                             <div class="card card-body bg-light">
                                 <p class="mb-2">Pengajuan Anda akan dikirim ke:</p>
                                 <ul class="mb-0">
-                                    @foreach(($autoApprovers->count() ? $autoApprovers : \App\Models\User::whereIn('id', $overtime->selected_masters ?? [])->get()) as $approver)
-                                        <li>{{ $approver->name }} @if($approver->hasRole('Admin Lokasi'))<span class="badge bg-info ms-1">Admin Lokasi</span>@else<span class="badge bg-primary ms-1">Super Admin</span>@endif</li>
+                                    @foreach(($autoApprovers->count() ? $autoApprovers : collect(\App\Models\User::whereIn('id', $overtime->selected_masters ?? [])->get())->map(fn($u) => ['user' => $u, 'level' => 1])) as $entry)
+                                        @php($approver = $entry['user'])
+                                        <li>
+                                            Level {{ $entry['level'] }} - {{ $approver->name }}
+                                            @if($approver->hasRole('Admin Lokasi'))
+                                                <span class="badge bg-info ms-1">Admin Lokasi</span>
+                                            @else
+                                                <span class="badge bg-primary ms-1">Super Admin</span>
+                                            @endif
+                                        </li>
                                     @endforeach
                                 </ul>
                             </div>

@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\TaskProgressUpdate;
 use App\Models\TaskSlot;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -250,11 +251,19 @@ class TaskProgressController extends Controller
 
         // [MODIFIED] In case of multi-level, this approval might trigger the next level
         // For now, we assume one level of approval
+        $before = $progressUpdate->only(['approval_status', 'approved_by', 'approved_at', 'rejection_reason']);
         $progressUpdate->update([
             'approval_status' => 'approved',
             'approved_by' => Auth::id(), // The current user approves it
             'approved_at' => now(),
             'rejection_reason' => null,
+        ]);
+        AuditLogger::record('task_progress_approved', $progressUpdate, $before, [
+            'approval_status' => $progressUpdate->approval_status,
+            'approved_by' => $progressUpdate->approved_by,
+            'approved_at' => $progressUpdate->approved_at,
+        ], [
+            'task_id' => $progressUpdate->task_id,
         ]);
 
         $progressUpdate->task->applyProgress($progressUpdate->progress);
@@ -272,11 +281,20 @@ class TaskProgressController extends Controller
 
         $request->validate(['reason' => 'required|string|max:1000']);
 
+        $before = $progressUpdate->only(['approval_status', 'approved_by', 'approved_at', 'rejection_reason']);
         $progressUpdate->update([
             'approval_status' => 'rejected',
             'approved_by' => Auth::id(), // The current user rejects it
             'approved_at' => now(),
             'rejection_reason' => $request->reason,
+        ]);
+        AuditLogger::record('task_progress_rejected', $progressUpdate, $before, [
+            'approval_status' => $progressUpdate->approval_status,
+            'approved_by' => $progressUpdate->approved_by,
+            'approved_at' => $progressUpdate->approved_at,
+            'rejection_reason' => $progressUpdate->rejection_reason,
+        ], [
+            'task_id' => $progressUpdate->task_id,
         ]);
 
         return back()->with('success', 'Progres ditolak dengan alasan dikirim ke karyawan.');

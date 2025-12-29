@@ -7,12 +7,16 @@ use App\Models\User;
 use App\Models\Location;
 use App\Models\LocationShift;
 use App\Models\Shift;
+use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ShiftAssignmentController extends Controller
 {
+    private const MAX_DAILY_WORK_HOURS = 8;
+    private const MAX_WEEKLY_WORK_HOURS = 40;
+
     public function rotate(Request $request)
     {
         $auth = Auth::user();
@@ -139,7 +143,13 @@ class ShiftAssignmentController extends Controller
             return back()->withErrors(['date' => 'User has overlapping assignment around this date'])->withInput();
         }
 
-        ShiftAssignment::create([
+        $assignmentHours = $this->calculateAssignmentHours($locationShift, $request->date);
+        $limitError = $this->checkWorkHourLimits($user, $request->date, $assignmentHours);
+        if ($limitError) {
+            return back()->withErrors(['date' => $limitError])->withInput();
+        }
+
+        $assignment = ShiftAssignment::create([
             'user_id' => $user->id,
             'location_id' => $locationShift->location_id,
             'shift_id' => $locationShift->shift_id,
@@ -149,6 +159,15 @@ class ShiftAssignmentController extends Controller
             'notes' => $request->notes,
             'handover_required' => (bool) $request->handover_required,
             'handover_note' => $request->handover_note,
+        ]);
+
+        AuditLogger::record('shift_assignment_created', $assignment, null, [
+            'user_id' => $assignment->user_id,
+            'location_id' => $assignment->location_id,
+            'shift_id' => $assignment->shift_id,
+            'location_shift_id' => $assignment->location_shift_id,
+            'date' => $assignment->date,
+            'status' => $assignment->status,
         ]);
 
         return redirect()->route('shift-assignments.index')->with('success', 'Shift assignment created');
@@ -247,6 +266,24 @@ class ShiftAssignmentController extends Controller
             return back()->withErrors(['date' => 'User has overlapping assignment around this date'])->withInput();
         }
 
+        $assignmentHours = $this->calculateAssignmentHours($locationShift, $request->date);
+        $limitError = $this->checkWorkHourLimits($user, $request->date, $assignmentHours, $shift_assignment->id);
+        if ($limitError) {
+            return back()->withErrors(['date' => $limitError])->withInput();
+        }
+
+        $before = $shift_assignment->only([
+            'user_id',
+            'location_id',
+            'shift_id',
+            'location_shift_id',
+            'date',
+            'status',
+            'notes',
+            'handover_required',
+            'handover_note',
+        ]);
+
         $shift_assignment->update([
             'user_id' => $user->id,
             'location_id' => $locationShift->location_id,
@@ -258,6 +295,19 @@ class ShiftAssignmentController extends Controller
             'handover_required' => (bool) $request->handover_required,
             'handover_note' => $request->handover_note,
         ]);
+
+        $after = $shift_assignment->only([
+            'user_id',
+            'location_id',
+            'shift_id',
+            'location_shift_id',
+            'date',
+            'status',
+            'notes',
+            'handover_required',
+            'handover_note',
+        ]);
+        AuditLogger::record('shift_assignment_updated', $shift_assignment, $before, $after);
 
         return redirect()->route('shift-assignments.index')->with('success', 'Shift assignment updated');
     }
@@ -454,6 +504,11 @@ class ShiftAssignmentController extends Controller
                 }
 
                 if (!ShiftAssignment::where('user_id', $u->id)->whereDate('date', $date)->exists()) {
+                    $assignmentHours = $this->calculateAssignmentHours($pivot, $date);
+                    $limitError = $this->checkWorkHourLimits($u, $date, $assignmentHours);
+                    if ($limitError) {
+                        continue;
+                    }
                     ShiftAssignment::create([
                         'user_id' => $u->id,
                         'location_id' => $locationId,
@@ -520,6 +575,96 @@ class ShiftAssignmentController extends Controller
         return false;
     }
 
+    private function resolveWorkHourLimits(?Location $location): array
+    {
+        $daily = self::MAX_DAILY_WORK_HOURS;
+        $weekly = self::MAX_WEEKLY_WORK_HOURS;
+        if ($location && is_array($location->settings)) {
+            if (!empty($location->settings['max_daily_work_hours'])) {
+                $daily = (float) $location->settings['max_daily_work_hours'];
+            }
+            if (!empty($location->settings['max_weekly_work_hours'])) {
+                $weekly = (float) $location->settings['max_weekly_work_hours'];
+            }
+        }
+        return ['daily' => $daily, 'weekly' => $weekly];
+    }
+
+    private function calculateAssignmentHours(LocationShift $locationShift, string $date): float
+    {
+        $tz = optional($locationShift->location)->timezone ?? config('app.timezone', 'UTC');
+        $dateObj = Carbon::parse($date, $tz);
+        $intervals = $locationShift->slotIntervalsForDate($dateObj);
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            $minutes += $start->diffInMinutes($end);
+        }
+        return $minutes / 60;
+    }
+
+    private function calculateAssignmentHoursFromModel(ShiftAssignment $assignment): float
+    {
+        $location = $assignment->locationShift?->location ?? $assignment->location;
+        $tz = optional($location)->timezone ?? config('app.timezone', 'UTC');
+        $dateObj = Carbon::parse($assignment->date, $tz);
+        $pivot = $assignment->locationShift;
+        if (!$pivot && $assignment->shift) {
+            $pivot = new LocationShift([
+                'location_id' => $assignment->location_id,
+                'shift_id' => $assignment->shift_id,
+                'category' => $assignment->shift->category ?? null,
+                'time_slots' => $assignment->shift->time_slots ?? [],
+            ]);
+            $pivot->setRelation('shift', $assignment->shift);
+            if ($location) {
+                $pivot->setRelation('location', $location);
+            }
+        }
+        if (!$pivot) {
+            return 0;
+        }
+        $intervals = $pivot->slotIntervalsForDate($dateObj);
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            $minutes += $start->diffInMinutes($end);
+        }
+        return $minutes / 60;
+    }
+
+    private function checkWorkHourLimits(User $user, string $date, float $assignmentHours, ?int $ignoreId = null): ?string
+    {
+        $limits = $this->resolveWorkHourLimits($user->location);
+        $dateObj = Carbon::parse($date);
+        $weekStart = $dateObj->copy()->startOfWeek(Carbon::MONDAY);
+        $weekEnd = $dateObj->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $dailyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereDate('date', $date)
+            ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $weeklyAssignments = ShiftAssignment::with(['locationShift.location', 'shift', 'location'])
+            ->where('user_id', $user->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $dailyHours = $dailyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+        $weeklyHours = $weeklyAssignments->sum(fn($a) => $this->calculateAssignmentHoursFromModel($a));
+
+        if ($dailyHours + $assignmentHours > $limits['daily']) {
+            return 'Melebihi batas jam kerja harian (' . $limits['daily'] . ' jam).';
+        }
+        if ($weeklyHours + $assignmentHours > $limits['weekly']) {
+            return 'Melebihi batas jam kerja mingguan (' . $limits['weekly'] . ' jam).';
+        }
+
+        return null;
+    }
+
     public function destroy(ShiftAssignment $shift_assignment)
     {
         $auth = Auth::user();
@@ -528,7 +673,16 @@ class ShiftAssignmentController extends Controller
                 abort(403);
             }
         }
+        $before = $shift_assignment->only([
+            'user_id',
+            'location_id',
+            'shift_id',
+            'location_shift_id',
+            'date',
+            'status',
+        ]);
         $shift_assignment->delete();
+        AuditLogger::record('shift_assignment_deleted', $shift_assignment, $before, null);
         return redirect()->route('shift-assignments.index')->with('success', 'Shift assignment deleted');
     }
 

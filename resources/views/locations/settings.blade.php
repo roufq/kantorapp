@@ -143,6 +143,50 @@
     @endif
     <div class="card">
       <div class="card-header">
+        <h3 class="card-title">Jadwal Notifikasi</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ route('locations.settings.update', $location) }}">
+          @csrf
+          @method('PATCH')
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Approval Pending (Harian)</label>
+              <input type="time" class="form-control" name="settings[0][value]" value="{{ old('notify_pending_approvals_time', $notificationSettings['notify_pending_approvals_time'] ?? '00:00') }}" required>
+              <input type="hidden" name="settings[0][key]" value="notify_pending_approvals_time">
+              <input type="hidden" name="settings[0][type]" value="string">
+              <small class="text-muted">Contoh: 07:00</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Jadwal Masuk H-1 (Harian)</label>
+              <input type="time" class="form-control" name="settings[1][value]" value="{{ old('notify_shift_h1_time', $notificationSettings['notify_shift_h1_time'] ?? '00:00') }}" required>
+              <input type="hidden" name="settings[1][key]" value="notify_shift_h1_time">
+              <input type="hidden" name="settings[1][type]" value="string">
+              <small class="text-muted">Dikirim ke karyawan & admin lokasi.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ringkasan Sisa Cuti (Akhir Bulan)</label>
+              <input type="time" class="form-control" name="settings[2][value]" value="{{ old('notify_leave_monthly_summary_time', $notificationSettings['notify_leave_monthly_summary_time'] ?? '00:00') }}" required>
+              <input type="hidden" name="settings[2][key]" value="notify_leave_monthly_summary_time">
+              <input type="hidden" name="settings[2][type]" value="string">
+              <small class="text-muted">Kirim pada hari terakhir bulan.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pengingat Cuti Bulanan (Awal Bulan)</label>
+              <input type="time" class="form-control" name="settings[3][value]" value="{{ old('notify_leave_monthly_reminder_time', $notificationSettings['notify_leave_monthly_reminder_time'] ?? '00:00') }}" required>
+              <input type="hidden" name="settings[3][key]" value="notify_leave_monthly_reminder_time">
+              <input type="hidden" name="settings[3][type]" value="string">
+              <small class="text-muted">Kirim pada tanggal 1 setiap bulan.</small>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Simpan Jadwal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
         <h3 class="card-title">Location Settings - {{ $location->name }}</h3>
       </div>
       <div class="card-body">

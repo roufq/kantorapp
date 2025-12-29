@@ -11,6 +11,7 @@ use App\Models\TaskSlot;
 use App\Models\TaskSlotHistory;
 use App\Notifications\TaskApprovalNotification;
 use Illuminate\Support\Facades\DB;
+use App\Services\AuditLogger;
 
 class TaskController extends Controller
 {
@@ -687,11 +688,17 @@ class TaskController extends Controller
     {
         $this->ensureCanApproveCreation($task);
 
+        $before = $task->only(['approval_status', 'approved_by', 'approved_at', 'approval_note']);
         $task->update([
             'approval_status' => 'approved',
             'approved_by' => Auth::id(),
             'approved_at' => now(),
             'approval_note' => null,
+        ]);
+        AuditLogger::record('task_approved', $task, $before, [
+            'approval_status' => $task->approval_status,
+            'approved_by' => $task->approved_by,
+            'approved_at' => $task->approved_at,
         ]);
 
         if ($task->assignee) {
@@ -709,6 +716,7 @@ class TaskController extends Controller
             'reason' => 'required|string|max:1000',
         ]);
 
+        $before = $task->only(['approval_status', 'approved_by', 'approved_at', 'approval_note']);
         DB::transaction(function () use ($task, $data) {
             $task->update([
                 'approval_status' => 'rejected',
@@ -734,6 +742,12 @@ class TaskController extends Controller
                 ]);
             }
         });
+        AuditLogger::record('task_rejected', $task, $before, [
+            'approval_status' => $task->approval_status,
+            'approved_by' => $task->approved_by,
+            'approved_at' => $task->approved_at,
+            'approval_note' => $task->approval_note,
+        ]);
 
         if ($task->assignee) {
             $task->assignee->notify(new TaskApprovalNotification($task, 'rejected'));

@@ -1,16 +1,17 @@
-# KantorApp – Multi-Location Attendance & Shift Platform
+# KantorApp - Multi-Location Attendance & Shift Platform
 
 KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Laravel. Fokusnya adalah kontrol akses per lokasi, validasi GPS, jadwal shift/roster yang adil, serta alur tugas dan persetujuan yang terdokumentasi.
 
 ## Fitur Singkat
 - Multi-lokasi dengan role `Super Admin`, `Admin Lokasi`, `Karyawan`; pemilihan lokasi untuk Super Admin dan scoping otomatis di seluruh modul.
 - Keamanan login: throttling, single-session invalidation, verifikasi email (opsional), dan 2FA (SMS/Email/Authenticator App) dengan backup codes.
-- Kehadiran berbasis GPS + shift/roster; menolak check-in di luar jadwal/holiday/weekly off, dan memberi asumsi 8 jam jika belum checkout (hanya untuk tampilan).
+- Kehadiran berbasis GPS + shift/roster; menolak check-in di luar jadwal/holiday/weekly off, selfie check-in/out via kamera browser, dan memberi asumsi 8 jam jika belum checkout (hanya untuk tampilan).
 - Sistem shift terpisah master vs lokasi: template global, pivot location-shift (override slot, set default), scheduler, kalender roster mingguan, dan proteksi fairness (limit malam beruntun, hindari malam-ke-pagi).
 - Tugas & slot wajib: total menit slot = durasi task, total persentase = 100%; progres per slot wajib bukti (foto/dokumen/link) dan approval dengan alasan.
 - Target kerja per lokasi/bulan dan rekap jam kerja bulanan (ringkasan target, slot approved, kehadiran, sisa) dengan ekspor PDF bernama sesuai karyawan.
-- Lembur, cuti/izin, holiday, weekly off dengan approval dan ekspor; laporan attendance/overtime full-width dengan filter user/tanggal/shift.
-- Pesan internal, permintaan pindah lokasi, brand per lokasi (warna/logo/CSS kustom), dan unduhan lampiran aman untuk task/report.
+- Lembur, cuti/izin, holiday, weekly off dengan approval dan ekspor; laporan attendance/overtime full-width dengan filter user/tanggal/shift (export Excel/CSV).
+- Pesan internal, permintaan pindah lokasi, brand per lokasi (warna/logo/CSS kustom), audit trail perubahan data kritis, dan unduhan lampiran aman untuk task/report.
+- Notifikasi otomatis (in-app) untuk approval pending, jadwal masuk H-1, ringkasan cuti akhir bulan, dan pengingat cuti awal bulan (jadwal per lokasi).
 
 ## Hasil Audit Kode (tingkat tinggi)
 - **Middleware keamanan**: `SecurityHeaders` (X-Frame/X-Content/Referrer/XSS), `SanitizeInput` (trim/strip tags/collapse spaces, skip list via config), `TwoFactorMiddleware` (blokir akses sebelum 2FA), `RoleMiddleware`, `LocationAware`. Kernel Laravel default tidak ditemukan di repo; pastikan middleware ini ter-register (cek bootstrap/app.php).
@@ -23,7 +24,7 @@ KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Lara
 - **Lembur/Cuti/Holiday/Weekly Off**: Controller ada untuk CRUD + approval + export; attendance menolak check-in di hari OFF/holiday/leave.
 - **Reports & Messages**: Report CRUD + approval + lampiran unduh; pesan internal (list/detail/read/delete by Super Admin).
 - **API**: Controllers tersedia (`app/Http/Controllers/Api`) untuk Auth/Task/Report/Attendance/User, tetapi tidak ada `routes/api.php` sehingga belum ter- expose; perlu wiring jika ingin publik/mobile.
-- **Konfigurasi keamanan tambahan**: TwoFactorSecret terenkripsi via cast; password hashed; input sanitization global; belum terlihat rate limit khusus per route selain login; audit trail log tidak terpusat (per modul sudah mencatat relasi/approval).
+- **Konfigurasi keamanan tambahan**: TwoFactorSecret terenkripsi via cast; password hashed; input sanitization global; belum terlihat rate limit khusus per route selain login; audit trail log terpusat untuk perubahan kritis (shift, approval, mutasi).
 
 ## Modul & Rute (berdasarkan kode)
 - **Dashboard & Lokasi**: Dashboard terikat lokasi, pemilihan lokasi untuk Super Admin (`LocationSelectionController`), CRUD lokasi & pengaturan (GPS, branding, jam default).
@@ -59,8 +60,8 @@ KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Lara
 - Attendance dan assignment mengambil slot dari roster/pivot; admin lokasi hanya bisa pakai shift yang diaktifkan di lokasinya.
 
 ### Kehadiran
-- Check-in/out divalidasi radius GPS + window shift/roster; menolak jika off/holiday atau di luar jam.
-- Absence list, recap, laporan kehadiran dengan filter user/tanggal/shift; ekspor XLSX.
+- Check-in/out divalidasi radius GPS + window shift/roster; menolak jika off/holiday atau di luar jam; selfie check-in/out via kamera browser (fallback upload).
+- Absence list, recap, laporan kehadiran dengan filter user/tanggal/shift; ekspor XLSX/CSV.
 - Durasi harian diasumsikan maks 8 jam jika belum checkout (hanya tampilan, tidak mengurangi target).
 
 ### Tugas, Slot, dan Progres
@@ -78,8 +79,8 @@ KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Lara
 - Weekly off, holiday, dan leave dicatat; attendance menolak check-in pada hari off/holiday; kalender cuti/izin tersedia.
 
 ### Laporan & Ekspor
-- Attendance report full width dengan filter user/tanggal/shift + ekspor XLSX.
-- Overtime report & export, work target listings (filter per lokasi/karyawan).
+- Attendance report full width dengan filter user/tanggal/shift + ekspor XLSX/CSV.
+- Overtime report & export, work target listings (filter per lokasi/karyawan), rekap absensi + export Excel/CSV.
 - Roster export per entri; work recap PDF; lampiran laporan dapat diunduh.
 
 ### Komunikasi & Utility
@@ -87,6 +88,7 @@ KantorApp adalah sistem manajemen kehadiran dan shift multi-lokasi berbasis Lara
 - Permintaan pindah lokasi dengan approval Admin Lokasi/Super Admin.
 - Sidebar mobile-friendly dengan overlay, tema per lokasi via CSS variable dan tema opsional `public/themes/{theme}.css`.
 - Geocoder Leaflet default negara `id`; override dengan `window.APP_GEO_COUNTRY_CODES`.
+- Notifikasi otomatis berjalan via scheduler; jadwal diatur per lokasi pada menu Pengaturan Lokasi.
 
 ### Backlog Prioritas (berdasarkan TODO)
 - API publik (JWT/Sanctum) dan dokumentasi OpenAPI.

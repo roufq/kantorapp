@@ -21,6 +21,26 @@ class Kernel extends ConsoleKernel
         $schedule->command('work-recaps:generate')
             ->dailyAt('01:00')
             ->timezone('Asia/Jakarta');
+
+        // Notifikasi approval pending (cek per lokasi)
+        $schedule->command('notify:pending-approvals')
+            ->everyMinute()
+            ->timezone('Asia/Jakarta');
+
+        // Pengingat jadwal masuk H-1 (cek per lokasi)
+        $schedule->command('notify:shift-h1')
+            ->everyMinute()
+            ->timezone('Asia/Jakarta');
+
+        // Ringkasan sisa cuti akhir bulan (cek per lokasi)
+        $schedule->command('notify:leave-monthly-summary')
+            ->everyMinute()
+            ->timezone('Asia/Jakarta');
+
+        // Pengingat awal bulan untuk pengajuan cuti (cek per lokasi)
+        $schedule->command('notify:leave-monthly-reminder')
+            ->everyMinute()
+            ->timezone('Asia/Jakarta');
     }
 
     /**
@@ -45,5 +65,9 @@ class Kernel extends ConsoleKernel
         Commands\ShiftRosterHealthCheck::class,
         Commands\GenerateWorkRecaps::class,
         Commands\BackfillTaskSlots::class,
+        Commands\NotifyPendingApprovals::class,
+        Commands\NotifyShiftH1::class,
+        Commands\NotifyLeaveMonthlySummary::class,
+        Commands\NotifyLeaveMonthlyReminder::class,
     ];
 }

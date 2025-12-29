@@ -44,9 +44,10 @@
       @endforeach
     </select>
   </div>
-  <div class="col-12 d-flex align-items-end">
+  <div class="col-12 d-flex align-items-end gap-2 mt-3">
     <button class="btn btn-primary" type="submit">Apply</button>
-    <button class="btn btn-success ms-2" type="submit" formaction="{{ route('attendance.recap.export') }}">Export Excel</button>
+    <button class="btn btn-success" type="submit" formaction="{{ route('attendance.recap.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}">Export Excel</button>
+    <button class="btn btn-outline-success" type="submit" formaction="{{ route('attendance.recap.export', array_merge(request()->query(), ['format' => 'csv'])) }}">Export CSV</button>
   </div>
 </form>
   </div>

@@ -7,10 +7,14 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Overtime;
 use App\Models\OvertimeApproval;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Spatie\Permission\Models\Role;
 
 class OvertimeController extends Controller
 {
+    private const MAX_DAILY_HOURS = 4;
+    private const MAX_WEEKLY_HOURS = 16;
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -60,16 +64,17 @@ class OvertimeController extends Controller
             })->orderBy('id')->get();
         }
         $autoApprovers = collect();
+        $limits = $this->resolveOvertimeLimits($user->location);
 
         if ($user->hasRole('Karyawan')) {
-            $autoApprovers = $this->getApproverUsersForEmployee($user);
+            $autoApprovers = $this->getApprovalChainForEmployee($user);
 
             if ($autoApprovers->isEmpty()) {
                 return redirect()->route('overtime.index')->withErrors('Tidak ada approver yang tersedia. Hubungi administrator.');
             }
         }
 
-        return view('overtime.create', compact('masters', 'autoApprovers'));
+        return view('overtime.create', compact('masters', 'autoApprovers', 'limits'));
     }
 
     public function store(Request $request)
@@ -106,11 +111,18 @@ class OvertimeController extends Controller
         // Calculate duration in hours and minutes
         $durationMinutes = $startTimeWib->diffInMinutes($endTimeWib);
         $durationHours = $durationMinutes / 60;
+        $limitError = $this->checkOvertimeLimits($user, $request->date, $durationHours);
+        if ($limitError) {
+            return back()->withErrors(['date' => $limitError])->withInput();
+        }
 
+        $approvalChain = collect();
         if ($user->hasRole('Super Admin')) {
             $selectedMasterIds = array_map('intval', $request->selected_masters);
+            $approvalChain = collect($selectedMasterIds)->map(fn ($id) => ['user' => User::find($id), 'level' => 1])->filter(fn ($item) => $item['user']);
         } else {
-            $selectedMasterIds = $this->resolveApproverIdsForEmployee($user);
+            $approvalChain = $this->getApprovalChainForEmployee($user);
+            $selectedMasterIds = $approvalChain->pluck('user.id')->values()->toArray();
 
             if (empty($selectedMasterIds)) {
                 return back()->withErrors('Tidak ada approver yang tersedia. Hubungi administrator.');
@@ -132,10 +144,11 @@ class OvertimeController extends Controller
         ]);
 
         // Create approval records for selected masters
-        foreach ($selectedMasterIds as $masterId) {
+        foreach ($approvalChain as $entry) {
             OvertimeApproval::create([
                 'overtime_request_id' => $overtime->id,
-                'master_id' => $masterId,
+                'master_id' => $entry['user']->id,
+                'level' => $entry['level'],
                 'status' => $user->hasRole('Super Admin') ? 'approved' : 'pending',
                 'approved_at' => $user->hasRole('Super Admin') ? now() : null,
             ]);
@@ -159,12 +172,13 @@ class OvertimeController extends Controller
             })->orderBy('id')->get();
         }
         $autoApprovers = collect();
+        $limits = $this->resolveOvertimeLimits($overtime->user?->location);
 
         if ($overtime->user && $overtime->user->hasRole('Karyawan')) {
-            $autoApprovers = $this->getApproverUsersForEmployee($overtime->user);
+            $autoApprovers = $this->getApprovalChainForEmployee($overtime->user);
         }
 
-        return view('overtime.edit', compact('overtime', 'masters', 'autoApprovers'));
+        return view('overtime.edit', compact('overtime', 'masters', 'autoApprovers', 'limits'));
     }
 
     public function update(Request $request, Overtime $overtime)
@@ -199,11 +213,18 @@ class OvertimeController extends Controller
         $endTimeUtc = $endTimeWib->clone()->utc();
 
         $durationHours = $startTimeWib->diffInMinutes($endTimeWib) / 60;
+        $limitError = $this->checkOvertimeLimits($overtime->user, $request->date, $durationHours, $overtime);
+        if ($limitError) {
+            return back()->withErrors(['date' => $limitError])->withInput();
+        }
 
+        $approvalChain = collect();
         if ($user->hasRole('Super Admin')) {
             $selectedMasterIds = array_map('intval', $request->selected_masters);
+            $approvalChain = collect($selectedMasterIds)->map(fn ($id) => ['user' => User::find($id), 'level' => 1])->filter(fn ($item) => $item['user']);
         } else {
-            $selectedMasterIds = $this->resolveApproverIdsForEmployee($overtime->user);
+            $approvalChain = $this->getApprovalChainForEmployee($overtime->user);
+            $selectedMasterIds = $approvalChain->pluck('user.id')->values()->toArray();
 
             if (empty($selectedMasterIds)) {
                 return back()->withErrors('Tidak ada approver yang tersedia. Hubungi administrator.');
@@ -221,10 +242,11 @@ class OvertimeController extends Controller
         ]);
 
         $overtime->approvals()->delete();
-        foreach ($selectedMasterIds as $masterId) {
+        foreach ($approvalChain as $entry) {
             OvertimeApproval::create([
                 'overtime_request_id' => $overtime->id,
-                'master_id' => $masterId,
+                'master_id' => $entry['user']->id,
+                'level' => $entry['level'],
                 'status' => $user->hasRole('Super Admin') ? 'approved' : 'pending',
                 'approved_at' => $user->hasRole('Super Admin') ? now() : null,
             ]);
@@ -417,6 +439,17 @@ class OvertimeController extends Controller
             abort(404, 'Approval record not found');
         }
 
+        if ($approval->level > 1) {
+            $lowerPending = OvertimeApproval::where('overtime_request_id', $overtime->id)
+                ->where('level', '<', $approval->level)
+                ->where('status', '!=', 'approved')
+                ->exists();
+            if ($lowerPending) {
+                return back()->withErrors('Persetujuan level sebelumnya belum disetujui.');
+            }
+        }
+
+        $before = $approval->only(['status', 'approved_at', 'notes']);
         $approval->update([
             'status' => $request->status,
             'approved_at' => now(),
@@ -426,13 +459,23 @@ class OvertimeController extends Controller
         // Update overall status
         $overtime->updateOverallStatus();
 
+        AuditLogger::record('overtime_approval_updated', $approval, $before, [
+            'status' => $approval->status,
+            'approved_at' => $approval->approved_at,
+            'notes' => $approval->notes,
+        ], [
+            'overtime_id' => $overtime->id,
+            'user_id' => $overtime->user_id,
+            'level' => $approval->level,
+        ]);
+
         $message = $request->status === 'approved' ? 'Overtime request approved!' : 'Overtime request rejected!';
         return redirect()->route('overtime.show', $overtime)->with('success', $message);
     }
 
-    private function getApproverUsersForEmployee(User $user)
+    private function getApprovalChainForEmployee(User $user)
     {
-        $locationAdmins = collect();
+        $chain = collect();
 
         if ($user->location_id && ($locationRole = $this->findRole('Admin Lokasi'))) {
             $locationAdmins = User::where('location_id', $user->location_id)
@@ -440,34 +483,27 @@ class OvertimeController extends Controller
                     $query->where('id', $locationRole->id);
                 })
                 ->orderBy('id')
-                ->take(2)
+                ->take(1)
                 ->get();
-        }
-
-        if ($locationAdmins->isNotEmpty()) {
-            return $locationAdmins;
+            foreach ($locationAdmins as $admin) {
+                $chain->push(['user' => $admin, 'level' => 1]);
+            }
         }
 
         if ($superAdminRole = $this->findRole('Super Admin')) {
-            return User::whereHas('roles', function ($query) use ($superAdminRole) {
+            $superAdmins = User::whereHas('roles', function ($query) use ($superAdminRole) {
                     $query->where('id', $superAdminRole->id);
                 })
                 ->orderBy('id')
-                ->take(2)
+                ->take(1)
                 ->get();
+            $level = $chain->isEmpty() ? 1 : 2;
+            foreach ($superAdmins as $sa) {
+                $chain->push(['user' => $sa, 'level' => $level]);
+            }
         }
 
-        return collect();
-    }
-
-    private function resolveApproverIdsForEmployee(User $user): array
-    {
-        return $this->getApproverUsersForEmployee($user)
-            ->pluck('id')
-            ->map(fn($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->toArray();
+        return $chain;
     }
 
     private function roleExists(string $roleName): bool
@@ -478,5 +514,52 @@ class OvertimeController extends Controller
     private function findRole(string $roleName): ?Role
     {
         return Role::where('name', $roleName)->first();
+    }
+
+    private function resolveOvertimeLimits($location): array
+    {
+        $daily = self::MAX_DAILY_HOURS;
+        $weekly = self::MAX_WEEKLY_HOURS;
+        if ($location && is_array($location->settings)) {
+            if (!empty($location->settings['max_daily_overtime_hours'])) {
+                $daily = (float) $location->settings['max_daily_overtime_hours'];
+            }
+            if (!empty($location->settings['max_weekly_overtime_hours'])) {
+                $weekly = (float) $location->settings['max_weekly_overtime_hours'];
+            }
+        }
+        return ['daily' => $daily, 'weekly' => $weekly];
+    }
+
+    private function checkOvertimeLimits(User $user, string $date, float $durationHours, ?Overtime $exclude = null): ?string
+    {
+        $limits = $this->resolveOvertimeLimits($user->location);
+        $dateObj = \Carbon\Carbon::parse($date);
+        $weekStart = $dateObj->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
+        $weekEnd = $dateObj->copy()->endOfWeek(\Carbon\Carbon::SUNDAY);
+
+        $dailyQuery = Overtime::where('user_id', $user->id)
+            ->where('date', $date)
+            ->whereIn('status', ['pending', 'approved']);
+        $weeklyQuery = Overtime::where('user_id', $user->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereIn('status', ['pending', 'approved']);
+
+        if ($exclude) {
+            $dailyQuery->where('id', '!=', $exclude->id);
+            $weeklyQuery->where('id', '!=', $exclude->id);
+        }
+
+        $dailyHours = (float) $dailyQuery->sum('duration_hours');
+        $weeklyHours = (float) $weeklyQuery->sum('duration_hours');
+
+        if ($dailyHours + $durationHours > $limits['daily']) {
+            return 'Melebihi batas lembur harian (' . $limits['daily'] . ' jam).';
+        }
+        if ($weeklyHours + $durationHours > $limits['weekly']) {
+            return 'Melebihi batas lembur mingguan (' . $limits['weekly'] . ' jam).';
+        }
+
+        return null;
     }
 }

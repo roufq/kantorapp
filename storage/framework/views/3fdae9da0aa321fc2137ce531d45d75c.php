@@ -19,17 +19,9 @@
   $statCards = [];
   $secondaryCards = [];
   if($user->hasRole('Super Admin')) {
-    $statCards = [
-      ['label' => 'Total Super Admins', 'value' => $totalMasters, 'icon' => 'mdi-account-key', 'color' => 'primary'],
-      ['label' => 'Total Employees', 'value' => $totalEmployees, 'icon' => 'mdi-account-group', 'color' => 'danger'],
-      ['label' => 'Total Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
-      ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'],
-    ];
+    $statCards = [];
   } elseif($user->hasRole('Admin Lokasi')) {
     $statCards = [
-      ['label' => 'Employees (My Location)', 'value' => $totalKaryawans, 'icon' => 'mdi-account-group', 'color' => 'danger'],
-      ['label' => 'Total Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
-      ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'],
       ['label' => 'Absences Today', 'value' => $absencesTodayCount ?? 0, 'icon' => 'mdi-alert-circle', 'color' => 'info'],
     ];
     $secondaryCards = [
@@ -41,7 +33,6 @@
       ['label' => 'My Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
     ];
     if($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi') || $user->hasRole('Karyawan')) {
-      $statCards[] = ['label' => 'Unread Messages', 'value' => $unreadMessages, 'icon' => 'mdi-email-outline', 'color' => 'warning'];
       $statCards[] = ['label' => 'Today\'s Shift', 'value' => '', 'icon' => 'mdi-calendar-clock', 'color' => 'info', 'extra' => true];
       $statCards[] = ['label' => 'Clock In', 'value' => ($todayAttendance && $todayAttendance->check_in_time) ? $todayAttendance->check_in_time->format('H:i') : '--', 'icon' => 'mdi-clock-start', 'color' => 'secondary'];
       $secondaryCards = [
@@ -213,21 +204,64 @@
 <?php endif; ?>
 
 <?php if(!$user->hasRole('Karyawan')): ?>
+  <div class="row mb-2">
+    <div class="col-md-12">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <form method="GET" action="<?php echo e(route('dashboard')); ?>" class="d-flex align-items-center gap-2">
+          <label class="mb-0 text-muted small">Periode KPI</label>
+          <select name="kpi_days" class="form-select form-select-sm" style="width: 120px;">
+            <?php $__currentLoopData = [7, 30, 90, 180]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $days): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+              <option value="<?php echo e($days); ?>" <?php echo e((int) ($kpiDays ?? 30) === $days ? 'selected' : ''); ?>><?php echo e($days); ?> hari</option>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+          </select>
+          <?php if(request('search')): ?>
+            <input type="hidden" name="search" value="<?php echo e(request('search')); ?>">
+          <?php endif; ?>
+          <button type="submit" class="btn btn-sm btn-outline-primary">Terapkan</button>
+        </form>
+        <a class="btn btn-sm btn-outline-secondary" href="<?php echo e(route('kpi.index', ['days' => $kpiDays ?? 30])); ?>">Detail KPI</a>
+      </div>
+    </div>
+  </div>
   <?php
-    $extraStats = [
-      ['label' => 'Total Users', 'value' => $totalUsers, 'icon' => 'mdi-account-multiple', 'color' => 'info'],
-      ['label' => 'Total Divisions', 'value' => $totalDivisions, 'icon' => 'mdi-office-building', 'color' => 'secondary'],
-      ['label' => 'Total Employees', 'value' => $totalKaryawans, 'icon' => 'mdi-account-badge-horizontal', 'color' => 'dark'],
-    ];
-    $performanceStats = [
-      ['label' => 'Task Completion Rate', 'value' => number_format($locationMetrics['task_completion_rate'] ?? 0, 2) . '%', 'icon' => 'mdi-clipboard-check', 'color' => 'primary'],
-      ['label' => 'Attendance Rate (Today)', 'value' => number_format($locationMetrics['attendance_rate_today'] ?? 0, 2) . '%', 'icon' => 'mdi-account-check', 'color' => 'success'],
-      ['label' => 'Overtime (Last 30d)', 'value' => number_format($locationMetrics['overtime_hours_30d'] ?? 0, 2) . ' hrs', 'icon' => 'mdi-timer', 'color' => 'warning'],
+    $kpiCards = [
+      [
+        'label' => 'Keterlambatan (' . ($kpiDays ?? 30) . 'd)',
+        'value' => number_format($kpiMetrics['lateness_rate'] ?? 0, 2) . '%',
+        'icon' => 'mdi-clock-alert',
+        'color' => 'danger',
+        'meta' => ($kpiMetrics['late_count'] ?? 0) . ' / ' . ($kpiMetrics['attendance_count'] ?? 0),
+        'link' => route('kpi.index', ['section' => 'lateness', 'days' => $kpiDays ?? 30]),
+      ],
+      [
+        'label' => 'Kehadiran (' . ($kpiDays ?? 30) . 'd)',
+        'value' => number_format($kpiMetrics['attendance_rate_30d'] ?? 0, 2) . '%',
+        'icon' => 'mdi-account-check',
+        'color' => 'success',
+        'meta' => ($kpiMetrics['attendance_count'] ?? 0) . ' hadir',
+        'link' => route('kpi.index', ['section' => 'attendance', 'days' => $kpiDays ?? 30]),
+      ],
+      [
+        'label' => 'Overtime Disetujui (' . ($kpiDays ?? 30) . 'd)',
+        'value' => number_format($kpiMetrics['overtime_hours_30d'] ?? 0, 2) . ' jam',
+        'icon' => 'mdi-timer',
+        'color' => 'warning',
+        'meta' => $kpiMetrics['period_label'] ?? '',
+        'link' => route('kpi.index', ['section' => 'overtime', 'days' => $kpiDays ?? 30]),
+      ],
+      [
+        'label' => 'Produktivitas Tugas (' . ($kpiDays ?? 30) . 'd)',
+        'value' => number_format($kpiMetrics['task_productivity_rate'] ?? 0, 2) . '%',
+        'icon' => 'mdi-clipboard-check',
+        'color' => 'primary',
+        'meta' => ($kpiMetrics['tasks_completed'] ?? 0) . ' / ' . ($kpiMetrics['tasks_created'] ?? 0),
+        'link' => route('kpi.index', ['section' => 'tasks', 'days' => $kpiDays ?? 30]),
+      ],
     ];
   ?>
   <div class="row">
-    <?php $__currentLoopData = $extraStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-      <div class="col-md-6 col-xl-4">
+    <?php $__currentLoopData = $kpiCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+      <div class="col-md-6 col-xl-3">
         <div class="card m-b-30">
           <div class="card-body">
             <div class="d-flex align-items-center">
@@ -239,27 +273,14 @@
               <div class="flex-grow-1 text-right">
                 <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
                 <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-  </div>
-  <div class="row">
-    <?php $__currentLoopData = $performanceStats; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-      <div class="col-md-6 col-xl-4">
-        <div class="card m-b-30">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
-                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
-                </div>
-              </div>
-              <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
-                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
+                <?php if(!empty($card['meta'])): ?>
+                  <small class="text-muted"><?php echo e($card['meta']); ?></small>
+                <?php endif; ?>
+                <?php if(!empty($card['link'])): ?>
+                  <div class="mt-1">
+                    <a href="<?php echo e($card['link']); ?>" class="small text-decoration-none">Lihat detail</a>
+                  </div>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -268,6 +289,108 @@
     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
   </div>
 <?php endif; ?>
+
+<?php
+  $chartTotalTasks = (int) ($chartMetrics['total_tasks'] ?? 0);
+  $chartCompletedTasks = (int) ($chartMetrics['completed_tasks'] ?? 0);
+  $chartCompletionRate = $chartTotalTasks > 0 ? round(($chartCompletedTasks / $chartTotalTasks) * 100, 2) : 0;
+  $chartAttendanceTotal = (int) ($chartMetrics['attendance_total'] ?? 0);
+  $chartCheckedIn = (int) ($chartMetrics['checked_in_today'] ?? 0);
+  $chartAttendanceRate = $chartAttendanceTotal > 0 ? round(($chartCheckedIn / $chartAttendanceTotal) * 100, 2) : 0;
+?>
+
+<div class="row mb-2">
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h5 class="mb-1">Ringkasan Utama</h5>
+        <small class="text-muted">Gambaran cepat performa tugas, kehadiran, dan overtime.</small>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-6 col-xl-3">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Task Completion Rate</div>
+          <span class="fw-semibold"><?php echo e(number_format($chartCompletionRate, 2)); ?>%</span>
+        </div>
+        <canvas id="chartTaskCompletion" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Attendance Rate (Today)</div>
+          <span class="fw-semibold"><?php echo e(number_format($chartAttendanceRate, 2)); ?>%</span>
+        </div>
+        <canvas id="chartAttendanceToday" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Total Tasks</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['total_tasks'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartTotalTasks" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Overtime (Last 30d)</div>
+          <span class="fw-semibold"><?php echo e(number_format($chartMetrics['overtime_hours_30d'] ?? 0, 2)); ?> hrs</span>
+        </div>
+        <canvas id="chartOvertime30d" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2 mb-2">
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h5 class="mb-1">Distribusi Lokasi</h5>
+        <small class="text-muted">Detail jumlah karyawan dan user per lokasi.</small>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-6">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Total Employees per Lokasi</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['total_employees'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartEmployeesByLocation" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Total Users per Lokasi</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['total_users'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartUsersByLocation" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php if(!$user->hasRole('Karyawan')): ?>
   <!--begin::Row-->
   <div class="row" id="monthly-recap">
@@ -513,6 +636,242 @@
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('scripts'); ?>
+<script src="<?php echo e(asset('NewAsset/assets/plugins/chart.js/Chart.bundle.js')); ?>"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') {
+      return;
+    }
+
+    const metrics = <?php echo json_encode($chartMetrics ?? [], 15, 512) ?>;
+    const totalTasks = Number(metrics.total_tasks || 0);
+    const completedTasks = Number(metrics.completed_tasks || 0);
+    const totalEmployees = Number(metrics.total_employees || 0);
+    const checkedInToday = Number(metrics.checked_in_today || 0);
+    const attendanceTotal = Number(metrics.attendance_total || 0);
+    const totalMasters = Number(metrics.total_masters || 0);
+    const totalDivisions = Number(metrics.total_divisions || 0);
+    const totalMessages = Number(metrics.total_messages || 0);
+    const unreadMessages = Number(metrics.unread_messages || 0);
+    const overtimeHours30d = Number(metrics.overtime_hours_30d || 0);
+    const locationLabels = <?php echo json_encode($locationLabels ?? [], 15, 512) ?>;
+    const employeesByLocation = <?php echo json_encode($employeeCountsByLocation ?? [], 15, 512) ?>;
+    const usersByLocation = <?php echo json_encode($userCountsByLocation ?? [], 15, 512) ?>;
+
+    const completionCtx = document.getElementById('chartTaskCompletion');
+    if (completionCtx) {
+      const remainingTasks = Math.max(totalTasks - completedTasks, 0);
+      new Chart(completionCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completed', 'Remaining'],
+          datasets: [{
+            data: [completedTasks, remainingTasks],
+            backgroundColor: ['#1abc9c', '#e9ecef'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutoutPercentage: 65,
+          legend: { display: false },
+          tooltips: {
+            callbacks: {
+              label: function (tooltipItem, data) {
+                const label = data.labels[tooltipItem.index] || '';
+                const value = data.datasets[0].data[tooltipItem.index] || 0;
+                return label + ': ' + value;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const attendanceCtx = document.getElementById('chartAttendanceToday');
+    if (attendanceCtx) {
+      const absentCount = Math.max(attendanceTotal - checkedInToday, 0);
+      new Chart(attendanceCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Checked In', 'Not Yet'],
+          datasets: [{
+            data: [checkedInToday, absentCount],
+            backgroundColor: ['#4d79f6', '#e9ecef'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutoutPercentage: 65,
+          legend: { display: false },
+          tooltips: {
+            callbacks: {
+              label: function (tooltipItem, data) {
+                const label = data.labels[tooltipItem.index] || '';
+                const value = data.datasets[0].data[tooltipItem.index] || 0;
+                return label + ': ' + value;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const tasksCtx = document.getElementById('chartTotalTasks');
+    if (tasksCtx) {
+      new Chart(tasksCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Total', 'Completed'],
+          datasets: [{
+            data: [totalTasks, completedTasks],
+            backgroundColor: ['#f4c166', '#6fd3b3']
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
+            xAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+
+    const mastersCtx = document.getElementById('chartTotalMasters');
+    if (mastersCtx) {
+      new Chart(mastersCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Super Admins'],
+          datasets: [{
+            data: [totalMasters],
+            backgroundColor: '#7c5cff'
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
+            xAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+
+    const unreadCtx = document.getElementById('chartUnreadMessages');
+    if (unreadCtx) {
+      const readCount = Math.max(totalMessages - unreadMessages, 0);
+      new Chart(unreadCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Unread', 'Read'],
+          datasets: [{
+            data: [unreadMessages, readCount],
+            backgroundColor: ['#f6b93b', '#e9ecef'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutoutPercentage: 65,
+          legend: { display: false },
+          tooltips: {
+            callbacks: {
+              label: function (tooltipItem, data) {
+                const label = data.labels[tooltipItem.index] || '';
+                const value = data.datasets[0].data[tooltipItem.index] || 0;
+                return label + ': ' + value;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const employeesByLocationCtx = document.getElementById('chartEmployeesByLocation');
+    if (employeesByLocationCtx) {
+      new Chart(employeesByLocationCtx, {
+        type: 'horizontalBar',
+        data: {
+          labels: locationLabels,
+          datasets: [{
+            data: employeesByLocation,
+            backgroundColor: '#00b5b8'
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            xAxes: [{ ticks: { beginAtZero: true, precision: 0 }, gridLines: { display: true } }],
+            yAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+
+    const usersByLocationCtx = document.getElementById('chartUsersByLocation');
+    if (usersByLocationCtx) {
+      new Chart(usersByLocationCtx, {
+        type: 'horizontalBar',
+        data: {
+          labels: locationLabels,
+          datasets: [{
+            data: usersByLocation,
+            backgroundColor: '#38ada9'
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            xAxes: [{ ticks: { beginAtZero: true, precision: 0 }, gridLines: { display: true } }],
+            yAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+
+    const divisionsCtx = document.getElementById('chartTotalDivisions');
+    if (divisionsCtx) {
+      new Chart(divisionsCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Divisions'],
+          datasets: [{
+            data: [totalDivisions],
+            backgroundColor: '#576574'
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
+            xAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+
+    const overtimeCtx = document.getElementById('chartOvertime30d');
+    if (overtimeCtx) {
+      new Chart(overtimeCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Hours'],
+          datasets: [{
+            data: [overtimeHours30d],
+            backgroundColor: '#f368e0'
+          }]
+        },
+        options: {
+          legend: { display: false },
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
+            xAxes: [{ gridLines: { display: false } }]
+          }
+        }
+      });
+    }
+  });
+</script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const recapCard = document.getElementById('monthly-recap-card');

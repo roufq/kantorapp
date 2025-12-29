@@ -1,24 +1,13 @@
 
 
-<?php $__env->startSection('title'); ?>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-6">
-            <h3 class="mb-0">Update Progress: <?php echo e($task->title); ?></h3>
-        </div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-end">
-                <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
-                <li class="breadcrumb-item"><a href="<?php echo e(route('tasks.index')); ?>">Tasks</a></li>
-                <li class="breadcrumb-item"><a href="<?php echo e(route('tasks.show', $task)); ?>"><?php echo e($task->title); ?></a></li>
-                <li class="breadcrumb-item active" aria-current="page">Update Progress</li>
-            </ol>
-        </div>
-    </div>
-</div>
-<?php $__env->stopSection(); ?>
-
 <?php $__env->startSection('content'); ?>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Update Progress: <?php echo e($task->title); ?></h3>
+        <p class="text-muted mb-0">Kirim bukti progres slot untuk tugas ini.</p>
+    </div>
+    <a href="<?php echo e(route('tasks.show', $task)); ?>" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
 <div class="row">
     <div class="col-12">
         <div class="card">

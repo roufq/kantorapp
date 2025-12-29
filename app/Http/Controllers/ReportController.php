@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Services\AuditLogger;
 
 class ReportController extends Controller
 {
@@ -226,6 +227,7 @@ class ReportController extends Controller
             abort(403, 'Anda bukan approver untuk laporan ini.');
         }
 
+        $before = $approval->only(['status', 'notes', 'decided_at', 'approver_id']);
         $approval->update([
             'status' => $validated['status'],
             'notes' => $validated['notes'] ?? null,
@@ -234,6 +236,14 @@ class ReportController extends Controller
         ]);
 
         $report->recalcStatus();
+        AuditLogger::record('report_approval_updated', $approval, $before, [
+            'status' => $approval->status,
+            'notes' => $approval->notes,
+            'decided_at' => $approval->decided_at,
+            'approver_id' => $approval->approver_id,
+        ], [
+            'report_id' => $report->id,
+        ]);
 
         return redirect()->route('reports.show', $report)->with('success', 'Status laporan diperbarui.');
     }

@@ -4,17 +4,17 @@
 <div class="content-wrapper">
   <section class="content">
     <div class="container-fluid">
-      <div class="bg-light p-3 mb-3 rounded border">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
         <div>
           <h3 class="mb-1">Roster Mingguan</h3>
           <p class="text-muted mb-0">Daftar roster mingguan per lokasi (factory/non-office).</p>
         </div>
+        <a href="<?php echo e(route('shifts.rosters.create')); ?>" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Buat Roster</a>
       </div>
       <?php if(session('success')): ?> <div class="alert alert-success"><?php echo e(session('success')); ?></div> <?php endif; ?>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Roster Per Lokasi</h3>
-          <a href="<?php echo e(route('shifts.rosters.create')); ?>" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Buat Roster</a>
         </div>
         <div class="card-body table-responsive p-0">
           <table class="table table-hover align-middle">

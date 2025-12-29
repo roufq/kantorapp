@@ -2,26 +2,15 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Detail Roster</h1>
-          <p class="text-muted mb-0"><?php echo e($roster->location->name ?? '-'); ?> | <?php echo e($roster->locationShift->shift->name ?? 'Shift'); ?></p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?php echo e(route('shifts.rosters.index')); ?>">Rosters</a></li>
-            <li class="breadcrumb-item active">Detail</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <section class="content">
     <div class="container-fluid">
+      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1">Detail Roster</h3>
+          <p class="text-muted mb-0"><?php echo e($roster->location->name ?? '-'); ?> | <?php echo e($roster->locationShift->shift->name ?? 'Shift'); ?></p>
+        </div>
+        <a href="<?php echo e(route('shifts.rosters.index')); ?>" class="btn btn-outline-secondary btn-sm">Kembali</a>
+      </div>
       <?php if(session('success')): ?> <div class="alert alert-success"><?php echo e(session('success')); ?></div> <?php endif; ?>
       <div class="card">
         <div class="card-header">

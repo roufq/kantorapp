@@ -18,6 +18,8 @@ use App\Models\EmployeeLeave;
 use App\Services\WorkdayService;
 use App\Models\EmployeeAbsence;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use App\Models\Location;
 
 class DashboardController extends Controller
 {
@@ -61,6 +63,19 @@ class DashboardController extends Controller
         $myUpcomingAssignments = collect();
         $attendanceList = collect();
         $todayPlannedDate = null;
+        $chartMetrics = [
+            'total_employees' => 0,
+            'total_tasks' => 0,
+            'completed_tasks' => 0,
+            'checked_in_today' => 0,
+            'attendance_total' => 0,
+            'total_masters' => 0,
+            'total_users' => 0,
+            'total_divisions' => 0,
+            'total_messages' => 0,
+            'unread_messages' => 0,
+            'overtime_hours_30d' => 0,
+        ];
 
         // Get counts for dashboard (location-aware for non Super Admin)
         if ($user->hasRole('Super Admin')) {
@@ -73,6 +88,17 @@ class DashboardController extends Controller
             $totalKaryawans = Employee::count();
             $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)->count();
             $absencesTodayCount = EmployeeAbsence::whereDate('date', $today)->count();
+
+            $chartMetrics['total_employees'] = $totalEmployees;
+            $chartMetrics['total_tasks'] = $totalTasks;
+            $chartMetrics['completed_tasks'] = Task::where('status', 'completed')->count();
+            $chartMetrics['checked_in_today'] = Attendance::whereDate('check_in_time', $today)->distinct('user_id')->count('user_id');
+            $chartMetrics['attendance_total'] = $totalEmployees;
+            $chartMetrics['total_masters'] = $totalMasters;
+            $chartMetrics['total_users'] = $totalUsers;
+            $chartMetrics['total_divisions'] = $totalDivisions;
+            $chartMetrics['total_messages'] = $totalMessages;
+            $chartMetrics['unread_messages'] = $unreadMessages;
         } else {
             $locationId = $user->location_id;
             $totalMasters = User::role('Super Admin')->count(); // global masters
@@ -87,6 +113,26 @@ class DashboardController extends Controller
             $totalUsers = User::where('location_id', $locationId)->count();
             $totalDivisions = Division::count(); // divisions not location-specific yet
             $totalKaryawans = Employee::where('location_id', $locationId)->count();
+
+            $chartMetrics['total_employees'] = $totalEmployees;
+            $chartMetrics['total_tasks'] = $totalTasks;
+            $chartMetrics['completed_tasks'] = Task::where('status', 'completed')
+                ->whereHas('assignee', function ($q) use ($locationId) {
+                    $q->where('location_id', $locationId);
+                })
+                ->count();
+            $chartMetrics['checked_in_today'] = Attendance::whereDate('check_in_time', $today)
+                ->whereHas('user', function ($q) use ($locationId) {
+                    $q->where('location_id', $locationId);
+                })
+                ->distinct('user_id')
+                ->count('user_id');
+            $chartMetrics['attendance_total'] = $totalEmployees;
+            $chartMetrics['total_masters'] = $totalMasters;
+            $chartMetrics['total_users'] = $totalUsers;
+            $chartMetrics['total_divisions'] = $totalDivisions;
+            $chartMetrics['total_messages'] = $totalMessages;
+            $chartMetrics['unread_messages'] = $unreadMessages;
             if ($user->hasRole('Admin Lokasi')) {
                 $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)
                     ->where('location_id', $locationId)
@@ -116,6 +162,17 @@ class DashboardController extends Controller
             'attendance_rate_today' => 0.0,
             'overtime_hours_30d' => 0.0,
         ];
+
+        // Basic KPI (default 30 days): lateness, attendance rate, overtime, task productivity
+        $kpiDays = (int) $request->get('kpi_days', 30);
+        if ($kpiDays < 7) {
+            $kpiDays = 7;
+        } elseif ($kpiDays > 365) {
+            $kpiDays = 365;
+        }
+        $kpiStart = now()->subDays($kpiDays - 1)->startOfDay();
+        $kpiEnd = now()->endOfDay();
+        $daysInPeriod = max(1, $kpiStart->diffInDays($kpiEnd) + 1);
 
         if ($user->hasRole('Super Admin')) {
             $totalTasksAll = Task::count();
@@ -150,7 +207,97 @@ class DashboardController extends Controller
                 ->sum('duration_hours');
         }
 
+        $chartMetrics['overtime_hours_30d'] = $locationMetrics['overtime_hours_30d'];
+
+        $attendanceQuery = Attendance::whereBetween('check_in_time', [$kpiStart, $kpiEnd]);
+        $taskBaseQuery = Task::query();
+        $overtimeQuery = Overtime::where('status', 'approved')->whereBetween('date', [$kpiStart->toDateString(), $kpiEnd->toDateString()]);
+
+        if ($user->hasRole('Super Admin')) {
+            $totalEmployeesForKpi = User::role('Karyawan')->count();
+        } elseif ($user->hasRole('Admin Lokasi')) {
+            $locationId = $user->location_id;
+            $attendanceQuery->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
+            $taskBaseQuery->whereHas('assignee', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
+            $overtimeQuery->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
+            $totalEmployeesForKpi = User::role('Karyawan')->where('location_id', $locationId)->count();
+        } else {
+            $attendanceQuery->where('user_id', $user->id);
+            $taskBaseQuery->where('assigned_to', $user->id);
+            $overtimeQuery->where('user_id', $user->id);
+            $totalEmployeesForKpi = 1;
+        }
+
+        $attendanceCount = (int) $attendanceQuery->count();
+        $lateCount = (int) (clone $attendanceQuery)->where('is_late', true)->count();
+        $latenessRate = $attendanceCount > 0 ? round(($lateCount / $attendanceCount) * 100, 2) : 0.0;
+        $attendanceRate30d = $totalEmployeesForKpi > 0
+            ? round(min(100, ($attendanceCount / ($totalEmployeesForKpi * $daysInPeriod)) * 100), 2)
+            : 0.0;
+
+        $overtimeHours30d = (float) $overtimeQuery->sum('duration_hours');
+
+        $tasksCreated = (int) (clone $taskBaseQuery)->whereBetween('created_at', [$kpiStart, $kpiEnd])->count();
+        $tasksCompleted = (int) (clone $taskBaseQuery)->where('status', 'completed')->whereBetween('updated_at', [$kpiStart, $kpiEnd])->count();
+        $taskProductivityRate = $tasksCreated > 0 ? round(($tasksCompleted / $tasksCreated) * 100, 2) : 0.0;
+        $kpiMetrics = [
+            'lateness_rate' => $latenessRate,
+            'late_count' => $lateCount,
+            'attendance_rate_30d' => $attendanceRate30d,
+            'attendance_count' => $attendanceCount,
+            'overtime_hours_30d' => $overtimeHours30d,
+            'tasks_created' => $tasksCreated,
+            'tasks_completed' => $tasksCompleted,
+            'task_productivity_rate' => $taskProductivityRate,
+            'period_label' => $kpiStart->format('d M') . ' - ' . $kpiEnd->format('d M'),
+        ];
+
+        $locationLabels = collect();
+        $employeeCountsByLocation = collect();
+        $userCountsByLocation = collect();
+        if ($user->hasRole('Super Admin')) {
+            $locations = Location::orderBy('name')->get(['id', 'name']);
+            $employeeCountsByLocation = User::role('Karyawan')
+                ->select('location_id', DB::raw('count(*) as total'))
+                ->whereNotNull('location_id')
+                ->groupBy('location_id')
+                ->pluck('total', 'location_id');
+            $userCountsByLocation = User::select('location_id', DB::raw('count(*) as total'))
+                ->whereNotNull('location_id')
+                ->groupBy('location_id')
+                ->pluck('total', 'location_id');
+        } elseif ($user->location_id) {
+            $locations = Location::where('id', $user->location_id)->get(['id', 'name']);
+            $employeeCountsByLocation = User::role('Karyawan')
+                ->select('location_id', DB::raw('count(*) as total'))
+                ->where('location_id', $user->location_id)
+                ->groupBy('location_id')
+                ->pluck('total', 'location_id');
+            $userCountsByLocation = User::select('location_id', DB::raw('count(*) as total'))
+                ->where('location_id', $user->location_id)
+                ->groupBy('location_id')
+                ->pluck('total', 'location_id');
+        } else {
+            $locations = collect();
+        }
+
+        $locationLabels = $locations->pluck('name');
+        $employeeCountsByLocation = $locations->map(function ($loc) use ($employeeCountsByLocation) {
+            return (int) ($employeeCountsByLocation[$loc->id] ?? 0);
+        });
+        $userCountsByLocation = $locations->map(function ($loc) use ($userCountsByLocation) {
+            return (int) ($userCountsByLocation[$loc->id] ?? 0);
+        });
+
         if ($user->hasRole('Karyawan')) {
+            $chartMetrics['total_employees'] = 1;
+            $chartMetrics['attendance_total'] = 1;
+            $chartMetrics['checked_in_today'] = Attendance::where('user_id', $user->id)
+                ->whereDate('check_in_time', $today)
+                ->exists() ? 1 : 0;
+            $chartMetrics['total_tasks'] = Task::where('assigned_to', $user->id)->count();
+            $chartMetrics['completed_tasks'] = Task::where('assigned_to', $user->id)->where('status', 'completed')->count();
+
             $todayAssignment = ShiftAssignment::with(['shift', 'locationShift.shift'])
                 ->where('user_id', $user->id)
                 ->whereDate('date', $today)
@@ -296,7 +443,8 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'user', 'tasks', 'unreadMessages',
             'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
-          'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount'
+          'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'kpiMetrics', 'kpiDays', 'chartMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount',
+          'locationLabels', 'employeeCountsByLocation', 'userCountsByLocation'
         ))->with('attendanceList', $attendanceList)
           ->with('todayAssignmentTime', $todayAssignmentTime)
           ->with('todayPlannedDate', optional($todayPlannedDate)->format('Y-m-d'))

@@ -160,7 +160,14 @@ class LocationController extends Controller
         }
 
         $location->load('locationSettings');
-        return view('locations.settings', compact('location'));
+        $notificationSettings = [
+            'notify_pending_approvals_time' => $location->getSetting('notify_pending_approvals_time', '00:00'),
+            'notify_shift_h1_time' => $location->getSetting('notify_shift_h1_time', '00:00'),
+            'notify_leave_monthly_summary_time' => $location->getSetting('notify_leave_monthly_summary_time', '00:00'),
+            'notify_leave_monthly_reminder_time' => $location->getSetting('notify_leave_monthly_reminder_time', '00:00'),
+        ];
+
+        return view('locations.settings', compact('location', 'notificationSettings'));
     }
 
     /**
@@ -273,6 +280,10 @@ class LocationController extends Controller
             $location->setSetting($setting['key'], $setting['value'], $setting['type']);
         }
 
-        return response()->json(['message' => 'Settings updated successfully']);
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Settings updated successfully']);
+        }
+
+        return redirect()->route('locations.settings', $location)->with('success', 'Settings updated successfully');
     }
 }

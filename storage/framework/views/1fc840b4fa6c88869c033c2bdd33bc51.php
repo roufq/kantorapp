@@ -6,6 +6,11 @@
         <h3 class="mb-1">Location Change Requests</h3>
         <p class="text-muted mb-0">Kelola permintaan pindah lokasi karyawan.</p>
     </div>
+    <?php if(auth()->user()->hasRole('Karyawan') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin')): ?>
+    <a href="<?php echo e(route('location-change-requests.create')); ?>" class="btn btn-outline-secondary btn-sm">
+        <i class="mdi mdi-plus-circle-outline mr-1"></i> Create New Request
+    </a>
+    <?php endif; ?>
 </div>
 <div class="row">
     <div class="col-12">
@@ -16,11 +21,7 @@
                         <h4 class="header-title mb-0">Requests Overview</h4>
                         <small class="text-muted">Filter and manage employee location changes</small>
                     </div>
-                    <?php if(auth()->user()->hasRole('Karyawan') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin')): ?>
-                    <a href="<?php echo e(route('location-change-requests.create')); ?>" class="btn btn-outline-secondary waves-effect waves-light">
-                        <i class="mdi mdi-plus-circle-outline mr-1"></i> Create New Request
-                    </a>
-                    <?php endif; ?>
+                    
                 </div>
 
                 <form method="GET" action="<?php echo e(route('location-change-requests.index')); ?>" class="row align-items-end mb-3">

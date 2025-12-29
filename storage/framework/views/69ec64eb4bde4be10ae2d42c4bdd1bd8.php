@@ -82,7 +82,7 @@
                                 <?php echo csrf_field(); ?>
                                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectCreationModal<?php echo e($task->id); ?>">Reject</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-toggle="modal" data-target="#rejectCreationModal<?php echo e($task->id); ?>">Reject</button>
                         </td>
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -139,7 +139,7 @@
                                 <?php echo csrf_field(); ?>
                                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectTaskModal<?php echo e($task->id); ?>">Reject</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-toggle="modal" data-target="#rejectTaskModal<?php echo e($task->id); ?>">Reject</button>
                         </td>
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -183,7 +183,7 @@
                                 <?php echo csrf_field(); ?>
                                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectLegacyModal<?php echo e($update->id); ?>">Reject</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-toggle="modal" data-target="#rejectLegacyModal<?php echo e($update->id); ?>">Reject</button>
                         </td>
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -207,7 +207,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Alasan Reject</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       <form action="<?php echo e(route('tasks.approvals.reject', $task)); ?>" method="POST">
         <?php echo csrf_field(); ?>
@@ -215,7 +217,7 @@
           <textarea name="reason" class="form-control" rows="3" required placeholder="Tuliskan alasan"></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
           <button type="submit" class="btn btn-danger">Reject</button>
         </div>
       </form>
@@ -230,7 +232,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Alasan Reject Tugas</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       <form action="<?php echo e(route('tasks.reject-slots', $task)); ?>" method="POST">
         <?php echo csrf_field(); ?>
@@ -238,7 +242,7 @@
           <textarea name="reason" class="form-control" rows="3" required placeholder="Tuliskan alasan"></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
           <button type="submit" class="btn btn-danger">Reject</button>
         </div>
       </form>
@@ -253,7 +257,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Alasan Reject Progress</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       <form action="<?php echo e(route('tasks.progress.reject', $update)); ?>" method="POST">
         <?php echo csrf_field(); ?>
@@ -261,7 +267,7 @@
           <textarea name="reason" class="form-control" rows="3" required placeholder="Tuliskan alasan"></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
           <button type="submit" class="btn btn-danger">Reject</button>
         </div>
       </form>

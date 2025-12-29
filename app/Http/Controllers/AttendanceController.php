@@ -15,13 +15,17 @@ use App\Models\LocationChangeRequest;
 use App\Models\EmployeeAbsence;
 use App\Models\EmployeeLeave;
 use App\Services\WorkdayService;
+use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Excel as ExcelWriter;
 
 class AttendanceController extends Controller
 {
+    private const MAX_GPS_ACCURACY_M = 60;
+
     public function checkIn(Request $request)
     {
         $user = auth()->user();
@@ -44,6 +48,19 @@ class AttendanceController extends Controller
         // Validate user has an assigned location
         if (!$user->location) {
             return back()->withErrors(['message' => 'You are not assigned to any location.']);
+        }
+
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'accuracy' => 'required|numeric',
+            'device_id' => 'required|string|max:128',
+            'check_in_photo' => 'nullable|image|max:2048',
+        ]);
+
+        $maxAccuracy = $this->resolveMaxAccuracy($user->location);
+        if ($request->accuracy > $maxAccuracy) {
+            return back()->withErrors(['message' => 'Akurasi GPS terlalu rendah (' . round($request->accuracy) . 'm). Coba lagi hingga <= ' . $maxAccuracy . 'm.']);
         }
 
         // Validate location radius compliance (with fallback to approved location change for today)
@@ -132,6 +149,16 @@ class AttendanceController extends Controller
             return back()->withErrors(['message' => 'Di luar jam kerja. Jadwal hari ini: ' . $ranges]);
         }
 
+        $checkInPhotoPath = null;
+        if ($request->file('check_in_photo')) {
+            $checkInPhotoPath = $request->file('check_in_photo')->store('attendances/checkin', 'public');
+        } elseif ($request->filled('check_in_selfie_data')) {
+            $checkInPhotoPath = $this->storeSelfieImage($request->input('check_in_selfie_data'), 'attendances/checkin');
+        }
+        if (!$checkInPhotoPath) {
+            return back()->withErrors(['message' => 'Selfie check-in wajib diambil melalui kamera atau unggah foto.']);
+        }
+
         Attendance::create([
             'user_id' => $user->id,
             'location_id' => $attendanceLocationId,
@@ -139,6 +166,10 @@ class AttendanceController extends Controller
             'shift_assignment_id' => $shiftAssignmentId,
             'check_in_time' => $now,
             'location' => $request->latitude . ',' . $request->longitude,
+            'device_id' => $request->device_id,
+            'device_user_agent' => (string) $request->userAgent(),
+            'gps_accuracy_in' => $request->accuracy,
+            'check_in_photo_path' => $checkInPhotoPath,
             'is_late' => $isLate,
         ]);
 
@@ -157,6 +188,19 @@ class AttendanceController extends Controller
 
         if (!$attendance) {
             return back()->withErrors(['message' => 'No active check-in found for today.']);
+        }
+
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'accuracy' => 'required|numeric',
+            'device_id' => 'required|string|max:128',
+            'check_out_photo' => 'nullable|image|max:2048',
+        ]);
+
+        $maxAccuracy = $this->resolveMaxAccuracy($user->location);
+        if ($request->accuracy > $maxAccuracy) {
+            return back()->withErrors(['message' => 'Akurasi GPS terlalu rendah (' . round($request->accuracy) . 'm). Coba lagi hingga <= ' . $maxAccuracy . 'm.']);
         }
 
         // Validate location
@@ -256,9 +300,23 @@ class AttendanceController extends Controller
         }
         // Sunday: no approval needed
 
+        $checkOutPhotoPath = null;
+        if ($request->file('check_out_photo')) {
+            $checkOutPhotoPath = $request->file('check_out_photo')->store('attendances/checkout', 'public');
+        } elseif ($request->filled('check_out_selfie_data')) {
+            $checkOutPhotoPath = $this->storeSelfieImage($request->input('check_out_selfie_data'), 'attendances/checkout');
+        }
+        if (!$checkOutPhotoPath) {
+            return back()->withErrors(['message' => 'Selfie check-out wajib diambil melalui kamera atau unggah foto.']);
+        }
+
         $attendance->update([
             'check_out_time' => $now,
             'location' => $request->latitude . ',' . $request->longitude,
+            'device_id' => $request->device_id,
+            'device_user_agent' => (string) $request->userAgent(),
+            'gps_accuracy_out' => $request->accuracy,
+            'check_out_photo_path' => $checkOutPhotoPath,
             'requires_approval' => $requiresApproval,
             'approval_status' => $requiresApproval ? 'pending' : 'approved',
         ]);
@@ -405,16 +463,61 @@ class AttendanceController extends Controller
     {
         $data = $this->buildRecapData($request);
 
-        $filename = sprintf(
-            'attendance_recap_%s_%s.xlsx',
-            $data['start']->format('Ymd'),
-            $data['end']->format('Ymd')
-        );
+        $format = strtolower((string) ($request->get('format') ?: 'auto'));
+        $supportsXls = defined('Maatwebsite\\Excel\\Excel::XLS');
+        $writer = null;
+        $filename = null;
+
+        if ($format === 'csv') {
+            $writer = ExcelWriter::CSV;
+            $filename = sprintf(
+                'attendance_recap_%s_%s.csv',
+                $data['start']->format('Ymd'),
+                $data['end']->format('Ymd')
+            );
+        } elseif ($format === 'xls') {
+            if ($supportsXls) {
+                $writer = constant('Maatwebsite\\Excel\\Excel::XLS');
+                $filename = sprintf(
+                    'attendance_recap_%s_%s.xls',
+                    $data['start']->format('Ymd'),
+                    $data['end']->format('Ymd')
+                );
+            } else {
+                $writer = ExcelWriter::CSV;
+                $filename = sprintf(
+                    'attendance_recap_%s_%s.csv',
+                    $data['start']->format('Ymd'),
+                    $data['end']->format('Ymd')
+                );
+            }
+        } elseif ($format === 'xlsx' || ($format === 'auto' && extension_loaded('zip'))) {
+            $writer = ExcelWriter::XLSX;
+            $filename = sprintf(
+                'attendance_recap_%s_%s.xlsx',
+                $data['start']->format('Ymd'),
+                $data['end']->format('Ymd')
+            );
+        } elseif ($supportsXls) {
+            $writer = constant('Maatwebsite\\Excel\\Excel::XLS');
+            $filename = sprintf(
+                'attendance_recap_%s_%s.xls',
+                $data['start']->format('Ymd'),
+                $data['end']->format('Ymd')
+            );
+        } else {
+            $writer = ExcelWriter::CSV;
+            $filename = sprintf(
+                'attendance_recap_%s_%s.csv',
+                $data['start']->format('Ymd'),
+                $data['end']->format('Ymd')
+            );
+        }
 
         return Excel::download(
             new AttendanceRecapExport($data['rows']),
             $filename,
-            ExcelWriter::XLSX
+            $writer
         );
     }
 
@@ -521,8 +624,12 @@ class AttendanceController extends Controller
             'approval_status' => 'required|in:pending,approved,rejected',
         ]);
 
+        $before = $attendance->only(['approval_status']);
         $attendance->update([
             'approval_status' => $request->approval_status,
+        ]);
+        AuditLogger::record('attendance_approval_updated', $attendance, $before, [
+            'approval_status' => $attendance->approval_status,
         ]);
 
         return back()->with('success', 'Approval status updated successfully.');
@@ -760,5 +867,52 @@ class AttendanceController extends Controller
         }
 
         return $fallback;
+    }
+
+    private function resolveMaxAccuracy(?Location $location): float
+    {
+        $default = self::MAX_GPS_ACCURACY_M;
+        if (!$location || !is_array($location->settings)) {
+            return $default;
+        }
+        if (!empty($location->settings['max_gps_accuracy_m'])) {
+            return max(10, (float) $location->settings['max_gps_accuracy_m']);
+        }
+        return $default;
+    }
+
+    private function storeSelfieImage(string $dataUrl, string $dir): ?string
+    {
+        if (!str_starts_with($dataUrl, 'data:image/')) {
+            return null;
+        }
+
+        [$meta, $encoded] = array_pad(explode(',', $dataUrl, 2), 2, null);
+        if (!$encoded) {
+            return null;
+        }
+
+        $binary = base64_decode($encoded, true);
+        if ($binary === false) {
+            return null;
+        }
+
+        $maxBytes = 2 * 1024 * 1024;
+        if (strlen($binary) > $maxBytes) {
+            return null;
+        }
+
+        $ext = 'jpg';
+        if (str_contains($meta, 'image/png')) {
+            $ext = 'png';
+        } elseif (str_contains($meta, 'image/webp')) {
+            $ext = 'webp';
+        }
+
+        $filename = Str::uuid()->toString() . '.' . $ext;
+        $path = trim($dir, '/') . '/' . $filename;
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $binary);
+
+        return $path;
     }
 }

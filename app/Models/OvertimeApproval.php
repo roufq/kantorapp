@@ -12,6 +12,7 @@ class OvertimeApproval extends Model
     protected $fillable = [
         'overtime_request_id',
         'master_id',
+        'level',
         'status',
         'approved_at',
         'notes',
@@ -19,6 +20,7 @@ class OvertimeApproval extends Model
 
     protected $casts = [
         'approved_at' => 'datetime',
+        'level' => 'integer',
     ];
 
     public function overtimeRequest()

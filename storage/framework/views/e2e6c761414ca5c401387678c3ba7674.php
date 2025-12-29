@@ -5,6 +5,13 @@
     <p class="text-muted mb-0">Kelola pengajuan izin dan cuti karyawan.</p>
   </div>
 </div>
+<?php if(isset($balanceSummary)): ?>
+  <div class="alert alert-secondary">
+    <strong>Saldo Cuti Tahunan <?php echo e($balanceSummary['year']); ?>:</strong>
+    Total <?php echo e($balanceSummary['quota'] + $balanceSummary['carry_over']); ?> hari
+    (Terpakai <?php echo e($balanceSummary['used']); ?> • Sisa <?php echo e($balanceSummary['remaining']); ?>)
+  </div>
+<?php endif; ?>
 <div class="row">
   <div class="col-md-5">
     <div class="card">

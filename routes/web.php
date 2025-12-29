@@ -169,6 +169,12 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::patch('/leaves/{leave}/status', [App\Http\Controllers\LeaveController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('leaves.updateStatus');
     Route::get('/rosters/{roster}/export', [App\Http\Controllers\ShiftRosterController::class, 'export'])->name('shifts.rosters.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/kpi', [App\Http\Controllers\KpiController::class, 'index'])
+        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->name('kpi.index');
+    Route::get('/kpi/export', [App\Http\Controllers\KpiController::class, 'export'])
+        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->name('kpi.export');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
@@ -259,6 +265,12 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
 
     // Reports (Laporan)
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/employee-performance', [App\Http\Controllers\EmployeePerformanceReportController::class, 'index'])
+        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->name('reports.employee-performance');
+    Route::get('/reports/employee-performance/export', [App\Http\Controllers\EmployeePerformanceReportController::class, 'export'])
+        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->name('reports.employee-performance.export');
     Route::get('/reports/create', [App\Http\Controllers\ReportController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.create');
     Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.store');
     Route::get('/reports/{report}', [App\Http\Controllers\ReportController::class, 'show'])->name('reports.show');
