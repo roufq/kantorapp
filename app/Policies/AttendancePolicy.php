@@ -27,7 +27,7 @@ class AttendancePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('Karyawan') || $user->hasRole('Admin Lokasi');
+        return $user->hasRole('Karyawan') || $user->hasRole('Admin Lokasi') || $user->hasRole('HR');
     }
 
     /**
@@ -43,6 +43,10 @@ class AttendancePolicy
 
         if ($user->hasRole('Admin Lokasi')) {
             return $user->location_id === $attendance->location_id;
+        }
+
+        if ($user->hasRole('HR')) {
+            return true;
         }
 
         return false;

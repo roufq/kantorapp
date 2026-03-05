@@ -390,7 +390,42 @@
     </div>
   </div>
 </div>
-
+<!-- 
+<div class="row mt-2">
+  <div class="col-md-4">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Total Super Admins</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['total_masters'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartTotalMasters" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Unread Messages</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['unread_messages'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartUnreadMessages" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card m-b-30">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted">Total Divisions</div>
+          <span class="fw-semibold"><?php echo e($chartMetrics['total_divisions'] ?? 0); ?></span>
+        </div>
+        <canvas id="chartTotalDivisions" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+</div> -->
 <?php if(!$user->hasRole('Karyawan')): ?>
   <!--begin::Row-->
   <div class="row" id="monthly-recap">

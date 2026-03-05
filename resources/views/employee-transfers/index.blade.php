@@ -1,0 +1,70 @@
+@extends('layouts.appnew')
+@section('content')
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Mutasi Karyawan</h3>
+        <p class="text-muted mb-0">Riwayat perpindahan lokasi karyawan.</p>
+    </div>
+    <a href="{{ route('employee-transfers.create') }}" class="btn btn-primary btn-sm">Tambah Mutasi</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Karyawan</label>
+                <select name="employee_id" class="form-select">
+                    <option value="">Semua</option>
+                    @foreach($employees as $emp)
+                        <option value="{{ $emp->id }}" @selected(request('employee_id') == $emp->id)>{{ $emp->nama }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-outline-primary w-100">Filter</button>
+                <a href="{{ route('employee-transfers.index') }}" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">Daftar Mutasi</h3></div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover text-nowrap">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Karyawan</th>
+                    <th>Dari</th>
+                    <th>Ke</th>
+                    <th>Tanggal</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($transfers as $transfer)
+                    <tr>
+                        <td>{{ $loop->iteration + ($transfers->currentPage()-1)*$transfers->perPage() }}</td>
+                        <td>{{ $transfer->employee?->nama ?? '-' }}</td>
+                        <td>{{ $transfer->fromLocation?->name ?? '-' }}</td>
+                        <td>{{ $transfer->toLocation?->name ?? '-' }}</td>
+                        <td>{{ $transfer->effective_date?->format('Y-m-d') ?? '-' }}</td>
+                        <td>
+                            <a href="{{ route('employee-transfers.edit', $transfer) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form action="{{ route('employee-transfers.destroy', $transfer) }}" method="POST" style="display:inline" onsubmit="return confirm('Hapus mutasi ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="text-center text-muted">Belum ada mutasi.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer">{{ $transfers->links() }}</div>
+</div>
+@endsection

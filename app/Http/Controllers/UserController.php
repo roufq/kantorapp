@@ -200,10 +200,29 @@ class UserController extends Controller
         if ($user->hasRole('Admin Lokasi')) {
             $user->removeRole('Admin Lokasi');
         }
+        if ($user->hasRole('HR')) {
+            $user->removeRole('HR');
+        }
         if (!$user->hasRole('Karyawan')) {
             $user->assignRole('Karyawan');
         }
         return redirect()->route('users.show', $user)->with('success', 'User demoted to Employee.');
+    }
+
+    public function promoteToHr(Request $request, User $user)
+    {
+        // Only Super Admin via route middleware
+        if ($user->hasRole('Admin Lokasi')) {
+            $user->removeRole('Admin Lokasi');
+        }
+        if ($user->hasRole('Karyawan')) {
+            $user->removeRole('Karyawan');
+        }
+        if (!$user->hasRole('HR')) {
+            $user->assignRole('HR');
+        }
+
+        return redirect()->route('users.show', $user)->with('success', 'User promoted to HR.');
     }
 
     /**

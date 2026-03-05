@@ -1,0 +1,56 @@
+<?php $__env->startSection('content'); ?>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Tambah Kontrak</h3>
+        <p class="text-muted mb-0">Catat kontrak kerja karyawan.</p>
+    </div>
+    <a href="<?php echo e(route('employee-contracts.index')); ?>" class="btn btn-outline-secondary btn-sm">Kembali</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="<?php echo e(route('employee-contracts.store')); ?>" class="row g-3">
+            <?php echo csrf_field(); ?>
+            <div class="col-md-6">
+                <label class="form-label">Karyawan</label>
+                <select name="employee_id" class="form-select" required>
+                    <option value="" disabled selected>-- Pilih Karyawan --</option>
+                    <?php $__currentLoopData = $employees; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $emp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($emp->id); ?>" <?php if(old('employee_id') == $emp->id): echo 'selected'; endif; ?>><?php echo e($emp->nama); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Jenis Kontrak</label>
+                <input type="text" name="contract_type" class="form-control" value="<?php echo e(old('contract_type')); ?>" required placeholder="PKWT / PKWTT">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Mulai</label>
+                <input type="date" name="start_date" class="form-control" value="<?php echo e(old('start_date')); ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Selesai</label>
+                <input type="date" name="end_date" class="form-control" value="<?php echo e(old('end_date')); ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select" required>
+                    <option value="active" <?php if(old('status') === 'active'): echo 'selected'; endif; ?>>Active</option>
+                    <option value="ended" <?php if(old('status') === 'ended'): echo 'selected'; endif; ?>>Ended</option>
+                    <option value="terminated" <?php if(old('status') === 'terminated'): echo 'selected'; endif; ?>>Terminated</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Catatan</label>
+                <textarea name="notes" class="form-control" rows="3"><?php echo e(old('notes')); ?></textarea>
+            </div>
+            <div class="col-12">
+                <button class="btn btn-primary">Simpan</button>
+                <a href="<?php echo e(route('employee-contracts.index')); ?>" class="btn btn-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.appnew', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\www\kantorapp\resources\views/employee-contracts/create.blade.php ENDPATH**/ ?>

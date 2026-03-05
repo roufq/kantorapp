@@ -9,12 +9,15 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\TaskSlot;
 use App\Models\TaskSlotHistory;
+use App\Models\TaskCatalog;
+use App\Models\EmployeeJobdeskAssignment;
 use App\Notifications\TaskApprovalNotification;
 use Illuminate\Support\Facades\DB;
 use App\Services\AuditLogger;
 
 class TaskController extends Controller
 {
+    private const POINT_TO_MINUTES = 30;
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -94,6 +97,10 @@ class TaskController extends Controller
         $user = Auth::user();
 
         if ($user->hasRole('Super Admin')) {
+            $locations = \App\Models\Location::active()
+                ->with('shifts:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name']);
             $users = User::whereHas('roles', function ($q) {
                 $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
             })->get();
@@ -101,7 +108,8 @@ class TaskController extends Controller
             if (!$users->contains('id', $user->id)) {
                 $users->push($user);
             }
-            return view('tasks.create', compact('users'));
+            [$catalogs, $userJobdeskMap] = $this->resolveCatalogsForUsers($users);
+            return view('tasks.create', compact('users', 'catalogs', 'userJobdeskMap', 'locations'));
         } elseif ($user->hasRole('Admin Lokasi')) {
             // Admin Lokasi: bisa assign ke Karyawan atau Admin Lokasi di lokasi yang sama (atau diri sendiri)
             $users = User::where('location_id', $user->location_id)
@@ -112,7 +120,8 @@ class TaskController extends Controller
             if (!$users->contains('id', $user->id)) {
                 $users->push($user);
             }
-            return view('tasks.create', compact('users'));
+            [$catalogs, $userJobdeskMap] = $this->resolveCatalogsForUsers($users);
+            return view('tasks.create', compact('users', 'catalogs', 'userJobdeskMap'));
         }
 
         // Employees cannot create tasks for others, redirect to create-self
@@ -125,8 +134,9 @@ class TaskController extends Controller
 
         if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
             $request->validate([
-                'title' => 'required|string|max:255',
+                'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'task_catalog_id' => 'required|exists:task_catalogs,id',
                 'assigned_to' => 'required|exists:users,id',
                 'due_date' => 'nullable|date|after_or_equal:today',
                 'duration_minutes' => 'nullable|integer|min:1',
@@ -139,6 +149,13 @@ class TaskController extends Controller
 
             // Authorization rules
             $assignee = User::findOrFail($request->assigned_to);
+            $catalog = TaskCatalog::findOrFail($request->task_catalog_id);
+            if (!$catalog->is_active) {
+                return back()->withErrors(['task_catalog_id' => 'Task catalog tidak aktif.'])->withInput();
+            }
+            if (!$this->userHasJobdesk($assignee, $catalog->jobdesk_id)) {
+                return back()->withErrors(['task_catalog_id' => 'Jobdesk task tidak sesuai dengan assignment karyawan.'])->withInput();
+            }
             if ($user->hasRole('Admin Lokasi')) {
                 // Admin Lokasi: assign ke Karyawan/Admin Lokasi di lokasi yg sama atau diri sendiri
                 if ((int)$request->assigned_to !== (int)$user->id) {
@@ -166,17 +183,31 @@ class TaskController extends Controller
                 }
             }
 
-            $approvalMeta = Task::determineCreationApproval($user, $assignee);
+            $employee = $assignee->employee ?? $assignee->karyawan;
+            $department = $employee?->departemen;
+            $approvalValue = $catalog->unit === 'minutes'
+                ? (int) ($request->duration_minutes ?? $catalog->value)
+                : (int) $catalog->value;
+            $approvalMeta = Task::determineCreationApproval($user, $assignee, [
+                'department' => $department,
+                'value' => $approvalValue,
+            ]);
+
+            $durationMinutes = $request->duration_minutes ?? ($catalog->unit === 'minutes' ? (int) $catalog->value : null);
+            if ($catalog->unit === 'points') {
+                $durationMinutes = (int) $catalog->value * self::POINT_TO_MINUTES;
+            }
 
             $task = Task::create(array_merge([
-                'title' => $request->title,
+                'title' => $request->title ?: $catalog->name,
                 'description' => $request->description,
+                'task_catalog_id' => $catalog->id,
                 'assigned_by' => $user->id,
                 'assigned_to' => $request->assigned_to,
                 'status' => 'pending',
                 'progress' => 0,
                 'due_date' => $request->due_date,
-                'duration_minutes' => $request->duration_minutes,
+                'duration_minutes' => $durationMinutes,
             ], $approvalMeta));
 
             // Tambahkan slot awal jika diisi
@@ -190,7 +221,7 @@ class TaskController extends Controller
             if (abs($totalPercent - 100) > 0.01) {
                 return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
             }
-            if ($task->duration_minutes && $totalMinutes !== (int) $task->duration_minutes) {
+            if ($durationMinutes && $totalMinutes !== (int) $durationMinutes) {
                 return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $task->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
             }
             foreach ($slots as $idx => $slot) {
@@ -586,7 +617,10 @@ class TaskController extends Controller
 
     public function createSelf()
     {
-        return view('tasks.create-self');
+        $user = Auth::user();
+        $jobdeskIds = $this->resolveUserJobdeskIds($user);
+        $catalogs = TaskCatalog::whereIn('jobdesk_id', $jobdeskIds)->where('is_active', true)->orderBy('name')->get();
+        return view('tasks.create-self', compact('catalogs'));
     }
 
     public function storeSelf(Request $request)
@@ -594,8 +628,9 @@ class TaskController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'task_catalog_id' => 'required|exists:task_catalogs,id',
             'due_date' => 'nullable|date|after_or_equal:today',
             'duration_minutes' => 'nullable|integer|min:1',
             'slots' => 'required|array|min:1',
@@ -605,7 +640,28 @@ class TaskController extends Controller
             'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
 
-        $approvalMeta = Task::determineCreationApproval($user, $user);
+        $catalog = TaskCatalog::findOrFail($request->task_catalog_id);
+        if (!$catalog->is_active) {
+            return back()->withErrors(['task_catalog_id' => 'Task catalog tidak aktif.'])->withInput();
+        }
+        if (!$this->userHasJobdesk($user, $catalog->jobdesk_id)) {
+            return back()->withErrors(['task_catalog_id' => 'Jobdesk task tidak sesuai dengan assignment Anda.'])->withInput();
+        }
+
+        $employee = $user->employee ?? $user->karyawan;
+        $department = $employee?->departemen;
+        $approvalValue = $catalog->unit === 'minutes'
+            ? (int) ($request->duration_minutes ?? $catalog->value)
+            : (int) $catalog->value;
+        $approvalMeta = Task::determineCreationApproval($user, $user, [
+            'department' => $department,
+            'value' => $approvalValue,
+        ]);
+
+        $durationMinutes = $request->duration_minutes ?? ($catalog->unit === 'minutes' ? (int) $catalog->value : null);
+        if ($catalog->unit === 'points') {
+            $durationMinutes = (int) $catalog->value * self::POINT_TO_MINUTES;
+        }
 
         $slots = $request->input('slots', []);
         $totalPercent = collect($slots)->sum(fn($s) => (float) ($s['percentage'] ?? 0));
@@ -617,19 +673,20 @@ class TaskController extends Controller
             return back()->withErrors(['slots' => 'Total persentase slot harus 100% (saat ini: ' . $totalPercent . '%).'])->withInput();
         }
         $totalMinutes = collect($slots)->sum(fn($s) => (int) ($s['minutes'] ?? 0));
-        if ($request->duration_minutes && $totalMinutes !== (int) $request->duration_minutes) {
-            return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $request->duration_minutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
+        if ($durationMinutes && $totalMinutes !== (int) $durationMinutes) {
+            return back()->withErrors(['slots' => 'Total menit slot harus sama dengan durasi task (' . $durationMinutes . ' menit). Saat ini: ' . $totalMinutes . ' menit.'])->withInput();
         }
 
         $task = Task::create(array_merge([
-            'title' => $request->title,
+            'title' => $request->title ?: $catalog->name,
             'description' => $request->description,
+            'task_catalog_id' => $catalog->id,
             'assigned_by' => $user->id,
             'assigned_to' => $user->id,
             'status' => 'pending',
             'progress' => 0,
             'due_date' => $request->due_date,
-            'duration_minutes' => $request->duration_minutes,
+            'duration_minutes' => $durationMinutes,
         ], $approvalMeta));
 
         foreach ($slots as $idx => $slot) {
@@ -655,6 +712,76 @@ class TaskController extends Controller
             : ($approvalMeta['requires_approval'] ? 'Task dikirim ke Super Admin untuk persetujuan.' : 'Task created for yourself!');
 
         return redirect()->route('tasks.index')->with('success', $message);
+    }
+
+    private function resolveCatalogsForUsers($users): array
+    {
+        $userJobdeskMap = [];
+        $employeeIds = [];
+        $userEmployeeMap = [];
+
+        foreach ($users as $u) {
+            $employeeId = $u->employee_id ?: $u->karyawan_id;
+            if ($employeeId) {
+                $employeeIds[] = $employeeId;
+                $userEmployeeMap[$u->id] = $employeeId;
+            } else {
+                $userJobdeskMap[$u->id] = [];
+            }
+        }
+
+        $assignments = EmployeeJobdeskAssignment::whereIn('employee_id', $employeeIds)
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->get(['employee_id', 'jobdesk_id']);
+
+        $jobdeskIds = [];
+        foreach ($userEmployeeMap as $userId => $employeeId) {
+            $ids = $assignments->where('employee_id', $employeeId)->pluck('jobdesk_id')->unique()->values()->all();
+            $userJobdeskMap[$userId] = $ids;
+            $jobdeskIds = array_merge($jobdeskIds, $ids);
+        }
+
+        $catalogs = TaskCatalog::whereIn('jobdesk_id', array_unique($jobdeskIds))
+            ->where('is_active', true)
+            ->with('jobdesk:id,location_id')
+            ->orderBy('name')
+            ->get();
+
+        return [$catalogs, $userJobdeskMap];
+    }
+
+    private function resolveUserJobdeskIds(User $user): array
+    {
+        $employeeId = $user->employee_id ?: $user->karyawan_id;
+        if (!$employeeId) {
+            return [];
+        }
+
+        return EmployeeJobdeskAssignment::where('employee_id', $employeeId)
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->pluck('jobdesk_id')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function userHasJobdesk(User $user, int $jobdeskId): bool
+    {
+        $employeeId = $user->employee_id ?: $user->karyawan_id;
+        if (!$employeeId) {
+            return false;
+        }
+
+        return EmployeeJobdeskAssignment::where('employee_id', $employeeId)
+            ->where('jobdesk_id', $jobdeskId)
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->exists();
     }
 
     private function ensureCanApproveCreation(Task $task): void

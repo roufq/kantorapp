@@ -7,6 +7,10 @@ use App\Models\Attendance;
 use App\Models\Location;
 use App\Models\Overtime;
 use App\Models\Task;
+use App\Models\TaskSlot;
+use App\Models\EmployeeJobdeskAssignment;
+use App\Models\JobdeskOutputTarget;
+use App\Models\Jobdesk;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +54,7 @@ class EmployeePerformanceReportController extends Controller
         $users = $usersQuery->orderBy('name')->paginate(15)->withQueryString();
         $metricsByUser = $this->buildMetrics($users, $start, $end, $days);
 
-        $locations = $user->hasRole('Super Admin')
+        $locations = ($user->hasRole('Super Admin') || $user->hasRole('HR'))
             ? Location::orderBy('name')->get()
             : collect();
 
@@ -58,7 +62,7 @@ class EmployeePerformanceReportController extends Controller
             ->when($user->hasRole('Admin Lokasi'), function ($query) use ($user) {
                 $query->where('location_id', $user->location_id);
             })
-            ->when($locationId && $user->hasRole('Super Admin'), function ($query) use ($locationId) {
+            ->when($locationId && ($user->hasRole('Super Admin') || $user->hasRole('HR')), function ($query) use ($locationId) {
                 $query->where('location_id', $locationId);
             })
             ->orderBy('name')
@@ -123,6 +127,12 @@ class EmployeePerformanceReportController extends Controller
                 'tasks_created' => 0,
                 'tasks_completed' => 0,
                 'task_productivity_rate' => 0,
+                'output_points' => 0,
+                'target_points' => 0,
+                'output_efficiency_rate' => 0,
+                'attendance_minutes' => 0,
+                'min_attendance_minutes' => 0,
+                'min_attendance_met' => null,
             ];
             $rows[] = [
                 $emp->name,
@@ -133,6 +143,12 @@ class EmployeePerformanceReportController extends Controller
                 $metrics['late_count'],
                 $metrics['attendance_count'],
                 number_format($metrics['overtime_hours'], 2),
+                $metrics['attendance_minutes'],
+                $metrics['min_attendance_minutes'],
+                is_null($metrics['min_attendance_met']) ? '-' : ($metrics['min_attendance_met'] ? 'Ya' : 'Tidak'),
+                number_format($metrics['output_efficiency_rate'], 2) . '%',
+                number_format((float) $metrics['output_points'], 2),
+                $metrics['target_points'],
                 $metrics['tasks_completed'],
                 $metrics['tasks_created'],
                 number_format($metrics['task_productivity_rate'], 2) . '%',
@@ -148,6 +164,12 @@ class EmployeePerformanceReportController extends Controller
             'Terlambat (x)',
             'Total Kehadiran',
             'Overtime (jam)',
+            'Hadir (menit)',
+            'Min Hadir (menit)',
+            'Min Hadir Terpenuhi',
+            'Efisiensi Output (%)',
+            'Output (poin)',
+            'Target (poin)',
             'Tugas Selesai',
             'Tugas Dibuat',
             'Produktivitas (%)',
@@ -175,6 +197,10 @@ class EmployeePerformanceReportController extends Controller
         $overtimeAgg = collect();
         $tasksCreatedAgg = collect();
         $tasksCompletedAgg = collect();
+        $outputAgg = collect();
+        $attendanceMinutesAgg = collect();
+        $targetPointsByEmployeeId = [];
+        $minAttendanceByEmployee = [];
 
         if (!empty($userIds)) {
             $attendanceAgg = Attendance::select(
@@ -211,6 +237,85 @@ class EmployeePerformanceReportController extends Controller
                 ->groupBy('assigned_to')
                 ->get()
                 ->keyBy('user_id');
+
+            $attendanceMinutesAgg = Attendance::select(
+                'user_id',
+                DB::raw('sum(case when check_out_time is not null then TIMESTAMPDIFF(MINUTE, check_in_time, check_out_time) else 0 end) as attendance_minutes')
+            )
+                ->whereBetween('check_in_time', [$start, $end])
+                ->whereIn('user_id', $userIds)
+                ->groupBy('user_id')
+                ->get()
+                ->keyBy('user_id');
+
+            $outputAgg = TaskSlot::select(
+                'tasks.assigned_to as user_id',
+                DB::raw('sum(task_catalogs.value * task_slots.percentage / 100) as output_points')
+            )
+                ->join('employee_tasks as tasks', 'tasks.id', '=', 'task_slots.task_id')
+                ->join('task_catalogs', 'task_catalogs.id', '=', 'tasks.task_catalog_id')
+                ->where('task_slots.status', 'approved')
+                ->whereBetween('task_slots.approved_at', [$start, $end])
+                ->whereIn('tasks.assigned_to', $userIds)
+                ->whereIn('task_catalogs.unit', ['points', 'weight'])
+                ->groupBy('tasks.assigned_to')
+                ->get()
+                ->keyBy('user_id');
+
+            $userEmployeeMap = User::whereIn('id', $userIds)
+                ->get(['id', 'employee_id', 'karyawan_id'])
+                ->mapWithKeys(function ($u) {
+                    return [$u->id => ($u->employee_id ?: $u->karyawan_id)];
+                });
+            $employeeIds = $userEmployeeMap->values()->filter()->unique()->values()->all();
+
+            $assignments = EmployeeJobdeskAssignment::whereIn('employee_id', $employeeIds)
+                ->where(function ($q) {
+                    $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+                })
+                ->get(['employee_id', 'jobdesk_id']);
+
+            $jobdeskIds = $assignments->pluck('jobdesk_id')->unique()->values()->all();
+            if (!empty($jobdeskIds)) {
+                $year = (int) $start->year;
+                $month = (int) $start->month;
+                $targets = JobdeskOutputTarget::where('year', $year)
+                    ->where('month', $month)
+                    ->whereIn('jobdesk_id', $jobdeskIds)
+                    ->whereIn('unit', ['points', 'weight'])
+                    ->get();
+
+                $targetByEmployee = [];
+                foreach ($targets as $target) {
+                    if ($target->employee_id) {
+                        $targetByEmployee[$target->employee_id][$target->jobdesk_id] = (int) $target->target_value;
+                    } else {
+                        $targetByEmployee['default'][$target->jobdesk_id] = (int) $target->target_value;
+                    }
+                }
+
+                $jobdeskMinMap = Jobdesk::whereIn('id', $jobdeskIds)
+                    ->pluck('min_attendance_minutes', 'id');
+
+                foreach ($employeeIds as $employeeId) {
+                    $jobdeskList = $assignments->where('employee_id', $employeeId)->pluck('jobdesk_id')->unique();
+                    $targetPoints = 0;
+                    $minAttendance = 0;
+                    foreach ($jobdeskList as $jobdeskId) {
+                        if (isset($targetByEmployee[$employeeId][$jobdeskId])) {
+                            $targetPoints += $targetByEmployee[$employeeId][$jobdeskId];
+                        } elseif (isset($targetByEmployee['default'][$jobdeskId])) {
+                            $targetPoints += $targetByEmployee['default'][$jobdeskId];
+                        }
+                        $minVal = (int) ($jobdeskMinMap[$jobdeskId] ?? 0);
+                        if ($minVal > $minAttendance) {
+                            $minAttendance = $minVal;
+                        }
+                    }
+                    $targetPointsByEmployeeId[$employeeId] = $targetPoints;
+                    $minAttendanceByEmployee[$employeeId] = $minAttendance;
+                }
+            }
         }
 
         $metricsByUser = [];
@@ -219,6 +324,8 @@ class EmployeePerformanceReportController extends Controller
             $overtime = $overtimeAgg->get($row->id);
             $tasksCreated = $tasksCreatedAgg->get($row->id);
             $tasksCompleted = $tasksCompletedAgg->get($row->id);
+            $output = $outputAgg->get($row->id);
+            $attendanceMinutesRow = $attendanceMinutesAgg->get($row->id);
 
             $attendanceCount = (int) ($attendance->attendance_count ?? 0);
             $attendanceDays = (int) ($attendance->attendance_days ?? 0);
@@ -231,6 +338,14 @@ class EmployeePerformanceReportController extends Controller
             $completedCount = (int) ($tasksCompleted->tasks_completed ?? 0);
             $productivityRate = $createdCount > 0 ? round(($completedCount / $createdCount) * 100, 2) : 0.0;
 
+            $employeeId = $row->employee_id ?? $row->karyawan_id;
+            $outputPoints = (float) ($output->output_points ?? 0);
+            $targetPoints = (int) ($targetPointsByEmployeeId[$employeeId] ?? 0);
+            $efficiencyRate = $targetPoints > 0 ? round(($outputPoints / $targetPoints) * 100, 2) : 0.0;
+            $attendanceMinutes = (int) ($attendanceMinutesRow->attendance_minutes ?? 0);
+            $minAttendance = (int) ($minAttendanceByEmployee[$employeeId] ?? 0);
+            $minAttendanceMet = $minAttendance > 0 ? $attendanceMinutes >= $minAttendance : null;
+
             $metricsByUser[$row->id] = [
                 'attendance_rate' => $attendanceRate,
                 'attendance_days' => $attendanceDays,
@@ -241,6 +356,12 @@ class EmployeePerformanceReportController extends Controller
                 'tasks_created' => $createdCount,
                 'tasks_completed' => $completedCount,
                 'task_productivity_rate' => $productivityRate,
+                'output_points' => $outputPoints,
+                'target_points' => $targetPoints,
+                'output_efficiency_rate' => $efficiencyRate,
+                'attendance_minutes' => $attendanceMinutes,
+                'min_attendance_minutes' => $minAttendance,
+                'min_attendance_met' => $minAttendanceMet,
             ];
         }
 

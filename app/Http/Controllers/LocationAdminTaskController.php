@@ -109,7 +109,13 @@ class LocationAdminTaskController extends Controller
         }
 
         $assignee = User::findOrFail($request->assigned_to);
-        $approvalMeta = Task::determineCreationApproval($user, $assignee);
+        $employee = $assignee->employee ?? $assignee->karyawan;
+        $department = $employee?->departemen;
+        $approvalValue = (int) ($request->duration_minutes ?? 0);
+        $approvalMeta = Task::determineCreationApproval($user, $assignee, [
+            'department' => $department,
+            'value' => $approvalValue,
+        ]);
 
         $task = Task::create(array_merge([
             'title' => $request->title,

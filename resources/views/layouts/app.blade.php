@@ -603,6 +603,45 @@
             </li>
             @endif
             @endif
+            @if(auth()->user()->hasAnyRole(['Super Admin','HR']))
+            <li class="nav-header">HR</li>
+            <li class="nav-item">
+                <a href="{{ route('jobdesks.index') }}" class="nav-link {{ request()->routeIs('jobdesks.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-briefcase"></i>
+                    <p>Jobdesk & Catalog</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('jobdesk-targets.index') }}" class="nav-link {{ request()->routeIs('jobdesk-targets.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-bullseye"></i>
+                    <p>Target Output</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('approval-rules.index') }}" class="nav-link {{ request()->routeIs('approval-rules.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-clipboard-check"></i>
+                    <p>Approval Rules</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('employee-positions.index') }}" class="nav-link {{ request()->routeIs('employee-positions.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-id-badge"></i>
+                    <p>Histori Jabatan</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('employee-transfers.index') }}" class="nav-link {{ request()->routeIs('employee-transfers.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-exchange-alt"></i>
+                    <p>Mutasi</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('employee-contracts.index') }}" class="nav-link {{ request()->routeIs('employee-contracts.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-file-signature"></i>
+                    <p>Kontrak Kerja</p>
+                </a>
+            </li>
+            @endif
             @if(auth()->user()->hasRole('Super Admin'))
             <li class="nav-header">Administration</li>
             <li class="nav-item">

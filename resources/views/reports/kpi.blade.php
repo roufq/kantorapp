@@ -66,6 +66,13 @@
       'color' => 'primary',
       'icon' => 'mdi-clipboard-check',
     ],
+    [
+      'label' => 'Efisiensi Output',
+      'value' => number_format($kpiMetrics['output_efficiency_rate'] ?? 0, 2) . '%',
+      'meta' => ($kpiMetrics['output_points'] ?? 0) . ' / ' . ($kpiMetrics['target_points'] ?? 0) . ' poin',
+      'color' => 'info',
+      'icon' => 'mdi-chart-line',
+    ],
   ];
 @endphp
 

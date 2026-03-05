@@ -143,5 +143,8 @@ class DatabaseSeeder extends Seeder
 
         // Seed shift assignments sample for next 7 days (per lokasi)
         $this->call(ShiftAssignmentSeeder::class);
+
+        // Seed dummy data for new HR/KPI tables
+        $this->call(DummyDataSeeder::class);
     }
 }

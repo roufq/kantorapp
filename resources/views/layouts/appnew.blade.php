@@ -287,6 +287,45 @@
                         </li>
                         @endif
                         @endif
+                        @if($authUser->hasAnyRole(['Super Admin','HR']))
+                        <li class="menu-title">HR</li>
+                        <li>
+                            <a href="{{ route('jobdesks.index') }}" class="waves-effect {{ request()->routeIs('jobdesks.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-briefcase-account"></i>
+                                <span> Jobdesk & Catalog </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('jobdesk-targets.index') }}" class="waves-effect {{ request()->routeIs('jobdesk-targets.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-bullseye-arrow"></i>
+                                <span> Target Output </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('approval-rules.index') }}" class="waves-effect {{ request()->routeIs('approval-rules.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-file-check-outline"></i>
+                                <span> Approval Rules </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('employee-positions.index') }}" class="waves-effect {{ request()->routeIs('employee-positions.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-account-badge"></i>
+                                <span> Histori Jabatan </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('employee-transfers.index') }}" class="waves-effect {{ request()->routeIs('employee-transfers.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-swap-horizontal-bold"></i>
+                                <span> Mutasi </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('employee-contracts.index') }}" class="waves-effect {{ request()->routeIs('employee-contracts.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-file-sign"></i>
+                                <span> Kontrak Kerja </span>
+                            </a>
+                        </li>
+                        @endif
                         @if($authUser->hasRole('Super Admin'))
                         <li class="menu-title">Administration</li>
                         <li>

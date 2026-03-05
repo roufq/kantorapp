@@ -37,16 +37,28 @@
                     @csrf
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
-                        <input type="text" name="title" class="form-control" id="title" value="{{ old('title') }}" required>
+                        <input type="text" name="title" class="form-control" id="title" value="{{ old('title') }}">
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea name="description" class="form-control" id="description" rows="3">{{ old('description') }}</textarea>
                     </div>
                     <div class="mb-3">
+                        <label for="task_catalog_id" class="form-label">Task Catalog</label>
+                        <select name="task_catalog_id" id="task_catalog_id" class="form-select" required>
+                            <option value="">-- Pilih Task Catalog --</option>
+                            @foreach($catalogs ?? [] as $catalog)
+                                <option value="{{ $catalog->id }}" data-unit="{{ $catalog->unit }}" data-value="{{ $catalog->value }}" @selected(old('task_catalog_id') == $catalog->id)>
+                                    {{ $catalog->name }} ({{ $catalog->unit }} {{ $catalog->value }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Hanya catalog sesuai jobdesk Anda yang ditampilkan.</small>
+                    </div>
+                    <div class="mb-3" id="durationField">
                         <label for="duration_minutes" class="form-label">Durasi (menit)</label>
                         <input type="number" name="duration_minutes" class="form-control" id="duration_minutes" min="1" placeholder="Misal 240 untuk 4 jam" value="{{ old('duration_minutes') }}">
-                        <small class="text-muted">Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.</small>
+                        <small class="text-muted" id="durationHelp">Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.</small>
                     </div>
                     <div class="mb-3">
                         <label for="due_date" class="form-label">Due Date</label>
@@ -94,6 +106,46 @@
 </div>
 <script>
   (function() {
+    const POINT_TO_MINUTES = 30;
+    const catalogSelect = document.getElementById('task_catalog_id');
+    const durationInput = document.getElementById('duration_minutes');
+    const durationHelp = document.getElementById('durationHelp');
+
+    const applyCatalogDuration = () => {
+      if (!catalogSelect || !durationInput) return;
+      const option = catalogSelect.selectedOptions?.[0];
+      if (!option || !option.value) {
+        durationInput.readOnly = false;
+        if (durationHelp) {
+          durationHelp.textContent = 'Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.';
+        }
+        return;
+      }
+      const unit = (option.getAttribute('data-unit') || '').toLowerCase();
+      const value = parseFloat(option.getAttribute('data-value') || '0');
+      if (unit === 'points') {
+        const minutes = Math.round(value * POINT_TO_MINUTES);
+        durationInput.value = minutes || '';
+        durationInput.readOnly = true;
+        if (durationHelp) {
+          durationHelp.textContent = `Durasi otomatis: ${value} point x ${POINT_TO_MINUTES} menit = ${minutes} menit.`;
+        }
+      } else {
+        if (value && (!durationInput.value || parseFloat(durationInput.value) <= 0)) {
+          durationInput.value = Math.round(value);
+        }
+        durationInput.readOnly = false;
+        if (durationHelp) {
+          durationHelp.textContent = 'Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.';
+        }
+      }
+    };
+
+    if (catalogSelect) {
+      catalogSelect.addEventListener('change', applyCatalogDuration);
+      applyCatalogDuration();
+    }
+
     const initSlotProgress = ({ slotListId, addBtnId, clearBtnId, summaryId, durationInputId = 'duration_minutes' }) => {
       const slotList = document.getElementById(slotListId);
       const addBtn = document.getElementById(addBtnId);

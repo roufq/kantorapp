@@ -10,12 +10,22 @@
 
 ## P1 - Penting untuk efisiensi
 - [x] Notifikasi otomatis: approval pending, jadwal masuk, cuti mendekati habis
-- [ ] KPI dasar: keterlambatan, kehadiran, overtime, produktivitas tugas
-- [ ] Workflow approval dinamis per departemen/nilai
-- [ ] Integrasi data karyawan: histori jabatan, mutasi, kontrak kerja
+- [x] KPI dasar: keterlambatan, kehadiran, overtime, produktivitas tugas
+- [x] Workflow approval dinamis per departemen/nilai
+- [x] Integrasi data karyawan: histori jabatan, mutasi, kontrak kerja
+- [x] Model jobdesk & task catalog configurable per perusahaan (tidak hardcode)
+- [x] Assignment jobdesk ke karyawan (per karyawan/per lokasi)
+- [x] Pembatasan pembuatan tugas: hanya dari jobdesk yang di-assign
+- [x] Target output per jobdesk/karyawan (khusus non-shift)
+- [x] Aturan jam minimal hadir untuk non-shift (opsional, konfigurasi)
+- [x] KPI efisiensi: output vs kapasitas (rumus berbeda untuk shift vs non-shift)
+- [x] UI HR: kelola jobdesk & task catalog
+- [x] UI HR: target output
 
 ## P2 - Penguatan & integrasi lanjutan
 - [ ] Integrasi payroll (overtime, potongan, insentif)
 - [ ] Integrasi mesin absensi (fingerprint/face)
 - [ ] Dashboard eksekutif (tren multi-bulan, per lokasi/divisi)
 - [ ] Self-service karyawan: pengajuan koreksi absensi, slip gaji, dokumen
+- [ ] Audit & governance HR: riwayat perubahan jobdesk/task/target
+- [ ] Template jobdesk/task per industri (opsional, agar setup cepat)

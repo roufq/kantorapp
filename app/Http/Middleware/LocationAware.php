@@ -19,8 +19,8 @@ class LocationAware
         if (Auth::check()) {
             $user = Auth::user();
 
-            // Super Admins are not bound by location, but may select a session location for scoping.
-            if ($user->hasRole('Super Admin')) {
+            // Super Admins/HR are not bound by location, but may select a session location for scoping.
+            if ($user->hasRole('Super Admin') || $user->hasRole('HR')) {
                 // keep any chosen session location if present
             } else {
                 // For other roles, ensure their location is set in the session

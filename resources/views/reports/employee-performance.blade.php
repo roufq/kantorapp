@@ -77,6 +77,8 @@
             <th>Kehadiran</th>
             <th>Keterlambatan</th>
             <th>Overtime</th>
+            <th>Min Hadir</th>
+            <th>Efisiensi Output</th>
             <th>Produktivitas Tugas</th>
           </tr>
         </thead>
@@ -93,6 +95,12 @@
                 'tasks_created' => 0,
                 'tasks_completed' => 0,
                 'task_productivity_rate' => 0,
+                'output_points' => 0,
+                'target_points' => 0,
+                'output_efficiency_rate' => 0,
+                'attendance_minutes' => 0,
+                'min_attendance_minutes' => 0,
+                'min_attendance_met' => null,
               ];
             @endphp
             <tr>
@@ -111,12 +119,24 @@
                 <span class="fw-semibold">{{ number_format($metrics['overtime_hours'], 2) }} jam</span>
               </td>
               <td>
+                @if(is_null($metrics['min_attendance_met']))
+                  <span class="text-muted">-</span>
+                @else
+                  <span class="fw-semibold">{{ $metrics['attendance_minutes'] }} / {{ $metrics['min_attendance_minutes'] }} menit</span>
+                  <div class="text-muted small">{{ $metrics['min_attendance_met'] ? 'Terpenuhi' : 'Belum' }}</div>
+                @endif
+              </td>
+              <td>
+                <span class="fw-semibold">{{ number_format($metrics['output_efficiency_rate'], 2) }}%</span>
+                <div class="text-muted small">{{ number_format((float) $metrics['output_points'], 2) }} / {{ $metrics['target_points'] }} poin</div>
+              </td>
+              <td>
                 <span class="fw-semibold">{{ number_format($metrics['task_productivity_rate'], 2) }}%</span>
                 <div class="text-muted small">{{ $metrics['tasks_completed'] }} / {{ $metrics['tasks_created'] }}</div>
               </td>
             </tr>
           @empty
-            <tr><td colspan="7" class="text-center text-muted">Tidak ada data karyawan.</td></tr>
+            <tr><td colspan="9" class="text-center text-muted">Tidak ada data karyawan.</td></tr>
           @endforelse
         </tbody>
       </table>

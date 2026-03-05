@@ -54,8 +54,8 @@ Route::post('/login', function (Request $request) {
             ->where('id', '!=', $request->session()->getId())
             ->delete();
 
-        // Non Super Admins must have a location to login
-        if (is_null($user->location_id) && !$user->hasRole('Super Admin')) {
+        // Non Super Admin/HR must have a location to login
+        if (is_null($user->location_id) && !$user->hasRole('Super Admin') && !$user->hasRole('HR')) {
             Auth::logout();
             return back()->withErrors(['email' => 'This account is not assigned to any location.']);
         }
@@ -170,10 +170,10 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/rosters/{roster}/export', [App\Http\Controllers\ShiftRosterController::class, 'export'])->name('shifts.rosters.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/kpi', [App\Http\Controllers\KpiController::class, 'index'])
-        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
         ->name('kpi.index');
     Route::get('/kpi/export', [App\Http\Controllers\KpiController::class, 'export'])
-        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
         ->name('kpi.export');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
@@ -225,9 +225,33 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::resource('users', UserController::class);
     Route::patch('/users/{user}/transfer', [UserController::class, 'transfer'])->name('users.transfer');
     Route::post('/users/{user}/promote-to-location-admin', [UserController::class, 'promoteToLocationAdmin'])->middleware('role:Super Admin')->name('users.promote.location-admin');
+    Route::post('/users/{user}/promote-to-hr', [UserController::class, 'promoteToHr'])->middleware('role:Super Admin')->name('users.promote.hr');
     Route::post('/users/{user}/demote-to-employee', [UserController::class, 'demoteToEmployee'])->middleware('role:Super Admin')->name('users.demote.employee');
     // Removed masters management; Super Admin role manages all directly
     Route::resource('divisions', DivisionController::class)->middleware('role:Super Admin');
+    Route::resource('jobdesks', App\Http\Controllers\JobdeskController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::resource('jobdesk-targets', App\Http\Controllers\JobdeskOutputTargetController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::resource('approval-rules', App\Http\Controllers\ApprovalRuleController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::resource('employee-positions', App\Http\Controllers\EmployeePositionHistoryController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::resource('employee-transfers', App\Http\Controllers\EmployeeTransferController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::resource('employee-contracts', App\Http\Controllers\EmployeeContractController::class)
+        ->middleware('role:Super Admin,HR');
+    Route::prefix('jobdesks/{jobdesk}')->name('jobdesks.')->middleware('role:Super Admin,HR')->group(function () {
+        Route::get('task-catalogs', [App\Http\Controllers\TaskCatalogController::class, 'index'])->name('catalogs.index');
+        Route::get('task-catalogs/create', [App\Http\Controllers\TaskCatalogController::class, 'create'])->name('catalogs.create');
+        Route::post('task-catalogs', [App\Http\Controllers\TaskCatalogController::class, 'store'])->name('catalogs.store');
+        Route::get('task-catalogs/{catalog}/edit', [App\Http\Controllers\TaskCatalogController::class, 'edit'])->name('catalogs.edit');
+        Route::put('task-catalogs/{catalog}', [App\Http\Controllers\TaskCatalogController::class, 'update'])->name('catalogs.update');
+        Route::delete('task-catalogs/{catalog}', [App\Http\Controllers\TaskCatalogController::class, 'destroy'])->name('catalogs.destroy');
+        Route::get('assignments', [App\Http\Controllers\EmployeeJobdeskAssignmentController::class, 'index'])->name('assignments.index');
+        Route::post('assignments', [App\Http\Controllers\EmployeeJobdeskAssignmentController::class, 'store'])->name('assignments.store');
+        Route::delete('assignments/{assignment}', [App\Http\Controllers\EmployeeJobdeskAssignmentController::class, 'destroy'])->name('assignments.destroy');
+    });
 
     Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
     // Location Settings (Super Admin and Admin Lokasi for own location)
@@ -266,10 +290,10 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     // Reports (Laporan)
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/employee-performance', [App\Http\Controllers\EmployeePerformanceReportController::class, 'index'])
-        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
         ->name('reports.employee-performance');
     Route::get('/reports/employee-performance/export', [App\Http\Controllers\EmployeePerformanceReportController::class, 'export'])
-        ->middleware('role:Super Admin,Admin Lokasi,Karyawan')
+        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
         ->name('reports.employee-performance.export');
     Route::get('/reports/create', [App\Http\Controllers\ReportController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.create');
     Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.store');

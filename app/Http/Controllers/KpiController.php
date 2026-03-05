@@ -6,9 +6,13 @@ use App\Exports\KpiExport;
 use App\Models\Attendance;
 use App\Models\Overtime;
 use App\Models\Task;
+use App\Models\TaskSlot;
+use App\Models\EmployeeJobdeskAssignment;
+use App\Models\JobdeskOutputTarget;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KpiController extends Controller
@@ -29,8 +33,9 @@ class KpiController extends Controller
             ->where('status', 'approved')
             ->whereBetween('date', [$kpiStart->toDateString(), $kpiEnd->toDateString()]);
         $taskBaseQuery = Task::with('assignee');
+        $scopedUsersQuery = User::query();
 
-        if ($user->hasRole('Super Admin')) {
+        if ($user->hasRole('Super Admin') || $user->hasRole('HR')) {
             $totalEmployees = User::role('Karyawan')->count();
         } elseif ($user->hasRole('Admin Lokasi')) {
             $locationId = $user->location_id;
@@ -51,6 +56,20 @@ class KpiController extends Controller
             $totalEmployees = 1;
         }
 
+        if ($user->hasRole('Admin Lokasi')) {
+            $scopedUsersQuery->where('location_id', $user->location_id);
+        } elseif ($user->hasRole('Karyawan')) {
+            $scopedUsersQuery->where('id', $user->id);
+        }
+
+        $scopedUserIds = $scopedUsersQuery
+            ->where(function ($q) {
+                $q->whereNotNull('employee_id')->orWhereNotNull('karyawan_id');
+            })
+            ->pluck('id')
+            ->values()
+            ->all();
+
         $attendanceCount = (int) (clone $attendanceQuery)->count();
         $lateCount = (int) (clone $attendanceQuery)->where('is_late', true)->count();
         $latenessRate = $attendanceCount > 0 ? round(($lateCount / $attendanceCount) * 100, 2) : 0.0;
@@ -69,6 +88,8 @@ class KpiController extends Controller
         $tasksCompleted = (int) (clone $tasksCompletedQuery)->count();
         $taskProductivityRate = $tasksCreated > 0 ? round(($tasksCompleted / $tasksCreated) * 100, 2) : 0.0;
 
+        $efficiencyMetrics = $this->computeOutputEfficiency($scopedUserIds, $kpiStart, $kpiEnd);
+
         $kpiMetrics = [
             'lateness_rate' => $latenessRate,
             'late_count' => $lateCount,
@@ -78,6 +99,9 @@ class KpiController extends Controller
             'tasks_created' => $tasksCreated,
             'tasks_completed' => $tasksCompleted,
             'task_productivity_rate' => $taskProductivityRate,
+            'output_efficiency_rate' => $efficiencyMetrics['rate'],
+            'output_points' => $efficiencyMetrics['output_points'],
+            'target_points' => $efficiencyMetrics['target_points'],
             'period_label' => $kpiStart->format('d M') . ' - ' . $kpiEnd->format('d M'),
         ];
 
@@ -126,7 +150,7 @@ class KpiController extends Controller
             ->whereBetween('date', [$kpiStart->toDateString(), $kpiEnd->toDateString()]);
         $taskBaseQuery = Task::with('assignee');
 
-        if ($user->hasRole('Super Admin')) {
+        if ($user->hasRole('Super Admin') || $user->hasRole('HR')) {
             // no scope
         } elseif ($user->hasRole('Admin Lokasi')) {
             $locationId = $user->location_id;
@@ -224,6 +248,79 @@ class KpiController extends Controller
             return 365;
         }
         return $days;
+    }
+
+    private function computeOutputEfficiency(array $userIds, $start, $end): array
+    {
+        if (empty($userIds)) {
+            return ['rate' => 0.0, 'output_points' => 0, 'target_points' => 0];
+        }
+
+        $outputPoints = (float) TaskSlot::join('employee_tasks as tasks', 'tasks.id', '=', 'task_slots.task_id')
+            ->join('task_catalogs', 'task_catalogs.id', '=', 'tasks.task_catalog_id')
+            ->where('task_slots.status', 'approved')
+            ->whereBetween('task_slots.approved_at', [$start, $end])
+            ->whereIn('tasks.assigned_to', $userIds)
+            ->whereIn('task_catalogs.unit', ['points', 'weight'])
+            ->select(DB::raw('sum(task_catalogs.value * task_slots.percentage / 100) as total_points'))
+            ->value('total_points') ?? 0;
+
+        $users = User::whereIn('id', $userIds)->get(['id', 'employee_id', 'karyawan_id']);
+        $employeeIds = $users->map(function ($u) {
+            return $u->employee_id ?: $u->karyawan_id;
+        })->filter()->unique()->values()->all();
+
+        if (empty($employeeIds)) {
+            return ['rate' => 0.0, 'output_points' => (int) round($outputPoints), 'target_points' => 0];
+        }
+
+        $assignments = EmployeeJobdeskAssignment::whereIn('employee_id', $employeeIds)
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->get(['employee_id', 'jobdesk_id']);
+
+        $jobdeskIds = $assignments->pluck('jobdesk_id')->unique()->values()->all();
+        if (empty($jobdeskIds)) {
+            return ['rate' => 0.0, 'output_points' => (int) round($outputPoints), 'target_points' => 0];
+        }
+
+        $year = (int) $start->year;
+        $month = (int) $start->month;
+        $targets = JobdeskOutputTarget::where('year', $year)
+            ->where('month', $month)
+            ->whereIn('jobdesk_id', $jobdeskIds)
+            ->whereIn('unit', ['points', 'weight'])
+            ->get();
+
+        $targetByEmployee = [];
+        foreach ($targets as $target) {
+            if ($target->employee_id) {
+                $targetByEmployee[$target->employee_id][$target->jobdesk_id] = (int) $target->target_value;
+            } else {
+                $targetByEmployee['default'][$target->jobdesk_id] = (int) $target->target_value;
+            }
+        }
+
+        $targetPoints = 0;
+        foreach ($employeeIds as $employeeId) {
+            $jobdeskList = $assignments->where('employee_id', $employeeId)->pluck('jobdesk_id')->unique();
+            foreach ($jobdeskList as $jobdeskId) {
+                if (isset($targetByEmployee[$employeeId][$jobdeskId])) {
+                    $targetPoints += $targetByEmployee[$employeeId][$jobdeskId];
+                } elseif (isset($targetByEmployee['default'][$jobdeskId])) {
+                    $targetPoints += $targetByEmployee['default'][$jobdeskId];
+                }
+            }
+        }
+
+        $rate = $targetPoints > 0 ? round(($outputPoints / $targetPoints) * 100, 2) : 0.0;
+
+        return [
+            'rate' => $rate,
+            'output_points' => (int) round($outputPoints),
+            'target_points' => (int) $targetPoints,
+        ];
     }
 
     private function resolveExportWriter(string $format): array

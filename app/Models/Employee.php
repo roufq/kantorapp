@@ -48,5 +48,31 @@ class Employee extends Model
         return $this->belongsTo(Location::class);
     }
 
+    public function jobdeskAssignments()
+    {
+        return $this->hasMany(EmployeeJobdeskAssignment::class);
+    }
+
+    public function jobdesks()
+    {
+        return $this->belongsToMany(Jobdesk::class, 'employee_jobdesk_assignments')
+            ->withPivot(['is_primary', 'start_date', 'end_date', 'created_by'])
+            ->withTimestamps();
+    }
+
+    public function positionHistories()
+    {
+        return $this->hasMany(EmployeePositionHistory::class);
+    }
+
+    public function transfers()
+    {
+        return $this->hasMany(EmployeeTransfer::class);
+    }
+
+    public function contracts()
+    {
+        return $this->hasMany(EmployeeContract::class);
+    }
 
 }

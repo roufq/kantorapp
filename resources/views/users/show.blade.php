@@ -94,6 +94,20 @@
                         </div>
                     </form>
                 @endif
+
+                <hr class="my-3" />
+
+                @if($roles->contains('HR'))
+                    <form action="{{ route('users.demote.employee', $user) }}" method="POST" onsubmit="return confirm('Demote this user to Employee?')">
+                        @csrf
+                        <button type="submit" class="btn btn-warning">Demote HR to Employee</button>
+                    </form>
+                @else
+                    <form action="{{ route('users.promote.hr', $user) }}" method="POST" onsubmit="return confirm('Promote this user to HR? This will remove Admin Lokasi/Karyawan roles.')">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-primary">Promote to HR</button>
+                    </form>
+                @endif
             </div>
         </div>
         @endif
