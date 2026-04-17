@@ -155,7 +155,7 @@ class LocationController extends Controller
     public function settings(Location $location)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && (int) $user->location_id !== (int) $location->id) {
+        if ($user->hasRole('Location Admin') && (int) $user->location_id !== (int) $location->id) {
             abort(403, 'Unauthorized');
         }
 
@@ -262,7 +262,7 @@ class LocationController extends Controller
     public function updateSettings(Request $request, Location $location)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && (int) $user->location_id !== (int) $location->id) {
+        if ($user->hasRole('Location Admin') && (int) $user->location_id !== (int) $location->id) {
             abort(403, 'Unauthorized');
         }
         $validator = Validator::make($request->all(), [

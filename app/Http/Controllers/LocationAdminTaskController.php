@@ -49,15 +49,15 @@ class LocationAdminTaskController extends Controller
         $user = Auth::user();
         $this->authorizeAccess($user);
 
-        // Admin Lokasi: dapat menetapkan ke Karyawan maupun Admin Lokasi di lokasi yang sama
+        // Location Admin: dapat menetapkan ke Employee maupun Location Admin di lokasi yang sama
         if ($user->hasRole('Super Admin')) {
             $users = User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                $q->whereIn('name', ['Employee', 'Location Admin']);
             })->get();
         } else {
             $users = User::where('location_id', $user->location_id)
                 ->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })->get();
         }
         return view('location-admin-tasks.create', compact('users'));
@@ -81,12 +81,12 @@ class LocationAdminTaskController extends Controller
             'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
 
-        // ensure assignee within location (Karyawan/Admin Lokasi)
+        // ensure assignee within location (Employee/Location Admin)
         if (!$user->hasRole('Super Admin')) {
             $valid = User::where('id', $request->assigned_to)
                 ->where('location_id', $user->location_id)
                 ->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })
                 ->exists();
             if (!$valid) {
@@ -109,7 +109,7 @@ class LocationAdminTaskController extends Controller
         }
 
         $assignee = User::findOrFail($request->assigned_to);
-        $employee = $assignee->employee ?? $assignee->karyawan;
+        $employee = $assignee->employee ?? $assignee->employee;
         $department = $employee?->departemen;
         $approvalValue = (int) ($request->duration_minutes ?? 0);
         $approvalMeta = Task::determineCreationApproval($user, $assignee, [
@@ -176,12 +176,12 @@ class LocationAdminTaskController extends Controller
         }
         if ($user->hasRole('Super Admin')) {
             $users = User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                $q->whereIn('name', ['Employee', 'Location Admin']);
             })->get();
         } else {
             $users = User::where('location_id', $user->location_id)
                 ->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })->get();
         }
         return view('location-admin-tasks.edit', compact('task', 'users'));
@@ -208,7 +208,7 @@ class LocationAdminTaskController extends Controller
             $valid = User::where('location_id', $user->location_id)
                 ->where('id', $request->assigned_to)
                 ->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })
                 ->exists();
             if (!$valid) {
@@ -275,11 +275,11 @@ class LocationAdminTaskController extends Controller
 
     private function authorizeAccess($user): void
     {
-        if (!$user->hasRole('Admin Lokasi') && !$user->hasRole('Super Admin')) {
+        if (!$user->hasRole('Location Admin') && !$user->hasRole('Super Admin')) {
             abort(403);
         }
-        if ($user->hasRole('Admin Lokasi') && !$user->location_id) {
-            abort(403, 'Admin Lokasi requires an assigned location');
+        if ($user->hasRole('Location Admin') && !$user->location_id) {
+            abort(403, 'Location Admin requires an assigned location');
         }
     }
 }

@@ -156,24 +156,24 @@ Route::get('/2fa/challenge', function () {
 $verifiedMw = env('EMAIL_VERIFICATION_ENABLED', false) ? ['verified'] : [];
 Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::class], $verifiedMw))->group(function () {
     // Weekly Offs, Holidays, Leaves
-    Route::get('/holidays', [App\Http\Controllers\HolidayController::class, 'index'])->middleware('role:Super Admin,Admin Lokasi')->name('holidays.index');
-    Route::post('/holidays', [App\Http\Controllers\HolidayController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi')->name('holidays.store');
-    Route::delete('/holidays/{holiday}', [App\Http\Controllers\HolidayController::class, 'destroy'])->middleware('role:Super Admin,Admin Lokasi')->name('holidays.destroy');
+    Route::get('/holidays', [App\Http\Controllers\HolidayController::class, 'index'])->middleware('role:Super Admin,Location Admin')->name('holidays.index');
+    Route::post('/holidays', [App\Http\Controllers\HolidayController::class, 'store'])->middleware('role:Super Admin,Location Admin')->name('holidays.store');
+    Route::delete('/holidays/{holiday}', [App\Http\Controllers\HolidayController::class, 'destroy'])->middleware('role:Super Admin,Location Admin')->name('holidays.destroy');
 
-    Route::get('/weekly-offs', [App\Http\Controllers\WeeklyOffController::class, 'index'])->middleware('role:Super Admin,Admin Lokasi')->name('weekly-offs.index');
-    Route::post('/weekly-offs', [App\Http\Controllers\WeeklyOffController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi')->name('weekly-offs.store');
-    Route::delete('/weekly-offs/{weeklyOff}', [App\Http\Controllers\WeeklyOffController::class, 'destroy'])->middleware('role:Super Admin,Admin Lokasi')->name('weekly-offs.destroy');
+    Route::get('/weekly-offs', [App\Http\Controllers\WeeklyOffController::class, 'index'])->middleware('role:Super Admin,Location Admin')->name('weekly-offs.index');
+    Route::post('/weekly-offs', [App\Http\Controllers\WeeklyOffController::class, 'store'])->middleware('role:Super Admin,Location Admin')->name('weekly-offs.store');
+    Route::delete('/weekly-offs/{weeklyOff}', [App\Http\Controllers\WeeklyOffController::class, 'destroy'])->middleware('role:Super Admin,Location Admin')->name('weekly-offs.destroy');
 
     Route::get('/leaves', [App\Http\Controllers\LeaveController::class, 'index'])->name('leaves.index');
-    Route::post('/leaves', [App\Http\Controllers\LeaveController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('leaves.store');
-    Route::patch('/leaves/{leave}/status', [App\Http\Controllers\LeaveController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('leaves.updateStatus');
+    Route::post('/leaves', [App\Http\Controllers\LeaveController::class, 'store'])->middleware('role:Super Admin,Location Admin,Employee')->name('leaves.store');
+    Route::patch('/leaves/{leave}/status', [App\Http\Controllers\LeaveController::class, 'updateStatus'])->middleware('role:Super Admin,Location Admin')->name('leaves.updateStatus');
     Route::get('/rosters/{roster}/export', [App\Http\Controllers\ShiftRosterController::class, 'export'])->name('shifts.rosters.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/kpi', [App\Http\Controllers\KpiController::class, 'index'])
-        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
+        ->middleware('role:Super Admin,Location Admin,HR,Employee')
         ->name('kpi.index');
     Route::get('/kpi/export', [App\Http\Controllers\KpiController::class, 'export'])
-        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
+        ->middleware('role:Super Admin,Location Admin,HR,Employee')
         ->name('kpi.export');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
@@ -182,31 +182,31 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::delete('/messages/{id}', [MessageController::class, 'destroy'])->middleware('role:Super Admin')->name('messages.destroy');
 
     // Employee Tasks (employee_tasks table)
-    Route::get('/tasks', [TaskController::class, 'index'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.index');
-    Route::get('/tasks/create', [TaskController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.create');
-    Route::post('/tasks', [TaskController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.store');
-    Route::get('/tasks/create-self', [TaskController::class, 'createSelf'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.create.self');
-    Route::post('/tasks/store-self', [TaskController::class, 'storeSelf'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.store.self');
-    Route::post('/tasks/{task}/approve-creation', [TaskController::class, 'approveCreation'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.approvals.approve');
-    Route::post('/tasks/{task}/reject-creation', [TaskController::class, 'rejectCreation'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.approvals.reject');
-    Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.show');
-    Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.edit');
-    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.update');
-    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.destroy');
-    Route::get('/tasks/{task}/download-photo', [TaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.download.photo');
-    Route::get('/tasks/{task}/download-document', [TaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.download.document');
-    Route::get('/tasks/{task}/progress/create', [TaskProgressController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.create');
-    Route::post('/tasks/{task}/progress', [TaskProgressController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.store');
-    Route::get('/task-progress/approvals', [TaskProgressController::class, 'approvals'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approvals');
+    Route::get('/tasks', [TaskController::class, 'index'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.index');
+    Route::get('/tasks/create', [TaskController::class, 'create'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.create');
+    Route::post('/tasks', [TaskController::class, 'store'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.store');
+    Route::get('/tasks/create-self', [TaskController::class, 'createSelf'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.create.self');
+    Route::post('/tasks/store-self', [TaskController::class, 'storeSelf'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.store.self');
+    Route::post('/tasks/{task}/approve-creation', [TaskController::class, 'approveCreation'])->middleware('role:Super Admin,Location Admin')->name('tasks.approvals.approve');
+    Route::post('/tasks/{task}/reject-creation', [TaskController::class, 'rejectCreation'])->middleware('role:Super Admin,Location Admin')->name('tasks.approvals.reject');
+    Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.show');
+    Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.edit');
+    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.update');
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.destroy');
+    Route::get('/tasks/{task}/download-photo', [TaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.download.photo');
+    Route::get('/tasks/{task}/download-document', [TaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.download.document');
+    Route::get('/tasks/{task}/progress/create', [TaskProgressController::class, 'create'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.progress.create');
+    Route::post('/tasks/{task}/progress', [TaskProgressController::class, 'store'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.progress.store');
+    Route::get('/task-progress/approvals', [TaskProgressController::class, 'approvals'])->middleware('role:Super Admin,Location Admin')->name('tasks.progress.approvals');
     Route::resource('work-recaps', App\Http\Controllers\WorkRecapController::class)
         ->except(['show'])
-        ->middleware('role:Super Admin,Admin Lokasi');
+        ->middleware('role:Super Admin,Location Admin');
     Route::resource('work-targets', App\Http\Controllers\LocationWorkTargetController::class)
         ->except(['show'])
-        ->middleware('role:Super Admin,Admin Lokasi');
-    Route::post('/task-progress/{progressUpdate}/approve', [TaskProgressController::class, 'approve'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.approve');
-    Route::post('/task-progress/{progressUpdate}/reject', [TaskProgressController::class, 'reject'])->middleware('role:Super Admin,Admin Lokasi')->name('tasks.progress.reject');
-    Route::get('/task-progress/{progressUpdate}/download/{type}', [TaskProgressController::class, 'downloadAttachment'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('tasks.progress.download');
+        ->middleware('role:Super Admin,Location Admin');
+    Route::post('/task-progress/{progressUpdate}/approve', [TaskProgressController::class, 'approve'])->middleware('role:Super Admin,Location Admin')->name('tasks.progress.approve');
+    Route::post('/task-progress/{progressUpdate}/reject', [TaskProgressController::class, 'reject'])->middleware('role:Super Admin,Location Admin')->name('tasks.progress.reject');
+    Route::get('/task-progress/{progressUpdate}/download/{type}', [TaskProgressController::class, 'downloadAttachment'])->middleware('role:Super Admin,Location Admin,Employee')->name('tasks.progress.download');
 
     // Master Tasks (master_tasks table) - only masters can access their own tasks
     Route::get('/master-tasks', [MasterTaskController::class, 'index'])->middleware('role:Super Admin')->name('master-tasks.index');
@@ -221,7 +221,7 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/master-tasks/{masterTask}/download-photo', [MasterTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin')->name('master-tasks.download.photo');
     Route::get('/master-tasks/{masterTask}/download-document', [MasterTaskController::class, 'downloadDocument'])->middleware('role:Super Admin')->name('master-tasks.download.document');
 
-    // Users: authorize via gates to allow Super Admin and Admin Lokasi within location
+    // Users: authorize via gates to allow Super Admin and Location Admin within location
     Route::resource('users', UserController::class);
     Route::patch('/users/{user}/transfer', [UserController::class, 'transfer'])->name('users.transfer');
     Route::post('/users/{user}/promote-to-location-admin', [UserController::class, 'promoteToLocationAdmin'])->middleware('role:Super Admin')->name('users.promote.location-admin');
@@ -254,15 +254,15 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     });
 
     Route::resource('locations', App\Http\Controllers\LocationController::class)->middleware('role:Super Admin');
-    // Location Settings (Super Admin and Admin Lokasi for own location)
-    Route::get('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'settings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings');
-    Route::patch('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'updateSettings'])->middleware('role:Super Admin,Admin Lokasi')->name('locations.settings.update');
+    // Location Settings (Super Admin and Location Admin for own location)
+    Route::get('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'settings'])->middleware('role:Super Admin,Location Admin')->name('locations.settings');
+    Route::patch('/locations/{location}/settings', [App\Http\Controllers\LocationController::class, 'updateSettings'])->middleware('role:Super Admin,Location Admin')->name('locations.settings.update');
     Route::get('/shifts/scheduler', [App\Http\Controllers\ShiftController::class, 'schedulerForm'])->middleware('role:Super Admin')->name('shifts.scheduler');
     Route::post('/shifts/scheduler', [App\Http\Controllers\ShiftController::class, 'schedulerGenerate'])->middleware('role:Super Admin')->name('shifts.scheduler.generate');
 
     // Weekly Rosters (didefinisikan sebelum resource shifts untuk menghindari bentrok shifts/{shift})
-    Route::get('/shifts/rosters/calendar', [App\Http\Controllers\ShiftRosterController::class, 'calendar'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('shifts.rosters.calendar');
-    Route::prefix('shifts')->name('shifts.')->middleware('role:Super Admin,Admin Lokasi')->group(function () {
+    Route::get('/shifts/rosters/calendar', [App\Http\Controllers\ShiftRosterController::class, 'calendar'])->middleware('role:Super Admin,Location Admin,Employee')->name('shifts.rosters.calendar');
+    Route::prefix('shifts')->name('shifts.')->middleware('role:Super Admin,Location Admin')->group(function () {
         Route::resource('rosters', App\Http\Controllers\ShiftRosterController::class);
     });
 
@@ -290,31 +290,31 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     // Reports (Laporan)
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/employee-performance', [App\Http\Controllers\EmployeePerformanceReportController::class, 'index'])
-        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
+        ->middleware('role:Super Admin,Location Admin,HR,Employee')
         ->name('reports.employee-performance');
     Route::get('/reports/employee-performance/export', [App\Http\Controllers\EmployeePerformanceReportController::class, 'export'])
-        ->middleware('role:Super Admin,Admin Lokasi,HR,Karyawan')
+        ->middleware('role:Super Admin,Location Admin,HR,Employee')
         ->name('reports.employee-performance.export');
-    Route::get('/reports/create', [App\Http\Controllers\ReportController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.create');
-    Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('reports.store');
+    Route::get('/reports/create', [App\Http\Controllers\ReportController::class, 'create'])->middleware('role:Super Admin,Location Admin,Employee')->name('reports.create');
+    Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->middleware('role:Super Admin,Location Admin,Employee')->name('reports.store');
     Route::get('/reports/{report}', [App\Http\Controllers\ReportController::class, 'show'])->name('reports.show');
-    Route::get('/reports/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->middleware('role:Super Admin|Admin Lokasi')->name('reports.edit');
-    Route::put('/reports/{report}', [App\Http\Controllers\ReportController::class, 'update'])->middleware('role:Super Admin|Admin Lokasi')->name('reports.update');
-    Route::delete('/reports/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->middleware('role:Super Admin|Admin Lokasi')->name('reports.destroy');
-    Route::patch('/reports/{report}/approve', [App\Http\Controllers\ReportController::class, 'approve'])->middleware('role:Super Admin|Admin Lokasi')->name('reports.approve');
+    Route::get('/reports/{report}/edit', [App\Http\Controllers\ReportController::class, 'edit'])->middleware('role:Super Admin|Location Admin')->name('reports.edit');
+    Route::put('/reports/{report}', [App\Http\Controllers\ReportController::class, 'update'])->middleware('role:Super Admin|Location Admin')->name('reports.update');
+    Route::delete('/reports/{report}', [App\Http\Controllers\ReportController::class, 'destroy'])->middleware('role:Super Admin|Location Admin')->name('reports.destroy');
+    Route::patch('/reports/{report}/approve', [App\Http\Controllers\ReportController::class, 'approve'])->middleware('role:Super Admin|Location Admin')->name('reports.approve');
     Route::get('/report-attachments/{attachment}/download', [App\Http\Controllers\ReportController::class, 'downloadAttachment'])->name('reports.attachments.download');
 
     // Task Slots (structure & approval)
     Route::prefix('tasks')->group(function () {
-        Route::post('{task}/slots', [App\Http\Controllers\TaskSlotController::class, 'store'])->name('tasks.slots.store')->middleware('role:Super Admin,Admin Lokasi');
-        Route::patch('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'update'])->name('tasks.slots.update')->middleware('role:Super Admin,Admin Lokasi');
-        Route::delete('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'destroy'])->name('tasks.slots.destroy')->middleware('role:Super Admin,Admin Lokasi');
+        Route::post('{task}/slots', [App\Http\Controllers\TaskSlotController::class, 'store'])->name('tasks.slots.store')->middleware('role:Super Admin,Location Admin');
+        Route::patch('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'update'])->name('tasks.slots.update')->middleware('role:Super Admin,Location Admin');
+        Route::delete('{task}/slots/{slot}', [App\Http\Controllers\TaskSlotController::class, 'destroy'])->name('tasks.slots.destroy')->middleware('role:Super Admin,Location Admin');
     });
     Route::post('/task-slots/{slot}/submit', [App\Http\Controllers\TaskSlotController::class, 'submit'])->name('task-slots.submit')->middleware('auth');
-    Route::post('/task-slots/{slot}/approve', [App\Http\Controllers\TaskSlotController::class, 'approve'])->name('task-slots.approve')->middleware('role:Super Admin,Admin Lokasi');
-    Route::post('/task-slots/{slot}/reject', [App\Http\Controllers\TaskSlotController::class, 'reject'])->name('task-slots.reject')->middleware('role:Super Admin,Admin Lokasi');
-    Route::post('/tasks/{task}/approve-slots', [App\Http\Controllers\TaskSlotController::class, 'approveTask'])->name('tasks.approve-slots')->middleware('role:Super Admin,Admin Lokasi');
-    Route::post('/tasks/{task}/reject-slots', [App\Http\Controllers\TaskSlotController::class, 'rejectTask'])->name('tasks.reject-slots')->middleware('role:Super Admin,Admin Lokasi');
+    Route::post('/task-slots/{slot}/approve', [App\Http\Controllers\TaskSlotController::class, 'approve'])->name('task-slots.approve')->middleware('role:Super Admin,Location Admin');
+    Route::post('/task-slots/{slot}/reject', [App\Http\Controllers\TaskSlotController::class, 'reject'])->name('task-slots.reject')->middleware('role:Super Admin,Location Admin');
+    Route::post('/tasks/{task}/approve-slots', [App\Http\Controllers\TaskSlotController::class, 'approveTask'])->name('tasks.approve-slots')->middleware('role:Super Admin,Location Admin');
+    Route::post('/tasks/{task}/reject-slots', [App\Http\Controllers\TaskSlotController::class, 'rejectTask'])->name('tasks.reject-slots')->middleware('role:Super Admin,Location Admin');
 
     // Overtime Requests
     Route::get('/overtime', [App\Http\Controllers\OvertimeController::class, 'index'])->name('overtime.index');
@@ -326,21 +326,21 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::put('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'update'])->name('overtime.update');
     Route::delete('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'destroy'])->name('overtime.destroy');
     Route::get('/overtime/{overtime}', [App\Http\Controllers\OvertimeController::class, 'show'])->name('overtime.show');
-    Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:Super Admin|Admin Lokasi')->name('overtime.approve');
+    Route::patch('/overtime/{overtime}/approve', [App\Http\Controllers\OvertimeController::class, 'approve'])->middleware('role:Super Admin|Location Admin')->name('overtime.approve');
 
-    // Location Admin Tasks (Super Admin and Admin Lokasi)
-    Route::resource('location-admin-tasks', App\Http\Controllers\LocationAdminTaskController::class)->middleware('role:Super Admin,Admin Lokasi');
-    Route::get('/location-admin-tasks/{task}/download-photo', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Admin Lokasi')->name('location-admin-tasks.download.photo');
-    Route::get('/location-admin-tasks/{task}/download-document', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Admin Lokasi')->name('location-admin-tasks.download.document');
+    // Location Admin Tasks (Super Admin and Location Admin)
+    Route::resource('location-admin-tasks', App\Http\Controllers\LocationAdminTaskController::class)->middleware('role:Super Admin,Location Admin');
+    Route::get('/location-admin-tasks/{task}/download-photo', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadPhoto'])->middleware('role:Super Admin,Location Admin')->name('location-admin-tasks.download.photo');
+    Route::get('/location-admin-tasks/{task}/download-document', [App\Http\Controllers\LocationAdminTaskController::class, 'downloadDocument'])->middleware('role:Super Admin,Location Admin')->name('location-admin-tasks.download.document');
 
     // Location Admin Management (Super Admin only)
     Route::resource('location-admins', App\Http\Controllers\LocationAdminController::class)->middleware('role:Super Admin');
 
     // Location Change Requests
-    Route::get('/location-change-requests', [LocationChangeRequestController::class, 'index'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.index');
-    Route::get('/location-change-requests/create', [LocationChangeRequestController::class, 'create'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.create');
-    Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->middleware('role:Super Admin,Admin Lokasi,Karyawan')->name('location-change-requests.store');
-    Route::patch('/location-change-requests/{locationChangeRequest}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Super Admin,Admin Lokasi')->name('location-change-requests.updateStatus');
+    Route::get('/location-change-requests', [LocationChangeRequestController::class, 'index'])->middleware('role:Super Admin,Location Admin,Employee')->name('location-change-requests.index');
+    Route::get('/location-change-requests/create', [LocationChangeRequestController::class, 'create'])->middleware('role:Super Admin,Location Admin,Employee')->name('location-change-requests.create');
+    Route::post('/location-change-requests', [LocationChangeRequestController::class, 'store'])->middleware('role:Super Admin,Location Admin,Employee')->name('location-change-requests.store');
+    Route::patch('/location-change-requests/{locationChangeRequest}/status', [LocationChangeRequestController::class, 'updateStatus'])->middleware('role:Super Admin,Location Admin')->name('location-change-requests.updateStatus');
 
     // Super Admin location selection (session-scoped)
     Route::middleware('role:Super Admin')->group(function () {
@@ -352,6 +352,6 @@ Route::middleware(array_merge(['auth', App\Http\Middleware\TwoFactorMiddleware::
     Route::get('/attendance/absences', [AttendanceController::class, 'absences'])->name('attendance.absences');
     Route::get('/attendance/recap', [AttendanceController::class, 'recap'])->name('attendance.recap');
     Route::get('/attendance/recap/export', [AttendanceController::class, 'exportRecap'])->name('attendance.recap.export');
-    // Employees (Super Admin and Admin Lokasi)
-    Route::resource('karyawans', App\Http\Controllers\EmployeeController::class)->middleware('role:Super Admin,Admin Lokasi');
+    // Employees (Super Admin and Location Admin)
+    Route::resource('employees', App\Http\Controllers\EmployeeController::class)->middleware('role:Super Admin,Location Admin');
 });

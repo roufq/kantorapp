@@ -29,7 +29,7 @@ class NotifyPendingApprovals extends Command
         $today = Carbon::today();
         $employeeCounts = [];
         $adminCounts = [];
-        $adminUsers = User::role('Admin Lokasi')->with('location')->get();
+        $adminUsers = User::role('Location Admin')->with('location')->get();
         $adminsByLocation = $adminUsers->groupBy('location_id');
         $adminsById = $adminUsers->keyBy('id');
 
@@ -195,7 +195,7 @@ class NotifyPendingApprovals extends Command
             return 'Approval pending' . $locNote . ': ' . $summary . '.' . $detail;
         }
 
-        return 'Notifikasi persetujuan: ' . $summary . '. Silakan menunggu atau koordinasi dengan Admin Lokasi.';
+        return 'Notifikasi persetujuan: ' . $summary . '. Silakan menunggu atau koordinasi dengan Location Admin.';
     }
 
     private function shouldSendForLocation($location, string $settingKey): bool

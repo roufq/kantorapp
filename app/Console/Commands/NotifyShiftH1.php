@@ -33,7 +33,7 @@ class NotifyShiftH1 extends Command
             ->where('status', 'scheduled')
             ->get();
 
-        $adminUsers = User::role('Admin Lokasi')->with('location')->get();
+        $adminUsers = User::role('Location Admin')->with('location')->get();
         $adminsByLocation = $adminUsers->groupBy('location_id');
         $adminNames = [];
         $sent = 0;

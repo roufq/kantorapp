@@ -16,10 +16,10 @@ class UserController extends Controller
     public function index()
     {
         $authUser = Auth::user();
-        if (!$authUser->hasRole('Super Admin') && !$authUser->hasRole('Admin Lokasi')) {
+        if (!$authUser->hasRole('Super Admin') && !$authUser->hasRole('Location Admin')) {
             abort(403, 'Unauthorized');
         }
-        $query = User::role('Karyawan')->with('karyawan', 'location');
+        $query = User::role('Employee')->with('employee', 'location');
         if (!$authUser->hasRole('Super Admin')) {
             $query->where('location_id', $authUser->location_id);
         }
@@ -31,16 +31,16 @@ class UserController extends Controller
     {
         $authUser = Auth::user();
         Gate::authorize('create-user', $authUser->location_id);
-        $linkedEmployeeIds = User::whereNotNull('karyawan_id')->pluck('karyawan_id');
-        $karyawans = Employee::whereNotIn('id', $linkedEmployeeIds)
-            ->when($authUser->hasRole('Admin Lokasi'), function ($q) use ($authUser) {
+        $linkedEmployeeIds = User::whereNotNull('employee_id')->pluck('employee_id');
+        $employees = Employee::whereNotIn('id', $linkedEmployeeIds)
+            ->when($authUser->hasRole('Location Admin'), function ($q) use ($authUser) {
                 $q->where('location_id', $authUser->location_id);
             })
             ->get();
-        $locations = \App\Models\Location::when($authUser->hasRole('Admin Lokasi'), function ($q) use ($authUser) {
+        $locations = \App\Models\Location::when($authUser->hasRole('Location Admin'), function ($q) use ($authUser) {
                 $q->where('id', $authUser->location_id);
             })->get();
-        return view('users.create', compact('karyawans', 'locations'));
+        return view('users.create', compact('employees', 'locations'));
     }
 
     public function store(Request $request)
@@ -50,39 +50,39 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'karyawan_id' => 'required|exists:employees,id',
+            'employee_id' => 'required|exists:employees,id',
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        // Paksa Admin Lokasi hanya bisa membuat user untuk lokasinya sendiri,
-        // dan hanya untuk karyawan yang berada di lokasi yang sama.
-        if ($authUser->hasRole('Admin Lokasi')) {
+        // Paksa Location Admin hanya bisa membuat user untuk lokasinya sendiri,
+        // dan hanya untuk employee yang berada di lokasi yang sama.
+        if ($authUser->hasRole('Location Admin')) {
             $targetLocation = $authUser->location_id; // override input lokasi
         } else {
             $targetLocation = $request->location_id;
         }
         Gate::authorize('create-user', $targetLocation);
 
-        $karyawan = Employee::find($request->karyawan_id);
-        if ($authUser->hasRole('Admin Lokasi') && (int) $karyawan->location_id !== (int) $authUser->location_id) {
-            return back()->withErrors(['karyawan_id' => 'Karyawan yang dipilih bukan dari lokasi Anda.'])->withInput();
+        $employee = Employee::find($request->employee_id);
+        if ($authUser->hasRole('Location Admin') && (int) $employee->location_id !== (int) $authUser->location_id) {
+            return back()->withErrors(['employee_id' => 'Employee yang dipilih bukan dari lokasi Anda.'])->withInput();
         }
-        if ($karyawan->users()->exists()) {
-            return back()->withErrors(['karyawan_id' => 'This karyawan already has an employee user account.']);
+        if ($employee->users()->exists()) {
+            return back()->withErrors(['employee_id' => 'This employee already has an employee user account.']);
         }
 
         $user = User::create([
-            'name' => $karyawan->nama,
-            'email' => $karyawan->email,
+            'name' => $employee->nama,
+            'email' => $employee->email,
             'password' => Hash::make($request->password),
             // Maintain both legacy and new linkage for compatibility
-            'karyawan_id' => $karyawan->id,
-            'employee_id' => $karyawan->id,
+            'employee_id' => $employee->id,
+            'employee_id' => $employee->id,
             'location_id' => $targetLocation,
         ]);
 
         // Assign application role
-        $user->assignRole('Karyawan');
+        $user->assignRole('Employee');
 
         // Optionally send email verification only if enabled
         if (env('EMAIL_VERIFICATION_ENABLED', false)) {
@@ -123,9 +123,9 @@ class UserController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        // Enforce location boundary for Admin Lokasi: they cannot change a user to a different location
+        // Enforce location boundary for Location Admin: they cannot change a user to a different location
         $authUser = Auth::user();
-        if ($authUser->hasRole('Admin Lokasi') && $request->filled('location_id')) {
+        if ($authUser->hasRole('Location Admin') && $request->filled('location_id')) {
             if ((int)$request->location_id !== (int)$authUser->location_id) {
                 abort(403, 'Unauthorized location change.');
             }
@@ -183,12 +183,12 @@ class UserController extends Controller
         ]);
 
         $user->update(['location_id' => $request->location_id]);
-        if (!$user->hasRole('Admin Lokasi')) {
-            $user->assignRole('Admin Lokasi');
+        if (!$user->hasRole('Location Admin')) {
+            $user->assignRole('Location Admin');
         }
-        // Optional: ensure no duplicate Karyawan role confusion
-        if ($user->hasRole('Karyawan')) {
-            $user->removeRole('Karyawan');
+        // Optional: ensure no duplicate Employee role confusion
+        if ($user->hasRole('Employee')) {
+            $user->removeRole('Employee');
         }
 
         return redirect()->route('users.show', $user)->with('success', 'User promoted to Location Admin.');
@@ -197,14 +197,14 @@ class UserController extends Controller
     public function demoteToEmployee(Request $request, User $user)
     {
         // Only Super Admin via route middleware
-        if ($user->hasRole('Admin Lokasi')) {
-            $user->removeRole('Admin Lokasi');
+        if ($user->hasRole('Location Admin')) {
+            $user->removeRole('Location Admin');
         }
         if ($user->hasRole('HR')) {
             $user->removeRole('HR');
         }
-        if (!$user->hasRole('Karyawan')) {
-            $user->assignRole('Karyawan');
+        if (!$user->hasRole('Employee')) {
+            $user->assignRole('Employee');
         }
         return redirect()->route('users.show', $user)->with('success', 'User demoted to Employee.');
     }
@@ -212,11 +212,11 @@ class UserController extends Controller
     public function promoteToHr(Request $request, User $user)
     {
         // Only Super Admin via route middleware
-        if ($user->hasRole('Admin Lokasi')) {
-            $user->removeRole('Admin Lokasi');
+        if ($user->hasRole('Location Admin')) {
+            $user->removeRole('Location Admin');
         }
-        if ($user->hasRole('Karyawan')) {
-            $user->removeRole('Karyawan');
+        if ($user->hasRole('Employee')) {
+            $user->removeRole('Employee');
         }
         if (!$user->hasRole('HR')) {
             $user->assignRole('HR');
@@ -230,7 +230,7 @@ class UserController extends Controller
      */
     public function profile()
     {
-        $user = Auth::user()->load(['location', 'employee', 'karyawan']);
+        $user = Auth::user()->load(['location', 'employee', 'employee']);
         $roles = $user->getRoleNames();
         $sessions = \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
             ->where('user_id', $user->id)
@@ -305,7 +305,7 @@ class UserController extends Controller
         $page = $request->get('page', 1);
         $perPage = 10;
 
-        $users = User::role('Karyawan')
+        $users = User::role('Employee')
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                   ->orWhere('email', 'like', "%{$query}%");

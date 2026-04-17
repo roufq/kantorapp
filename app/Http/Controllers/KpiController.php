@@ -36,8 +36,8 @@ class KpiController extends Controller
         $scopedUsersQuery = User::query();
 
         if ($user->hasRole('Super Admin') || $user->hasRole('HR')) {
-            $totalEmployees = User::role('Karyawan')->count();
-        } elseif ($user->hasRole('Admin Lokasi')) {
+            $totalEmployees = User::role('Employee')->count();
+        } elseif ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $attendanceQuery->whereHas('user', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
@@ -48,7 +48,7 @@ class KpiController extends Controller
             $taskBaseQuery->whereHas('assignee', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
             });
-            $totalEmployees = User::role('Karyawan')->where('location_id', $locationId)->count();
+            $totalEmployees = User::role('Employee')->where('location_id', $locationId)->count();
         } else {
             $attendanceQuery->where('user_id', $user->id);
             $overtimeQuery->where('user_id', $user->id);
@@ -56,15 +56,15 @@ class KpiController extends Controller
             $totalEmployees = 1;
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $scopedUsersQuery->where('location_id', $user->location_id);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $scopedUsersQuery->where('id', $user->id);
         }
 
         $scopedUserIds = $scopedUsersQuery
             ->where(function ($q) {
-                $q->whereNotNull('employee_id')->orWhereNotNull('karyawan_id');
+                $q->whereNotNull('employee_id')->orWhereNotNull('employee_id');
             })
             ->pluck('id')
             ->values()
@@ -152,7 +152,7 @@ class KpiController extends Controller
 
         if ($user->hasRole('Super Admin') || $user->hasRole('HR')) {
             // no scope
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $attendanceQuery->whereHas('user', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
@@ -174,7 +174,7 @@ class KpiController extends Controller
         $filename = 'kpi_export';
 
         if ($section === 'lateness' || $section === 'attendance') {
-            $headings = ['Tanggal', 'Nama', 'Lokasi', 'Shift', 'Check In', 'Check Out', 'Terlambat'];
+            $headings = [__('Date'), __('Name'), __('Location'), __('Shift'), __('Check In'), __('Check Out'), __('Late')];
             $query = $section === 'lateness'
                 ? (clone $attendanceQuery)->where('is_late', true)
                 : clone $attendanceQuery;
@@ -186,12 +186,12 @@ class KpiController extends Controller
                     optional($att->shift)->name ?? '-',
                     optional($att->check_in_time)->format('H:i') ?? '-',
                     optional($att->check_out_time)->format('H:i') ?? '-',
-                    $att->is_late ? 'Ya' : 'Tidak',
+                    $att->is_late ? __('Yes') : __('No'),
                 ];
             })->all();
-            $filename = $section === 'lateness' ? 'kpi_keterlambatan' : 'kpi_kehadiran';
+            $filename = $section === 'lateness' ? 'kpi_lateness' : 'kpi_attendance';
         } elseif ($section === 'overtime') {
-            $headings = ['Tanggal', 'Nama', 'Durasi (jam)', 'Alasan'];
+            $headings = [__('Date'), __('Name'), __('Duration (hours)'), __('Reason')];
             $rows = $overtimeQuery->orderBy('date', 'desc')->get()->map(function ($ot) {
                 return [
                     optional($ot->date)->format('Y-m-d') ?? '-',
@@ -204,7 +204,7 @@ class KpiController extends Controller
         } elseif ($section === 'tasks_created' || $section === 'tasks_completed') {
             if ($section === 'tasks_created') {
                 $query = (clone $taskBaseQuery)->whereBetween('created_at', [$kpiStart, $kpiEnd]);
-                $headings = ['Judul', 'Assignee', 'Status', 'Dibuat', 'Jatuh Tempo'];
+                $headings = [__('Title'), __('Assignee'), __('Status'), __('Created'), __('Due Date')];
                 $rows = $query->orderBy('created_at', 'desc')->get()->map(function ($task) {
                     return [
                         $task->title,
@@ -219,7 +219,7 @@ class KpiController extends Controller
                 $query = (clone $taskBaseQuery)
                     ->where('status', 'completed')
                     ->whereBetween('updated_at', [$kpiStart, $kpiEnd]);
-                $headings = ['Judul', 'Assignee', 'Status', 'Selesai', 'Dibuat'];
+                $headings = [__('Title'), __('Assignee'), __('Status'), __('Completed'), __('Created')];
                 $rows = $query->orderBy('updated_at', 'desc')->get()->map(function ($task) {
                     return [
                         $task->title,
@@ -265,9 +265,9 @@ class KpiController extends Controller
             ->select(DB::raw('sum(task_catalogs.value * task_slots.percentage / 100) as total_points'))
             ->value('total_points') ?? 0;
 
-        $users = User::whereIn('id', $userIds)->get(['id', 'employee_id', 'karyawan_id']);
+        $users = User::whereIn('id', $userIds)->get(['id', 'employee_id', 'employee_id']);
         $employeeIds = $users->map(function ($u) {
-            return $u->employee_id ?: $u->karyawan_id;
+            return $u->employee_id ?: $u->employee_id;
         })->filter()->unique()->values()->all();
 
         if (empty($employeeIds)) {

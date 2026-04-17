@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Detail Lokasi</h3>
+        <h3 class="mb-1">Location Details</h3>
         <p class="text-muted mb-0">{{ $location->name }}</p>
     </div>
-    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="content-wrapper">
     <!-- Main content -->
@@ -158,7 +158,7 @@
                                                     @php $p = explode(',', $attendance->location); @endphp
                                                     @if(count($p) === 2)
                                                         @php $plat = trim($p[0]); $plng = trim($p[1]); @endphp
-                                                        <br><small><a href="https://www.google.com/maps?q={{ $plat }},{{ $plng }}" target="_blank" rel="noopener">Lihat di Peta</a></small>
+                                                        <br><small><a href="https://www.google.com/maps?q={{ $plat }},{{ $plng }}" target="_blank" rel="noopener">View on Map</a></small>
                                                     @endif
                                                 @endif
                                             </div>

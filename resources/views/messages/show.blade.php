@@ -6,7 +6,7 @@
         <h3 class="mb-1">Detail Pesan</h3>
         <p class="text-muted mb-0">Chat dengan {{ $user->name }}</p>
     </div>
-    <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">

@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tambah Divisi</h3>
-        <p class="text-muted mb-0">Buat data divisi baru agar struktur organisasi tetap rapi.</p>
+        <h3 class="mb-1">Add Division</h3>
+        <p class="text-muted mb-0">Create new division data to keep organizational structure tidy.</p>
     </div>
-    <a href="{{ route('divisions.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('divisions.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -18,7 +18,7 @@
                 <form action="{{ route('divisions.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
-                        <label for="nama" class="form-label">Nama</label>
+                        <label for="nama" class="form-label">Name</label>
                         <input type="text" name="nama" class="form-control" id="nama" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Create Division</button>

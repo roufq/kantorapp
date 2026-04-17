@@ -6,7 +6,7 @@
         <h3 class="mb-1">Edit User</h3>
         <p class="text-muted mb-0">Perbarui akses, peran, atau detail login pengguna.</p>
     </div>
-    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -45,7 +45,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="location_id" class="form-label">Location</label>
-                        @if(auth()->user()->hasRole('Admin Lokasi'))
+                        @if(auth()->user()->hasRole('Location Admin'))
                             <input type="text" class="form-control" value="{{ optional(auth()->user()->location)->name }}" disabled>
                             <input type="hidden" name="location_id" value="{{ auth()->user()->location_id }}">
                         @else

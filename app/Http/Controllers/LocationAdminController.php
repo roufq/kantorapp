@@ -13,7 +13,7 @@ class LocationAdminController extends Controller
     {
         $this->authorizeSuperAdmin();
 
-        $admins = User::role('Admin Lokasi')->with('location')->orderBy('name')->paginate(15);
+        $admins = User::role('Location Admin')->with('location')->orderBy('name')->paginate(15);
         return view('location-admins.index', compact('admins'));
     }
 
@@ -42,7 +42,7 @@ class LocationAdminController extends Controller
             'password' => Hash::make($request->password),
             'location_id' => $request->location_id,
         ]);
-        $user->assignRole('Admin Lokasi');
+        $user->assignRole('Location Admin');
 
         return redirect()->route('location-admins.index')->with('success', 'Location Admin created successfully.');
     }
@@ -50,7 +50,7 @@ class LocationAdminController extends Controller
     public function show(User $location_admin)
     {
         $this->authorizeSuperAdmin();
-        if (!$location_admin->hasRole('Admin Lokasi')) { abort(404); }
+        if (!$location_admin->hasRole('Location Admin')) { abort(404); }
         $location_admin->load('location');
         return view('location-admins.show', ['admin' => $location_admin]);
     }
@@ -58,7 +58,7 @@ class LocationAdminController extends Controller
     public function edit(User $location_admin)
     {
         $this->authorizeSuperAdmin();
-        if (!$location_admin->hasRole('Admin Lokasi')) { abort(404); }
+        if (!$location_admin->hasRole('Location Admin')) { abort(404); }
 
         $locations = Location::active()->orderBy('name')->get();
         return view('location-admins.edit', ['admin' => $location_admin, 'locations' => $locations]);
@@ -67,7 +67,7 @@ class LocationAdminController extends Controller
     public function update(Request $request, User $location_admin)
     {
         $this->authorizeSuperAdmin();
-        if (!$location_admin->hasRole('Admin Lokasi')) { abort(404); }
+        if (!$location_admin->hasRole('Location Admin')) { abort(404); }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -85,8 +85,8 @@ class LocationAdminController extends Controller
             $data['password'] = Hash::make($request->password);
         }
         $location_admin->update($data);
-        if (!$location_admin->hasRole('Admin Lokasi')) {
-            $location_admin->assignRole('Admin Lokasi');
+        if (!$location_admin->hasRole('Location Admin')) {
+            $location_admin->assignRole('Location Admin');
         }
 
         return redirect()->route('location-admins.index')->with('success', 'Location Admin updated successfully.');
@@ -95,7 +95,7 @@ class LocationAdminController extends Controller
     public function destroy(User $location_admin)
     {
         $this->authorizeSuperAdmin();
-        if (!$location_admin->hasRole('Admin Lokasi')) { abort(404); }
+        if (!$location_admin->hasRole('Location Admin')) { abort(404); }
 
         $location_admin->delete();
         return redirect()->route('location-admins.index')->with('success', 'Location Admin deleted successfully.');

@@ -359,9 +359,9 @@ class AttendanceController extends Controller
         $query = Attendance::with(['user.employee', 'shift', 'location', 'shiftAssignment']);
 
         // Filter by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $query->where('user_id', $user->id);
         }
 
@@ -425,9 +425,9 @@ class AttendanceController extends Controller
         $query = \App\Models\EmployeeAbsence::with('user');
 
         // Filter by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $query->where('user_id', $user->id);
         }
 
@@ -530,9 +530,9 @@ class AttendanceController extends Controller
         if ($start->gt($end)) { [$start, $end] = [$end, $start]; }
 
         $usersQuery = \App\Models\User::query();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $usersQuery->where('location_id', $auth->location_id);
-        } elseif ($auth->hasRole('Karyawan')) {
+        } elseif ($auth->hasRole('Employee')) {
             $usersQuery->where('id', $auth->id);
         }
         if ($request->filled('user_id')) {
@@ -643,9 +643,9 @@ class AttendanceController extends Controller
         $query = Attendance::with(['user.employee', 'shift', 'location']);
 
         // Filter by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $query->where('user_id', $user->id);
         }
 

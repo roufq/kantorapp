@@ -35,7 +35,7 @@ class LocationConfigurationTest extends TestCase
         $this->assertSame('green', $loc->getSetting('theme'));
 
         $user = User::factory()->create(['location_id' => $loc->id, 'email' => 'cfg@example.com']);
-        $user->assignRole('Admin Lokasi');
+        $user->assignRole('Location Admin');
 
         $html = $this->actingAs($user)->get('/dashboard')->assertStatus(200)->getContent();
 

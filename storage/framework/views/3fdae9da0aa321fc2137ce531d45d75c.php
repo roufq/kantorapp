@@ -1,979 +1,408 @@
-
-<?php $__env->startSection('title'); ?>
-<div class="row">
-  <div class="col-sm-12">
-    <div class="page-title-box">
-      <div class="btn-group float-right">
-        <ol class="breadcrumb hide-phone p-0 m-0">
-          <li class="breadcrumb-item"><a href="<?php echo e(route('dashboard')); ?>">Home</a></li>
-          <li class="breadcrumb-item active">Dashboard</li>
-        </ol>
-      </div>
-      <h4 class="page-title">Dashboard</h4>
-    </div>
-  </div>
-</div>
-<?php $__env->stopSection(); ?>
-<?php $__env->startSection('content'); ?>
-<?php
-  $statCards = [];
-  $secondaryCards = [];
-  if($user->hasRole('Super Admin')) {
-    $statCards = [];
-  } elseif($user->hasRole('Admin Lokasi')) {
-    $statCards = [
-      ['label' => 'Absences Today', 'value' => $absencesTodayCount ?? 0, 'icon' => 'mdi-alert-circle', 'color' => 'info'],
-    ];
-    $secondaryCards = [
-      ['label' => 'Clock In (Saya)', 'value' => ($todayAttendance && $todayAttendance->check_in_time) ? $todayAttendance->check_in_time->format('H:i') : '--', 'icon' => 'mdi-clock-start', 'color' => 'info'],
-      ['label' => 'Clock Out (Saya)', 'value' => ($todayAttendance && $todayAttendance->check_out_time) ? $todayAttendance->check_out_time->format('H:i') : '--', 'icon' => 'mdi-clock-end', 'color' => 'dark'],
-    ];
-  } else {
-    $statCards = [
-      ['label' => 'My Tasks', 'value' => $totalTasks, 'icon' => 'mdi-check-circle', 'color' => 'success'],
-    ];
-    if($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi') || $user->hasRole('Karyawan')) {
-      $statCards[] = ['label' => 'Today\'s Shift', 'value' => '', 'icon' => 'mdi-calendar-clock', 'color' => 'info', 'extra' => true];
-      $statCards[] = ['label' => 'Clock In', 'value' => ($todayAttendance && $todayAttendance->check_in_time) ? $todayAttendance->check_in_time->format('H:i') : '--', 'icon' => 'mdi-clock-start', 'color' => 'secondary'];
-      $secondaryCards = [
-        ['label' => 'Clock Out', 'value' => ($todayAttendance && $todayAttendance->check_out_time) ? $todayAttendance->check_out_time->format('H:i') : '--', 'icon' => 'mdi-clock-end', 'color' => 'dark'],
-      ];
+<?php $__env->startPush('styles'); ?>
+<style>
+    /* Executive Dashboard Styles */
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: var(--card-radius);
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
-  }
-?>
+    .stat-card:hover { 
+        transform: translateY(-4px); 
+        box-shadow: 0 12px 30px rgba(0,0,0,0.04) !important;
+        border-color: var(--primary-light);
+    }
+    
+    .stat-icon {
+        width: 42px; height: 42px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .icon-primary { background: var(--soft-mint); color: var(--soft-mint-text); }
+    .icon-info { background: var(--soft-sky); color: var(--soft-sky-text); }
+    .icon-warning { background: var(--soft-honey); color: var(--soft-honey-text); }
+    .icon-danger { background: var(--soft-rose); color: var(--soft-rose-text); }
 
-<?php if(!empty($statCards)): ?>
-  <div class="row">
-    <?php $__currentLoopData = $statCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-      <div class="col-md-6 col-xl-3">
-        <div class="card m-b-30">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
-                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
-                </div>
-              </div>
-              <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
-                <?php if(!empty($card['extra'])): ?>
-                  <h5 class="mb-0">
-                    <?php if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda'): ?>
-                      <?php echo e($todayAssignmentTime); ?>
+    .stat-label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 0.25rem 0; }
+    .stat-meta { font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
-                    <?php elseif($todayAssignment && $todayAssignment->shift): ?>
-                      <?php echo e($todayAssignment->shift->name); ?>
+    /* Performance Charts */
+    .chart-container { position: relative; height: 240px; width: 100%; }
+    
+    /* List Components */
+    .dashboard-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .list-item {
+        padding: 1rem;
+        border-radius: 16px;
+        border: 1px solid #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.2s;
+    }
+    .list-item:hover { background: #fcfdfe; border-color: #f1f5f9; }
+    .avatar-sm { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
+    
+    /* Section Headings */
+    .section-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; }
 
-                      <?php if(!empty($todayAssignmentTime)): ?>
-                        <span class="d-block text-muted small"><?php echo e($todayAssignmentTime); ?></span>
-                      <?php endif; ?>
-                    <?php elseif(!empty($todayAssignmentTime)): ?>
-                      <span class="text-muted small"><?php echo e($todayAssignmentTime); ?></span>
-                    <?php else: ?>
-                      --
-                    <?php endif; ?>
-                  </h5>
-                <?php else: ?>
-                  <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
+    /* Custom Scrollbar for list bodies */
+    .scroll-body { max-height: 400px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #f1f5f9 transparent; }
+    .scroll-body::-webkit-scrollbar { width: 4px; }
+    .scroll-body::-webkit-scrollbar-thumb { background: #f1f5f9; border-radius: 10px; }
+</style>
+<?php $__env->stopPush(); ?>
+
+<?php $__env->startSection('content'); ?>
+<!-- Dashboard Header -->
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-bold mb-1" style="font-size: 2.2rem; letter-spacing: -0.5px; background: linear-gradient(135deg, #0f172a 0%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            <?php echo e(__('Executive Overview')); ?>
+
+        </h1>
+        <p class="text-muted mb-0 fw-500">
+            <?php echo e(__('Welcome back,')); ?> <span class="text-primary fw-bold"><?php echo e($user->name); ?></span>. <?php echo e(__('Here is what is happening across your workplace today.')); ?>
+
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <div class="badge badge-indigo border-0 py-2 px-3 shadow-none">
+            <i class="mdi mdi-calendar-range me-2"></i> <?php echo e(now()->format('d M Y')); ?>
+
         </div>
-      </div>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-  </div>
-<?php endif; ?>
+    </div>
+</div>
 
-<?php if(!empty($secondaryCards)): ?>
-  <div class="row">
-    <?php $__currentLoopData = $secondaryCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-      <div class="col-md-6 col-xl-3">
-        <div class="card m-b-30">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
-                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
-                </div>
-              </div>
-              <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
-                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
-              </div>
+<!-- Key Performance Indicators -->
+<div class="row g-3 mb-4">
+    <!-- Total Workforce -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-icon icon-primary"><i class="mdi mdi-account-group"></i></div>
+                <div class="stat-label"><?php echo e(__('Total Workforce')); ?></div>
+                <div class="stat-value"><?php echo e($chartMetrics['total_employees']); ?></div>
             </div>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-  </div>
-<?php endif; ?>
+            <div class="stat-meta text-success">
+                <i class="mdi mdi-check-circle"></i> <?php echo e(__('Active personnel')); ?>
 
-<?php if(auth()->user()->hasRole('Karyawan')): ?>
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card m-b-30">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Lokasi & Jadwal Hari Ini</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-           <div class="col-md-4">
-             <div class="font-weight-bold">Lokasi</div>
-             <div class="text-muted"><?php echo e($userLocationName ?? '-'); ?></div>
-           </div>
-           <div class="col-md-4">
-             <div class="font-weight-bold">Shift (rencana)</div>
-             <div class="text-muted">
-                <?php if(isset($todayAssignmentTime) && $todayAssignmentTime === 'Hari libur Anda'): ?>
-                  <?php echo e($todayAssignmentTime); ?>
-
-                <?php elseif($todayAssignment && $todayAssignment->shift): ?>
-                  <?php echo e($todayAssignment->shift->name); ?> <?php if(!empty($todayAssignmentTime)): ?> (<?php echo e($todayAssignmentTime); ?>) <?php endif; ?>
-                <?php elseif(!empty($todayAssignmentTime)): ?>
-                  <?php echo e($todayAssignmentTime); ?>
-
-                <?php else: ?>
-                  --
-                <?php endif; ?>
-                <?php if(!empty($todayPlannedDate)): ?>
-                  <div class="text-muted small">Tanggal: <?php echo e($todayPlannedDate); ?></div>
-                <?php endif; ?>
-              </div>
             </div>
-            <div class="col-md-4">
-              <div class="font-weight-bold">Clock In / Clock Out</div>
-              <div class="text-muted">
+        </div>
+    </div>
+
+    <!-- Attendance Rate -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-icon icon-info"><i class="mdi mdi-calendar-check"></i></div>
+                <div class="stat-label"><?php echo e(__('Daily Attendance')); ?></div>
                 <?php
-                  $ci = $todayAttendance && $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : '--';
-                  $co = $todayAttendance && $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : '--';
+                    $attRate = $chartMetrics['total_employees'] > 0 
+                        ? round(($chartMetrics['checked_in_today'] / $chartMetrics['total_employees']) * 100, 1) 
+                        : 0;
                 ?>
-                <?php if(!empty($todayPlannedDate)): ?>
-                  <div class="text-muted small"><?php echo e($todayPlannedDate); ?></div>
-                <?php endif; ?>
-                <?php echo e($ci); ?> / <?php echo e($co); ?>
-
-              </div>
+                <div class="stat-value"><?php echo e($attRate); ?>%</div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-<?php endif; ?>
+            <div class="stat-meta text-muted">
+                <?php echo e($chartMetrics['checked_in_today']); ?> <?php echo e(__('of')); ?> <?php echo e($chartMetrics['total_employees']); ?> <?php echo e(__('Present')); ?>
 
-<?php if($user->hasRole('Admin Lokasi') && $attendanceList && $attendanceList->count() > 0): ?>
-  <div class="row mt-3">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <h5 class="card-title mb-0">Clock In/Out Hari Ini</h5>
-          <small class="text-muted">Data sesuai lokasi Anda.</small>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-bordered table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th style="width:50px">No</th>
-                  <?php if($user->hasRole('Admin Lokasi')): ?>
-                    <th>Nama</th>
-                  <?php endif; ?>
-                  <th>Clock In</th>
-                  <th>Clock Out</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php $__currentLoopData = $attendanceList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $att): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                  <tr>
-                    <td><?php echo e($loop->iteration); ?></td>
-                    <?php if($user->hasRole('Admin Lokasi')): ?>
-                      <td class="text-break"><?php echo e(optional($att->user)->name ?? 'Unknown'); ?></td>
-                    <?php endif; ?>
-                    <td><?php echo e($att->check_in_time ? $att->check_in_time->format('H:i') : '--'); ?></td>
-                    <td><?php echo e($att->check_out_time ? $att->check_out_time->format('H:i') : '--'); ?></td>
-                  </tr>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
-<?php endif; ?>
 
-<?php if(!$user->hasRole('Karyawan')): ?>
-  <div class="row mb-2">
-    <div class="col-md-12">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <form method="GET" action="<?php echo e(route('dashboard')); ?>" class="d-flex align-items-center gap-2">
-          <label class="mb-0 text-muted small">Periode KPI</label>
-          <select name="kpi_days" class="form-select form-select-sm" style="width: 120px;">
-            <?php $__currentLoopData = [7, 30, 90, 180]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $days): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-              <option value="<?php echo e($days); ?>" <?php echo e((int) ($kpiDays ?? 30) === $days ? 'selected' : ''); ?>><?php echo e($days); ?> hari</option>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-          </select>
-          <?php if(request('search')): ?>
-            <input type="hidden" name="search" value="<?php echo e(request('search')); ?>">
-          <?php endif; ?>
-          <button type="submit" class="btn btn-sm btn-outline-primary">Terapkan</button>
-        </form>
-        <a class="btn btn-sm btn-outline-secondary" href="<?php echo e(route('kpi.index', ['days' => $kpiDays ?? 30])); ?>">Detail KPI</a>
-      </div>
+    <!-- Task Completion -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-icon icon-warning"><i class="mdi mdi-progress-check"></i></div>
+                <div class="stat-label"><?php echo e(__('Task Velocity')); ?></div>
+                <?php
+                    $taskRate = $chartMetrics['total_tasks'] > 0 
+                        ? round(($chartMetrics['completed_tasks'] / $chartMetrics['total_tasks']) * 100, 1) 
+                        : 0;
+                ?>
+                <div class="stat-value"><?php echo e($taskRate); ?>%</div>
+            </div>
+            <div class="stat-meta text-muted">
+                <?php echo e($chartMetrics['completed_tasks']); ?> <?php echo e(__('Completed of')); ?> <?php echo e($chartMetrics['total_tasks']); ?>
+
+            </div>
+        </div>
     </div>
-  </div>
-  <?php
-    $kpiCards = [
-      [
-        'label' => 'Keterlambatan (' . ($kpiDays ?? 30) . 'd)',
-        'value' => number_format($kpiMetrics['lateness_rate'] ?? 0, 2) . '%',
-        'icon' => 'mdi-clock-alert',
-        'color' => 'danger',
-        'meta' => ($kpiMetrics['late_count'] ?? 0) . ' / ' . ($kpiMetrics['attendance_count'] ?? 0),
-        'link' => route('kpi.index', ['section' => 'lateness', 'days' => $kpiDays ?? 30]),
-      ],
-      [
-        'label' => 'Kehadiran (' . ($kpiDays ?? 30) . 'd)',
-        'value' => number_format($kpiMetrics['attendance_rate_30d'] ?? 0, 2) . '%',
-        'icon' => 'mdi-account-check',
-        'color' => 'success',
-        'meta' => ($kpiMetrics['attendance_count'] ?? 0) . ' hadir',
-        'link' => route('kpi.index', ['section' => 'attendance', 'days' => $kpiDays ?? 30]),
-      ],
-      [
-        'label' => 'Overtime Disetujui (' . ($kpiDays ?? 30) . 'd)',
-        'value' => number_format($kpiMetrics['overtime_hours_30d'] ?? 0, 2) . ' jam',
-        'icon' => 'mdi-timer',
-        'color' => 'warning',
-        'meta' => $kpiMetrics['period_label'] ?? '',
-        'link' => route('kpi.index', ['section' => 'overtime', 'days' => $kpiDays ?? 30]),
-      ],
-      [
-        'label' => 'Produktivitas Tugas (' . ($kpiDays ?? 30) . 'd)',
-        'value' => number_format($kpiMetrics['task_productivity_rate'] ?? 0, 2) . '%',
-        'icon' => 'mdi-clipboard-check',
-        'color' => 'primary',
-        'meta' => ($kpiMetrics['tasks_completed'] ?? 0) . ' / ' . ($kpiMetrics['tasks_created'] ?? 0),
-        'link' => route('kpi.index', ['section' => 'tasks', 'days' => $kpiDays ?? 30]),
-      ],
-    ];
-  ?>
-  <div class="row">
-    <?php $__currentLoopData = $kpiCards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-      <div class="col-md-6 col-xl-3">
-        <div class="card m-b-30">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center bg-<?php echo e($card['color'] ?? 'primary'); ?> text-white">
-                  <i class="mdi <?php echo e($card['icon'] ?? 'mdi-information'); ?>"></i>
+
+    <!-- Messages/Requests -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-icon icon-danger"><i class="mdi mdi-bell-ring-outline"></i></div>
+                <div class="stat-label"><?php echo e(__('Action Required')); ?></div>
+                <div class="stat-value"><?php echo e($unreadMessages + $absencesTodayCount); ?></div>
+            </div>
+            <div class="stat-meta text-muted">
+                <?php echo e($unreadMessages); ?> <?php echo e(__('Messages')); ?> | <?php echo e($absencesTodayCount); ?> <?php echo e(__('Pending Requests')); ?>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Visual Analytics -->
+    <div class="col-xl-8">
+        <div class="card shadow-sm border-light h-100">
+            <div class="card-header bg-white border-0 p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="section-title mb-0"><i class="mdi mdi-chart-line text-primary"></i> <?php echo e(__('Workplace Analytics')); ?></h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-light text-dark active">Pulse</button>
+                        <button class="btn btn-outline-light text-dark">Trends</button>
+                    </div>
                 </div>
-              </div>
-              <div class="flex-grow-1 text-right">
-                <p class="text-muted mb-1"><?php echo e($card['label']); ?></p>
-                <h4 class="mb-0"><?php echo e($card['value']); ?></h4>
-                <?php if(!empty($card['meta'])): ?>
-                  <small class="text-muted"><?php echo e($card['meta']); ?></small>
-                <?php endif; ?>
-                <?php if(!empty($card['link'])): ?>
-                  <div class="mt-1">
-                    <a href="<?php echo e($card['link']); ?>" class="small text-decoration-none">Lihat detail</a>
-                  </div>
-                <?php endif; ?>
-              </div>
             </div>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-  </div>
-<?php endif; ?>
-
-<?php
-  $chartTotalTasks = (int) ($chartMetrics['total_tasks'] ?? 0);
-  $chartCompletedTasks = (int) ($chartMetrics['completed_tasks'] ?? 0);
-  $chartCompletionRate = $chartTotalTasks > 0 ? round(($chartCompletedTasks / $chartTotalTasks) * 100, 2) : 0;
-  $chartAttendanceTotal = (int) ($chartMetrics['attendance_total'] ?? 0);
-  $chartCheckedIn = (int) ($chartMetrics['checked_in_today'] ?? 0);
-  $chartAttendanceRate = $chartAttendanceTotal > 0 ? round(($chartCheckedIn / $chartAttendanceTotal) * 100, 2) : 0;
-?>
-
-<div class="row mb-2">
-  <div class="col-12">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div>
-        <h5 class="mb-1">Ringkasan Utama</h5>
-        <small class="text-muted">Gambaran cepat performa tugas, kehadiran, dan overtime.</small>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="row">
-  <div class="col-md-6 col-xl-3">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Task Completion Rate</div>
-          <span class="fw-semibold"><?php echo e(number_format($chartCompletionRate, 2)); ?>%</span>
-        </div>
-        <canvas id="chartTaskCompletion" height="140"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Attendance Rate (Today)</div>
-          <span class="fw-semibold"><?php echo e(number_format($chartAttendanceRate, 2)); ?>%</span>
-        </div>
-        <canvas id="chartAttendanceToday" height="140"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Total Tasks</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['total_tasks'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartTotalTasks" height="140"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Overtime (Last 30d)</div>
-          <span class="fw-semibold"><?php echo e(number_format($chartMetrics['overtime_hours_30d'] ?? 0, 2)); ?> hrs</span>
-        </div>
-        <canvas id="chartOvertime30d" height="140"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row mt-2 mb-2">
-  <div class="col-12">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div>
-        <h5 class="mb-1">Distribusi Lokasi</h5>
-        <small class="text-muted">Detail jumlah karyawan dan user per lokasi.</small>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="row">
-  <div class="col-md-6">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Total Employees per Lokasi</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['total_employees'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartEmployeesByLocation" height="180"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Total Users per Lokasi</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['total_users'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartUsersByLocation" height="180"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- 
-<div class="row mt-2">
-  <div class="col-md-4">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Total Super Admins</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['total_masters'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartTotalMasters" height="120"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Unread Messages</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['unread_messages'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartUnreadMessages" height="120"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card m-b-30">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="text-muted">Total Divisions</div>
-          <span class="fw-semibold"><?php echo e($chartMetrics['total_divisions'] ?? 0); ?></span>
-        </div>
-        <canvas id="chartTotalDivisions" height="120"></canvas>
-      </div>
-    </div>
-  </div>
-</div> -->
-<?php if(!$user->hasRole('Karyawan')): ?>
-  <!--begin::Row-->
-  <div class="row" id="monthly-recap">
-    <div class="col-md-12">
-      <div class="card mb-4" id="monthly-recap-card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="card-title">Monthly Recap Report</h5>
-          <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-report-toggle="collapse" aria-label="Collapse">
-              <i class="bi bi-dash-lg collapse-icon"></i>
-              <i class="bi bi-plus-lg expand-icon d-none"></i>
-            </button>
-            <div class="btn-group">
-              <button
-                type="button"
-                class="btn btn-tool dropdown-toggle"
-                data-bs-toggle="dropdown"
-                aria-label="Actions"
-              >
-                <i class="bi bi-wrench"></i>
-              </button>
-              <div class="dropdown-menu dropdown-menu-end" role="menu">
-                <a href="#" class="dropdown-item report-action" data-report-action="refresh">Refresh data</a>
-                <a href="#" class="dropdown-item report-action" data-report-action="clear-search">Clear search</a>
-                <a href="#" class="dropdown-item report-action" data-report-action="export-csv">Export CSV (visible)</a>
-                <div class="dropdown-divider"></div>
-                <a href="#" class="dropdown-item report-action" data-report-action="print">Print table</a>
-              </div>
+            <div class="card-body p-4 pt-0">
+                <div class="chart-container">
+                    <canvas id="mainDashboardChart"></canvas>
+                </div>
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4 bg-light border border-light">
+                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Overtime Trend')); ?></div>
+                            <div class="h5 mb-0 fw-800"><?php echo e($chartMetrics['overtime_hours_30d']); ?> <span class="smaller fw-bold text-muted">Hrs</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4 bg-light border border-light">
+                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Employee Satisfaction')); ?></div>
+                            <div class="h5 mb-0 fw-800">4.8 <i class="mdi mdi-star text-warning"></i></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4 bg-light border border-light">
+                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Efficiency Index')); ?></div>
+                            <div class="h5 mb-0 fw-800">+12% <i class="mdi mdi-trending-up text-success"></i></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <button type="button" class="btn btn-tool" data-report-toggle="remove" aria-label="Close">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
         </div>
-        <!-- /.card-header -->
-        <div class="card-body" id="monthly-recap-body">
-          <!-- Search Form -->
-          <div class="mb-3">
-            <form method="GET" action="<?php echo e(route('dashboard')); ?>" class="d-flex" id="monthly-recap-search">
-              <input type="text" name="search" class="form-control me-2" placeholder="Search by task title or assignee name..." value="<?php echo e(request('search')); ?>">
-              <button type="submit" class="btn btn-outline-primary">Search</button>
-              <?php if(request('search')): ?>
-                <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-outline-secondary ms-2">Clear</a>
-              <?php endif; ?>
-            </form>
-          </div>
-          <?php if($tasks->hasPages()): ?>
-            <div class="d-flex justify-content-center mt-4">
-              <?php echo e($tasks->appends(request()->query())->links()); ?>
+    </div>
 
+    <!-- Side Intelligence Panes -->
+    <div class="col-xl-4">
+        <div class="row g-4 h-100">
+            <!-- Active Personnel -->
+            <div class="col-12">
+                <div class="card shadow-sm border-light h-100">
+                    <div class="card-header bg-white border-0 p-4 pb-0">
+                        <h5 class="section-title mb-0"><i class="mdi mdi-account-star text-info"></i> <?php echo e(__('Recent Assignments')); ?></h5>
+                    </div>
+                    <div class="card-body p-4 scroll-body">
+                        <div class="dashboard-list">
+                            <?php $__empty_1 = true; $__currentLoopData = $recentAssignments->take(6); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                <div class="list-item">
+                                    <img src="<?php echo e($assign->user->profile_photo_url ?? asset('NewAsset/assets/images/users/avatar-1.jpg')); ?>" class="avatar-sm" alt="">
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <div class="text-dark fw-bold small text-truncate"><?php echo e($assign->user->name); ?></div>
+                                        <div class="smaller text-muted"><?php echo e(optional($assign->shift)->name ?? 'General'); ?> | <?php echo e(\Carbon\Carbon::parse($assign->date)->format('d M')); ?></div>
+                                    </div>
+                                    <div class="smaller fw-bold text-primary"><?php echo e($assign->shift ? $assign->shift->start_time : '-'); ?></div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                <div class="text-center py-4">
+                                    <i class="mdi mdi-account-off-outline fs-2 text-muted opacity-25"></i>
+                                    <p class="text-muted smaller mt-2">No recent assignments found.</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
-          <?php endif; ?>
-          <div class="table-responsive" id="monthly-recap-table">
-            <?php if($user->hasRole('Super Admin')): ?>
-              <table class="table table-bordered table-striped table-sm">
-                <thead>
-                  <tr>
-                    <th style="width:50px">No</th>
-                    <th>Employee Name</th>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <tr>
-                      <td><?php echo e($loop->iteration); ?></td>
-                      <td class="text-break"><?php echo e($task->assignee->name ?? 'Unassigned'); ?></td>
-                      <td class="text-break"><?php echo e($task->title); ?></td>
-                      <td class="text-break"><?php echo e(Str::limit($task->description, 50)); ?></td>
-                      <td>
-                        <?php switch($task->status):
-                          case ('pending'): ?>
-                            <span class="badge text-bg-warning">Pending</span>
-                            <?php break; ?>
-                          <?php case ('in_progress'): ?>
-                            <span class="badge text-bg-info">In Progress</span>
-                            <?php break; ?>
-                          <?php case ('completed'): ?>
-                            <span class="badge text-bg-success">Completed</span>
-                            <?php break; ?>
-                          <?php default: ?>
-                            <span class="badge text-bg-secondary"><?php echo e($task->status); ?></span>
-                        <?php endswitch; ?>
-                      </td>
-                      <td class="text-break"><?php echo e($task->due_date ? $task->due_date->format('Y-m-d') : 'No due date'); ?></td>
-                    </tr>
-                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </tbody>
-              </table>
-            <?php else: ?>
-              <table class="table table-bordered table-striped table-sm">
-                <thead>
-                  <tr>
-                    <th style="width:50px">No</th>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <tr>
-                      <td><?php echo e($loop->iteration); ?></td>
-                      <td class="text-break"><?php echo e($task->title); ?></td>
-                      <td class="text-break"><?php echo e(Str::limit($task->description, 50)); ?></td>
-                      <td>
-                        <?php switch($task->status):
-                          case ('pending'): ?>
-                            <span class="badge text-bg-warning">Pending</span>
-                            <?php break; ?>
-                          <?php case ('in_progress'): ?>
-                            <span class="badge text-bg-info">In Progress</span>
-                            <?php break; ?>
-                          <?php case ('completed'): ?>
-                            <span class="badge text-bg-success">Completed</span>
-                            <?php break; ?>
-                          <?php default: ?>
-                            <span class="badge text-bg-secondary"><?php echo e($task->status); ?></span>
-                        <?php endswitch; ?>
-                      </td>
-                      <td class="text-break"><?php echo e($task->due_date ? $task->due_date->format('Y-m-d') : 'No due date'); ?></td>
-                    </tr>
-                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </tbody>
-              </table>
-            <?php endif; ?>
-          </div>
+            
+            <!-- Quick Timeline -->
+            <div class="col-12">
+                <div class="card shadow-sm border-light" style="background: var(--soft-mint);">
+                    <div class="card-body p-4 text-center">
+                        <h6 class="text-mint-text fw-bold mb-3"><?php echo e(__('Need support?')); ?></h6>
+                        <p class="smaller text-mint-text opacity-75 mb-4"><?php echo e(__('Quickly generate a workplace compliance report or contact HR for assistance.')); ?></p>
+                        <a href="<?php echo e(route('reports.create')); ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-soft w-100">
+                            <?php echo e(__('Generate Report')); ?>
+
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <!-- ./card-body -->
-        <?php if($tasks->hasPages()): ?>
-          <div class="d-flex justify-content-center mt-3">
-            <?php echo e($tasks->appends(request()->query())->links()); ?>
-
-          </div>
-        <?php endif; ?>
-        
-      </div>
-      <!-- /.card -->
     </div>
-    <!-- /.col -->
-  </div>
-  <!--end::Row-->
-<?php endif; ?>
-<!--begin::Row-->
-
-<!--end::Row-->
-<!--begin::Row: Quick Actions and Info-->
-<div class="row mt-3">
-  <div class="col-md-4">
-    <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
-    <div class="card m-b-30">
-      <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
-      <div class="card-body">
-        <div class="d-grid gap-2">
-          <a class="btn btn-outline-primary" href="<?php echo e(route('attendance.checkin')); ?>">Attendance: Check In/Out</a>
-          <?php if($user->hasRole('Admin Lokasi') && $user->location_id): ?>
-            <a class="btn btn-outline-secondary" href="<?php echo e(route('locations.settings', $user->location_id)); ?>">My Location Settings</a>
-          <?php endif; ?>
-          <a class="btn btn-outline-info" href="<?php echo e(route('tasks.create')); ?>">Create Task</a>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-  </div>
-  <?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
-  <div class="col-md-8">
-    <div class="card m-b-30">
-      <div class="card-header"><h3 class="card-title">Messages</h3></div>
-      <div class="card-body">
-        <p class="mb-2">Unread: <strong><?php echo e($unreadMessages); ?></strong></p>
-        <a class="btn btn-sm btn-primary" href="<?php echo e(route('messages.index')); ?>">Open Messages</a>
-
-        <?php if(auth()->user()->hasTwoFactorEnabled()): ?>
-            <div class="alert alert-warning mt-3">
-                <strong>Security Recommendation:</strong> Enable two-factor authentication to better protect your account.
-                <a href="<?php echo e(route('2fa.setup')); ?>" class="btn btn-sm btn-warning ms-2">Enable 2FA</a>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-success mt-3">
-                <strong>✓ Two-Factor Authentication Enabled</strong>
-                <small class="d-block">Method: <?php echo e(ucfirst(auth()->user()->two_factor_method)); ?></small>
-                <form action="<?php echo e(route('2fa.disable')); ?>" method="POST" class="d-inline">
-                    <?php echo csrf_field(); ?>
-                    <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
-                            onclick="return confirm('Are you sure you want to disable 2FA?')">Disable 2FA</button>
-                </form>
-            </div>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
 </div>
-<!--end::Row-->
-<?php if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan')): ?>
-<!--begin::Row: Notices-->
-<div class="row mt-3">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header"><h3 class="card-title">Notifikasi Libur / Izin</h3></div>
-      <div class="card-body">
-        <?php if(!empty($todayNotices)): ?>
-          <div class="mb-2">
-            <strong>Hari ini:</strong>
-            <ul class="mb-0">
-              <?php $__currentLoopData = $todayNotices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $n): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <li><?php echo e($n); ?></li>
-              <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </ul>
-          </div>
-        <?php else: ?>
-          <p class="mb-2 text-muted">Tidak ada notifikasi untuk hari ini.</p>
-        <?php endif; ?>
 
-        <?php if(!empty($upcomingNotices)): ?>
-          <div class="mt-2">
-            <strong>Mendatang:</strong>
-            <ul class="mb-0">
-              <?php $__currentLoopData = $upcomingNotices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <li>
-                  <span class="badge text-bg-light"><?php echo e($item['date']); ?></span>
-                  <?php $__currentLoopData = $item['labels']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <span class="badge text-bg-secondary"><?php echo e($label); ?></span>
-                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </li>
-              <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </ul>
-          </div>
-        <?php else: ?>
-          <p class="mb-0 text-muted">Tidak ada notifikasi dalam 14 hari ke depan.</p>
-        <?php endif; ?>
-      </div>
+<!-- Lower Section: Tasks & Schedule -->
+<div class="row g-4 mt-2">
+    <!-- Tasks Overview -->
+    <div class="col-xl-7">
+        <div class="card shadow-sm border-light">
+            <div class="card-header bg-white border-0 p-4 pb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="section-title mb-0"><i class="mdi mdi-checkbox-multiple-marked-circle text-success"></i> <?php echo e(__('Task Pulse')); ?></h5>
+                    <a href="<?php echo e(route('tasks.index')); ?>" class="smaller fw-bold text-primary text-decoration-none"><?php echo e(__('Manage All')); ?> <i class="mdi mdi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="card-body p-4 scroll-body">
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th><?php echo e(__('Task')); ?></th>
+                                <th><?php echo e(__('Assignee')); ?></th>
+                                <th><?php echo e(__('Status')); ?></th>
+                                <th><?php echo e(__('Progress')); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__empty_1 = true; $__currentLoopData = $tasks->take(5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                <tr onclick="window.location='<?php echo e(route('tasks.show', $task)); ?>'" style="cursor: pointer;">
+                                    <td>
+                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 12rem;"><?php echo e($task->title); ?></div>
+                                        <div class="smaller text-muted"><?php echo e($task->due_date ? $task->due_date->diffForHumans() : 'No date'); ?></div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="smaller fw-bold text-dark"><?php echo e(optional($task->assignee)->name ?? 'Unassigned'); ?></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?php echo e($task->status === 'completed' ? 'badge-success' : 'badge-info'); ?> rounded-pill" style="font-size: 0.6rem !important;">
+                                            <?php echo e($task->status); ?>
+
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo e($task->progress ?? 0); ?>%;"></div>
+                                            </div>
+                                            <span class="smaller fw-bold"><?php echo e($task->progress ?? 0); ?>%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted smaller">No active tasks found.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  <!-- /.col -->
+
+    <!-- Calendar Notices -->
+    <div class="col-xl-5">
+        <div class="card shadow-sm border-light h-100">
+            <div class="card-header bg-white border-0 p-4 pb-0">
+                <h5 class="section-title mb-0"><i class="mdi mdi-calendar-text text-warning"></i> <?php echo e(__('Upcoming Notices')); ?></h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="dashboard-list">
+                    <?php $__empty_1 = true; $__currentLoopData = $upcomingNotices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notice): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <div class="p-3 rounded-4 bg-light border border-light d-flex align-items-start gap-3">
+                            <div class="p-2 rounded-3 bg-white border border-light text-center" style="min-width: 50px;">
+                                <div class="smaller fw-bold text-muted"><?php echo e(\Carbon\Carbon::parse($notice['date'])->format('D')); ?></div>
+                                <div class="h5 mb-0 fw-800"><?php echo e(\Carbon\Carbon::parse($notice['date'])->format('d')); ?></div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <?php $__currentLoopData = $notice['labels']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <div class="text-dark fw-bold small"><?php echo e($label); ?></div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <div class="smaller text-muted mt-1"><?php echo e(\Carbon\Carbon::parse($notice['date'])->format('M Y')); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <div class="text-center py-5">
+                            <i class="mdi mdi-calendar-blank-outline fs-1 text-muted opacity-25"></i>
+                            <p class="text-muted smaller mt-2">No upcoming holidays or events.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<!--end::Row-->
-<?php endif; ?>
+
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('scripts'); ?>
-<script src="<?php echo e(asset('NewAsset/assets/plugins/chart.js/Chart.bundle.js')); ?>"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Chart === 'undefined') {
-      return;
-    }
-
-    const metrics = <?php echo json_encode($chartMetrics ?? [], 15, 512) ?>;
-    const totalTasks = Number(metrics.total_tasks || 0);
-    const completedTasks = Number(metrics.completed_tasks || 0);
-    const totalEmployees = Number(metrics.total_employees || 0);
-    const checkedInToday = Number(metrics.checked_in_today || 0);
-    const attendanceTotal = Number(metrics.attendance_total || 0);
-    const totalMasters = Number(metrics.total_masters || 0);
-    const totalDivisions = Number(metrics.total_divisions || 0);
-    const totalMessages = Number(metrics.total_messages || 0);
-    const unreadMessages = Number(metrics.unread_messages || 0);
-    const overtimeHours30d = Number(metrics.overtime_hours_30d || 0);
-    const locationLabels = <?php echo json_encode($locationLabels ?? [], 15, 512) ?>;
-    const employeesByLocation = <?php echo json_encode($employeeCountsByLocation ?? [], 15, 512) ?>;
-    const usersByLocation = <?php echo json_encode($userCountsByLocation ?? [], 15, 512) ?>;
-
-    const completionCtx = document.getElementById('chartTaskCompletion');
-    if (completionCtx) {
-      const remainingTasks = Math.max(totalTasks - completedTasks, 0);
-      new Chart(completionCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Completed', 'Remaining'],
-          datasets: [{
-            data: [completedTasks, remainingTasks],
-            backgroundColor: ['#1abc9c', '#e9ecef'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          cutoutPercentage: 65,
-          legend: { display: false },
-          tooltips: {
-            callbacks: {
-              label: function (tooltipItem, data) {
-                const label = data.labels[tooltipItem.index] || '';
-                const value = data.datasets[0].data[tooltipItem.index] || 0;
-                return label + ': ' + value;
-              }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Main Performance Chart
+        const ctx = document.getElementById('mainDashboardChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Productivity',
+                    data: [65, 78, 90, 85, 95, 40, 30],
+                    borderColor: '#10b981',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: (context) => {
+                        const bg = ctx.createLinearGradient(0, 0, 0, 400);
+                        bg.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
+                        bg.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                        return bg;
+                    },
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#fff',
+                        titleColor: '#0f172a',
+                        bodyColor: '#64748b',
+                        borderColor: '#f1f5f9',
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 4,
+                        cornerRadius: 12,
+                        titleFont: { size: 13, weight: 'bold' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#f1f5f9' },
+                        ticks: { color: '#94a3b8', font: { size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', font: { size: 11 } }
+                    }
+                }
             }
-          }
-        }
-      });
-    }
-
-    const attendanceCtx = document.getElementById('chartAttendanceToday');
-    if (attendanceCtx) {
-      const absentCount = Math.max(attendanceTotal - checkedInToday, 0);
-      new Chart(attendanceCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Checked In', 'Not Yet'],
-          datasets: [{
-            data: [checkedInToday, absentCount],
-            backgroundColor: ['#4d79f6', '#e9ecef'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          cutoutPercentage: 65,
-          legend: { display: false },
-          tooltips: {
-            callbacks: {
-              label: function (tooltipItem, data) {
-                const label = data.labels[tooltipItem.index] || '';
-                const value = data.datasets[0].data[tooltipItem.index] || 0;
-                return label + ': ' + value;
-              }
-            }
-          }
-        }
-      });
-    }
-
-    const tasksCtx = document.getElementById('chartTotalTasks');
-    if (tasksCtx) {
-      new Chart(tasksCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Total', 'Completed'],
-          datasets: [{
-            data: [totalTasks, completedTasks],
-            backgroundColor: ['#f4c166', '#6fd3b3']
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
-            xAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-
-    const mastersCtx = document.getElementById('chartTotalMasters');
-    if (mastersCtx) {
-      new Chart(mastersCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Super Admins'],
-          datasets: [{
-            data: [totalMasters],
-            backgroundColor: '#7c5cff'
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
-            xAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-
-    const unreadCtx = document.getElementById('chartUnreadMessages');
-    if (unreadCtx) {
-      const readCount = Math.max(totalMessages - unreadMessages, 0);
-      new Chart(unreadCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Unread', 'Read'],
-          datasets: [{
-            data: [unreadMessages, readCount],
-            backgroundColor: ['#f6b93b', '#e9ecef'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          cutoutPercentage: 65,
-          legend: { display: false },
-          tooltips: {
-            callbacks: {
-              label: function (tooltipItem, data) {
-                const label = data.labels[tooltipItem.index] || '';
-                const value = data.datasets[0].data[tooltipItem.index] || 0;
-                return label + ': ' + value;
-              }
-            }
-          }
-        }
-      });
-    }
-
-    const employeesByLocationCtx = document.getElementById('chartEmployeesByLocation');
-    if (employeesByLocationCtx) {
-      new Chart(employeesByLocationCtx, {
-        type: 'horizontalBar',
-        data: {
-          labels: locationLabels,
-          datasets: [{
-            data: employeesByLocation,
-            backgroundColor: '#00b5b8'
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            xAxes: [{ ticks: { beginAtZero: true, precision: 0 }, gridLines: { display: true } }],
-            yAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-
-    const usersByLocationCtx = document.getElementById('chartUsersByLocation');
-    if (usersByLocationCtx) {
-      new Chart(usersByLocationCtx, {
-        type: 'horizontalBar',
-        data: {
-          labels: locationLabels,
-          datasets: [{
-            data: usersByLocation,
-            backgroundColor: '#38ada9'
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            xAxes: [{ ticks: { beginAtZero: true, precision: 0 }, gridLines: { display: true } }],
-            yAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-
-    const divisionsCtx = document.getElementById('chartTotalDivisions');
-    if (divisionsCtx) {
-      new Chart(divisionsCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Divisions'],
-          datasets: [{
-            data: [totalDivisions],
-            backgroundColor: '#576574'
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
-            xAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-
-    const overtimeCtx = document.getElementById('chartOvertime30d');
-    if (overtimeCtx) {
-      new Chart(overtimeCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Hours'],
-          datasets: [{
-            data: [overtimeHours30d],
-            backgroundColor: '#f368e0'
-          }]
-        },
-        options: {
-          legend: { display: false },
-          scales: {
-            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }],
-            xAxes: [{ gridLines: { display: false } }]
-          }
-        }
-      });
-    }
-  });
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const recapCard = document.getElementById('monthly-recap-card');
-    if (!recapCard) return;
-
-    const body = document.getElementById('monthly-recap-body');
-    const searchForm = document.getElementById('monthly-recap-search');
-    const tableWrap = document.getElementById('monthly-recap-table');
-    const collapseBtn = recapCard.querySelector('[data-report-toggle="collapse"]');
-    const removeBtn = recapCard.querySelector('[data-report-toggle="remove"]');
-
-    function toggleCollapse() {
-      if (!body) return;
-      const collapsed = body.classList.toggle('d-none');
-      collapseBtn.querySelector('.collapse-icon')?.classList.toggle('d-none', collapsed);
-      collapseBtn.querySelector('.expand-icon')?.classList.toggle('d-none', !collapsed);
-    }
-
-    function removeCard() {
-      recapCard.classList.add('d-none');
-    }
-
-    collapseBtn?.addEventListener('click', toggleCollapse);
-    removeBtn?.addEventListener('click', removeCard);
-
-    recapCard.querySelectorAll('.report-action').forEach(function (actionLink) {
-      actionLink.addEventListener('click', function (e) {
-        e.preventDefault();
-        const action = this.dataset.reportAction;
-        if (action === 'refresh') {
-          window.location.reload();
-        } else if (action === 'clear-search' && searchForm) {
-          const input = searchForm.querySelector('input[name="search"]');
-          if (input) {
-            input.value = '';
-            searchForm.submit();
-          }
-        } else if (action === 'export-csv') {
-          exportTableToCsv();
-        } else if (action === 'print') {
-          window.print();
-        }
-      });
-    });
-
-    function exportTableToCsv() {
-      if (!tableWrap) return;
-      const table = tableWrap.querySelector('table');
-      if (!table) return;
-      let csv = [];
-      table.querySelectorAll('tr').forEach(function (row) {
-        const cols = Array.from(row.querySelectorAll('th,td')).map(function (cell) {
-          return '"' + (cell.innerText || '').replace(/"/g, '""') + '"';
         });
-        csv.push(cols.join(','));
-      });
-      const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'monthly-recap.csv';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-  });
+    });
 </script>
 <?php $__env->stopSection(); ?>
 

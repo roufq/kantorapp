@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <h3 class="mb-1">Detail Tugas Lokasi</h3>
+    <h3 class="mb-1">Location Task Details</h3>
     <p class="text-muted mb-0">{{ $task->title }}</p>
   </div>
-  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
   <div class="col-12">
@@ -35,7 +35,7 @@
             <p><strong>Due Date:</strong> {{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
             <p><strong>Assigned By:</strong> {{ optional($task->assigner)->name }}</p>
             <p><strong>Assigned To:</strong> {{ optional($task->assignee)->name }}</p>
-            <p class="text-muted mt-2">Proses approval progres karyawan melalui halaman <a href="{{ route('tasks.progress.approvals') }}">Approval Progress</a>. Bukti progres dikirim via link.</p>
+            <p class="text-muted mt-2">Employee progress approval process via <a href="{{ route('tasks.progress.approvals') }}">Approval Progress</a> page. Progress evidence is sent via link.</p>
           </div>
         </div>
       </div>

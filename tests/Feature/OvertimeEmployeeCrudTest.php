@@ -21,8 +21,8 @@ class OvertimeEmployeeCrudTest extends TestCase
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'Admin Lokasi', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'Karyawan', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'Location Admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'Employee', 'guard_name' => 'web']);
     }
 
     private function createEmployee(): User
@@ -35,7 +35,7 @@ class OvertimeEmployeeCrudTest extends TestCase
         $user = User::factory()->create([
             'location_id' => $location->id,
         ]);
-        $user->assignRole('Karyawan');
+        $user->assignRole('Employee');
 
         return $user;
     }
@@ -45,7 +45,7 @@ class OvertimeEmployeeCrudTest extends TestCase
         return User::factory()->count($count)->create([
             'location_id' => $location->id,
         ])->each(function (User $user) {
-            $user->assignRole('Admin Lokasi');
+            $user->assignRole('Location Admin');
         });
     }
 
@@ -61,7 +61,7 @@ class OvertimeEmployeeCrudTest extends TestCase
         $employee = $this->createEmployee();
         $this->createLocationAdmins(Location::find($employee->location_id), 2);
 
-        $this->assertTrue($employee->hasRole('Karyawan'));
+        $this->assertTrue($employee->hasRole('Employee'));
 
         $response = $this->actingAs($employee)->get(route('overtime.create'));
 

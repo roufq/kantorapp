@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tambah User</h3>
-        <p class="text-muted mb-0">Buat akun login untuk karyawan yang sudah terdaftar.</p>
+        <h3 class="mb-1">Add User</h3>
+        <p class="text-muted mb-0">Create a login account for a registered employee.</p>
     </div>
-    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -50,7 +50,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="location_id" class="form-label">Location</label>
-                        @if(auth()->user()->hasRole('Admin Lokasi'))
+                        @if(auth()->user()->hasRole('Location Admin'))
                             <input type="text" class="form-control" value="{{ optional(auth()->user()->location)->name }}" disabled>
                             <input type="hidden" name="location_id" value="{{ auth()->user()->location_id }}">
                         @else
@@ -62,7 +62,7 @@
                             </select>
                         @endif
                     </div>
-                    <button type="submit" class="btn btn-primary">Create Employee</button>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
 

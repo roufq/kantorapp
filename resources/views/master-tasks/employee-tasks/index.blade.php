@@ -2,8 +2,8 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tugas Karyawan</h3>
-        <p class="text-muted mb-0">Daftar tugas yang ditugaskan ke karyawan.</p>
+        <h3 class="mb-1">Employee Tasks</h3>
+        <p class="text-muted mb-0">List of tasks assigned to employees.</p>
     </div>
     <a href="{{ route('master-tasks.create') }}" class="btn btn-primary btn-sm">Assign Task</a>
 </div>

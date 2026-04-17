@@ -20,7 +20,7 @@ class ReportController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             $query = Report::with(['reporter', 'assignedAdmin', 'approvals.approver']);
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $locId = $user->location_id;
             $query = Report::where(function ($q) use ($user, $locId) {
                 $q->where('location_id', $locId)
@@ -51,7 +51,7 @@ class ReportController extends Controller
     public function create()
     {
         $user = Auth::user();
-        abort_unless($user->hasRole(['Super Admin', 'Admin Lokasi', 'Karyawan']), 403);
+        abort_unless($user->hasRole(['Super Admin', 'Location Admin', 'Employee']), 403);
 
         $locations = collect();
         if ($user->hasRole('Super Admin')) {
@@ -65,16 +65,16 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        abort_unless($user->hasRole(['Super Admin', 'Admin Lokasi', 'Karyawan']), 403, 'Tidak diizinkan membuat laporan.');
+        abort_unless($user->hasRole(['Super Admin', 'Location Admin', 'Employee']), 403, 'Not authorized membuat report.');
 
         $rules = [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'location_id' => 'nullable|exists:locations,id',
-            'attachments.*' => 'file|max:10240', // 10 MB per file
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,txt|max:10240', // 10 MB per file
         ];
 
-        if ($user->hasRole('Karyawan') || $user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Employee') || $user->hasRole('Location Admin')) {
             // force to their location
             $request->merge(['location_id' => $user->location_id]);
         }
@@ -85,7 +85,7 @@ class ReportController extends Controller
         $assignedAdmin = null;
         if ($locationId) {
             $assignedAdmin = User::where('location_id', $locationId)
-                ->role('Admin Lokasi')
+                ->role('Location Admin')
                 ->first();
         }
 
@@ -101,7 +101,7 @@ class ReportController extends Controller
 
         // Build approval chain
         $step = 1;
-        if ($user->hasRole('Karyawan') && $assignedAdmin) {
+        if ($user->hasRole('Employee') && $assignedAdmin) {
             ReportApproval::create([
                 'report_id' => $report->id,
                 'approver_id' => $assignedAdmin->id,
@@ -133,7 +133,7 @@ class ReportController extends Controller
             }
         }
 
-        return redirect()->route('reports.show', $report)->with('success', 'Laporan berhasil dibuat.');
+        return redirect()->route('reports.show', $report)->with('success', 'Report berhasil dibuat.');
     }
 
     public function show(Report $report)
@@ -151,7 +151,7 @@ class ReportController extends Controller
         $this->authorizeManage($report);
 
         if ($report->status !== 'pending') {
-            return redirect()->route('reports.show', $report)->withErrors('Laporan hanya bisa diedit saat status pending.');
+            return redirect()->route('reports.show', $report)->withErrors('Report hanya bisa diedit saat status pending.');
         }
 
         return view('reports.edit', compact('report'));
@@ -162,13 +162,13 @@ class ReportController extends Controller
         $this->authorizeManage($report);
 
         if ($report->status !== 'pending') {
-            return redirect()->route('reports.show', $report)->withErrors('Laporan hanya bisa diedit saat status pending.');
+            return redirect()->route('reports.show', $report)->withErrors('Report hanya bisa diedit saat status pending.');
         }
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'attachments.*' => 'file|max:10240',
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,txt|max:10240',
         ]);
 
         $report->update([
@@ -190,7 +190,7 @@ class ReportController extends Controller
             }
         }
 
-        return redirect()->route('reports.show', $report)->with('success', 'Laporan berhasil diperbarui.');
+        return redirect()->route('reports.show', $report)->with('success', 'Report berhasil diperbarui.');
     }
 
     public function destroy(Report $report)
@@ -198,12 +198,12 @@ class ReportController extends Controller
         $this->authorizeManage($report);
 
         if ($report->status !== 'pending') {
-            return redirect()->route('reports.show', $report)->withErrors('Laporan hanya bisa dihapus saat status pending.');
+            return redirect()->route('reports.show', $report)->withErrors('Report hanya bisa dihapus saat status pending.');
         }
 
         $report->delete();
 
-        return redirect()->route('reports.index')->with('success', 'Laporan dihapus.');
+        return redirect()->route('reports.index')->with('success', 'Report dihapus.');
     }
 
     public function approve(Request $request, Report $report)
@@ -216,7 +216,7 @@ class ReportController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $role = $user->hasRole('Admin Lokasi') ? 'admin_lokasi' : 'super_admin';
+        $role = $user->hasRole('Location Admin') ? 'admin_lokasi' : 'super_admin';
         $approval = ReportApproval::where('report_id', $report->id)
             ->where('approver_role', $role)
             ->where('status', 'pending')
@@ -224,7 +224,7 @@ class ReportController extends Controller
             ->firstOrFail();
 
         if ($role === 'admin_lokasi' && $approval->approver_id && (int)$approval->approver_id !== (int)$user->id) {
-            abort(403, 'Anda bukan approver untuk laporan ini.');
+            abort(403, 'Anda bukan approver untuk report ini.');
         }
 
         $before = $approval->only(['status', 'notes', 'decided_at', 'approver_id']);
@@ -245,7 +245,7 @@ class ReportController extends Controller
             'report_id' => $report->id,
         ]);
 
-        return redirect()->route('reports.show', $report)->with('success', 'Status laporan diperbarui.');
+        return redirect()->route('reports.show', $report)->with('success', 'Status report diperbarui.');
     }
 
     public function downloadAttachment(ReportAttachment $attachment)
@@ -268,7 +268,7 @@ class ReportController extends Controller
             return;
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             if ($report->location_id && (int)$report->location_id === (int)$user->location_id) {
                 return;
             }
@@ -281,7 +281,7 @@ class ReportController extends Controller
             return;
         }
 
-        abort(403, 'Tidak diizinkan mengakses laporan ini.');
+        abort(403, 'Not authorized mengakses report ini.');
     }
 
     private function authorizeManage(Report $report): void
@@ -292,14 +292,14 @@ class ReportController extends Controller
             return;
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             if (($report->location_id && (int)$report->location_id === (int)$user->location_id) ||
                 ($report->assigned_admin_id && (int)$report->assigned_admin_id === (int)$user->id)) {
                 return;
             }
         }
 
-        abort(403, 'Tidak diizinkan mengelola laporan ini.');
+        abort(403, 'Not authorized mengelola report ini.');
     }
 
     private function authorizeApprove(Report $report, $user): void
@@ -310,7 +310,7 @@ class ReportController extends Controller
         }
 
         if ($pending->approver_role === 'admin_lokasi') {
-            abort_unless($user->hasRole('Admin Lokasi'), 403, 'Hanya Admin Lokasi yang dapat ACC tahap ini.');
+            abort_unless($user->hasRole('Location Admin'), 403, 'Admin only Lokasi yang dapat ACC tahap ini.');
             if ($pending->approver_id && (int)$pending->approver_id !== (int)$user->id) {
                 abort(403, 'Anda bukan approver tahap ini.');
             }

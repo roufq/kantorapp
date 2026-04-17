@@ -25,14 +25,14 @@ class TaskController extends Controller
         if ($user->hasRole('Super Admin')) {
             // Super Admin: all tasks
             $query = Task::with('assignee', 'assigner');
-        } elseif ($user->hasRole('Admin Lokasi')) {
-            // Admin Lokasi: tasks for users in same location
+        } elseif ($user->hasRole('Location Admin')) {
+            // Location Admin: tasks for users in same location
             $locationId = $user->location_id;
             $query = Task::whereHas('assignee', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
             })->with('assignee', 'assigner');
         } else {
-            // Karyawan: own tasks
+            // Employee: own tasks
             $query = Task::where('assigned_to', $user->id)->with('assignee', 'assigner');
         }
 
@@ -102,7 +102,7 @@ class TaskController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']);
             $users = User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                $q->whereIn('name', ['Employee', 'Location Admin']);
             })->get();
             // include self if not in list
             if (!$users->contains('id', $user->id)) {
@@ -110,11 +110,11 @@ class TaskController extends Controller
             }
             [$catalogs, $userJobdeskMap] = $this->resolveCatalogsForUsers($users);
             return view('tasks.create', compact('users', 'catalogs', 'userJobdeskMap', 'locations'));
-        } elseif ($user->hasRole('Admin Lokasi')) {
-            // Admin Lokasi: bisa assign ke Karyawan atau Admin Lokasi di lokasi yang sama (atau diri sendiri)
+        } elseif ($user->hasRole('Location Admin')) {
+            // Location Admin: bisa assign ke Employee atau Location Admin di lokasi yang sama (atau diri sendiri)
             $users = User::where('location_id', $user->location_id)
                 ->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })
                 ->get();
             if (!$users->contains('id', $user->id)) {
@@ -132,7 +132,7 @@ class TaskController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('Super Admin') || $user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Super Admin') || $user->hasRole('Location Admin')) {
             $request->validate([
                 'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
@@ -154,15 +154,15 @@ class TaskController extends Controller
                 return back()->withErrors(['task_catalog_id' => 'Task catalog tidak aktif.'])->withInput();
             }
             if (!$this->userHasJobdesk($assignee, $catalog->jobdesk_id)) {
-                return back()->withErrors(['task_catalog_id' => 'Jobdesk task tidak sesuai dengan assignment karyawan.'])->withInput();
+                return back()->withErrors(['task_catalog_id' => 'Jobdesk task tidak sesuai dengan assignment employee.'])->withInput();
             }
-            if ($user->hasRole('Admin Lokasi')) {
-                // Admin Lokasi: assign ke Karyawan/Admin Lokasi di lokasi yg sama atau diri sendiri
+            if ($user->hasRole('Location Admin')) {
+                // Location Admin: assign ke Employee/Location Admin di lokasi yg sama atau diri sendiri
                 if ((int)$request->assigned_to !== (int)$user->id) {
                     $valid = User::where('id', $request->assigned_to)
                         ->where('location_id', $user->location_id)
                         ->whereHas('roles', function ($q) {
-                            $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                            $q->whereIn('name', ['Employee', 'Location Admin']);
                         })
                         ->exists();
                     if (!$valid) {
@@ -170,20 +170,20 @@ class TaskController extends Controller
                     }
                 }
             } elseif ($user->hasRole('Super Admin')) {
-                // Super Admin can assign to Karyawan/Admin Lokasi or themselves
+                // Super Admin can assign to Employee/Location Admin or themselves
                 if ((int)$request->assigned_to !== (int)$user->id) {
                     $valid = User::whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                         ->where('id', $request->assigned_to)
                         ->exists();
                     if (!$valid) {
-                        abort(403, 'Target must be Karyawan/Admin Lokasi or yourself');
+                        abort(403, 'Target must be Employee/Location Admin or yourself');
                     }
                 }
             }
 
-            $employee = $assignee->employee ?? $assignee->karyawan;
+            $employee = $assignee->employee ?? $assignee->employee;
             $department = $employee?->departemen;
             $approvalValue = $catalog->unit === 'minutes'
                 ? (int) ($request->duration_minutes ?? $catalog->value)
@@ -267,14 +267,14 @@ class TaskController extends Controller
         if ($user->hasRole('Super Admin')) {
             return view('tasks.show', compact('task', 'progressUpdates'));
         }
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
                 return view('tasks.show', compact('task', 'progressUpdates'));
             }
             abort(403, 'Not authorized for this task');
         }
-        // Karyawan: only own tasks
+        // Employee: only own tasks
         if ($task->assigned_to !== $user->id) {
             abort(403, 'You can only access your own tasks');
         }
@@ -288,19 +288,19 @@ class TaskController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             $users = User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                $q->whereIn('name', ['Employee', 'Location Admin']);
             })->get();
             if (!$users->contains('id', $user->id)) {
                 $users->push($user);
             }
             return view('tasks.edit', compact('task', 'users', 'canSelfEditRejected'));
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
-                // Admin Lokasi boleh pilih Karyawan/Admin Lokasi di lokasi yang sama
+                // Location Admin boleh pilih Employee/Location Admin di lokasi yang sama
                 $users = User::where('location_id', $user->location_id)
                     ->whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                     ->get();
                 if (!$users->contains('id', $user->id)) {
@@ -314,9 +314,9 @@ class TaskController extends Controller
                 abort(403, 'You can only edit your own tasks');
             }
             if (!$canSelfEditRejected) {
-                return redirect()->route('tasks.show', $task)->with('info', 'Gunakan form update progres di halaman detail tugas.');
+                return redirect()->route('tasks.show', $task)->with('info', 'Gunakan form update progres di halaman detail task.');
             }
-            // Karyawan boleh mengedit jika tugasnya ditolak, untuk perbaikan
+            // Employee boleh mengedit jika tasknya ditolak, untuk perbaikan
             $users = collect([$user]);
             return view('tasks.edit', compact('task', 'users', 'canSelfEditRejected'));
         }
@@ -327,12 +327,12 @@ class TaskController extends Controller
         $user = Auth::user();
         $isSelfRejected = $task->assigned_to === $user->id && $task->approval_status === 'rejected';
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi') && !$isSelfRejected) {
-            abort(403, 'Perubahan detail tugas hanya oleh admin.');
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Location Admin') && !$isSelfRejected) {
+            abort(403, 'Perubahan detail task hanya oleh admin.');
         }
 
-        // Jalur khusus karyawan memperbaiki tugas yang ditolak
-        if ($isSelfRejected && !$user->hasAnyRole(['Super Admin', 'Admin Lokasi'])) {
+        // Jalur khusus employee memperbaiki task yang ditolak
+        if ($isSelfRejected && !$user->hasAnyRole(['Super Admin', 'Location Admin'])) {
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -436,10 +436,10 @@ class TaskController extends Controller
 
             $task->applyProgress((int) $task->progress);
 
-            return redirect()->route('tasks.show', $task)->with('success', 'Tugas direvisi dan dikirim ulang untuk persetujuan.');
+            return redirect()->route('tasks.show', $task)->with('success', 'Task direvisi dan dikirim ulang untuk persetujuan.');
         }
 
-        // Super Admin/Admin Lokasi can update task metadata (progress via progress updates)
+        // Super Admin/Location Admin can update task metadata (progress via progress updates)
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -453,7 +453,7 @@ class TaskController extends Controller
             'slots.*.order' => 'nullable|integer|min:0|max:255',
         ]);
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             // Ensure current task and target assignee are in the same location
             $assignee = $task->assignee;
             if (!$assignee || $assignee->location_id !== $user->location_id) {
@@ -463,7 +463,7 @@ class TaskController extends Controller
                 $valid = User::where('id', $request->assigned_to)
                     ->where('location_id', $user->location_id)
                     ->whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                     ->exists();
                 if (!$valid) {
@@ -473,12 +473,12 @@ class TaskController extends Controller
         } elseif ($user->hasRole('Super Admin')) {
             if ((int)$request->assigned_to !== (int)$user->id) {
                 $valid = User::whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                    $q->whereIn('name', ['Employee', 'Location Admin']);
                 })
                     ->where('id', $request->assigned_to)
                     ->exists();
                 if (!$valid) {
-                    abort(403, 'Target must be Karyawan/Admin Lokasi or yourself');
+                    abort(403, 'Target must be Employee/Location Admin or yourself');
                 }
             }
         }
@@ -568,7 +568,7 @@ class TaskController extends Controller
                 }
             }
             $task->delete();
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
                 if ($task->photo_path) {
@@ -648,7 +648,7 @@ class TaskController extends Controller
             return back()->withErrors(['task_catalog_id' => 'Jobdesk task tidak sesuai dengan assignment Anda.'])->withInput();
         }
 
-        $employee = $user->employee ?? $user->karyawan;
+        $employee = $user->employee ?? $user->employee;
         $department = $employee?->departemen;
         $approvalValue = $catalog->unit === 'minutes'
             ? (int) ($request->duration_minutes ?? $catalog->value)
@@ -708,7 +708,7 @@ class TaskController extends Controller
         }
 
         $message = $approvalMeta['approval_level'] === 'location_admin'
-            ? 'Task dikirim ke Admin Lokasi untuk persetujuan.'
+            ? 'Task dikirim ke Location Admin untuk persetujuan.'
             : ($approvalMeta['requires_approval'] ? 'Task dikirim ke Super Admin untuk persetujuan.' : 'Task created for yourself!');
 
         return redirect()->route('tasks.index')->with('success', $message);
@@ -721,7 +721,7 @@ class TaskController extends Controller
         $userEmployeeMap = [];
 
         foreach ($users as $u) {
-            $employeeId = $u->employee_id ?: $u->karyawan_id;
+            $employeeId = $u->employee_id ?: $u->employee_id;
             if ($employeeId) {
                 $employeeIds[] = $employeeId;
                 $userEmployeeMap[$u->id] = $employeeId;
@@ -754,7 +754,7 @@ class TaskController extends Controller
 
     private function resolveUserJobdeskIds(User $user): array
     {
-        $employeeId = $user->employee_id ?: $user->karyawan_id;
+        $employeeId = $user->employee_id ?: $user->employee_id;
         if (!$employeeId) {
             return [];
         }
@@ -771,7 +771,7 @@ class TaskController extends Controller
 
     private function userHasJobdesk(User $user, int $jobdeskId): bool
     {
-        $employeeId = $user->employee_id ?: $user->karyawan_id;
+        $employeeId = $user->employee_id ?: $user->employee_id;
         if (!$employeeId) {
             return false;
         }
@@ -787,7 +787,7 @@ class TaskController extends Controller
     private function ensureCanApproveCreation(Task $task): void
     {
         if (!$task->requires_approval || $task->approval_status !== 'pending') {
-            abort(403, 'Tugas ini tidak membutuhkan persetujuan atau sudah diproses.');
+            abort(403, 'Task ini tidak membutuhkan persetujuan atau sudah diproses.');
         }
 
         $user = Auth::user();
@@ -803,7 +803,7 @@ class TaskController extends Controller
             if ($user->hasRole('Super Admin')) {
                 return;
             }
-            if ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id) {
+            if ($user->hasRole('Location Admin') && optional($task->assignee)->location_id === $user->location_id) {
                 return;
             }
         }
@@ -832,7 +832,7 @@ class TaskController extends Controller
             $task->assignee->notify(new TaskApprovalNotification($task, 'approved'));
         }
 
-        return back()->with('success', 'Tugas disetujui.');
+        return back()->with('success', 'Task disetujui.');
     }
 
     public function rejectCreation(Request $request, Task $task)
@@ -880,13 +880,13 @@ class TaskController extends Controller
             $task->assignee->notify(new TaskApprovalNotification($task, 'rejected'));
         }
 
-        return back()->with('success', 'Tugas ditolak.');
+        return back()->with('success', 'Task ditolak.');
     }
 
     public function downloadPhoto(Task $task)
     {
         $user = Auth::user();
-        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id)) {
+        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Location Admin') && optional($task->assignee)->location_id === $user->location_id)) {
             if (!$task->photo_path || !Storage::disk('public')->exists($task->photo_path)) {
                 abort(404);
             }
@@ -898,7 +898,7 @@ class TaskController extends Controller
     public function downloadDocument(Task $task)
     {
         $user = Auth::user();
-        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id)) {
+        if ($user->hasRole('Super Admin') || $task->assigned_to === $user->id || ($user->hasRole('Location Admin') && optional($task->assignee)->location_id === $user->location_id)) {
             if (!$task->document_path || !Storage::disk('public')->exists($task->document_path)) {
                 abort(404);
             }

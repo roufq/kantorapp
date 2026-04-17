@@ -1,140 +1,176 @@
 @extends('layouts.appnew')
+
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-  <div>
-    <h3 class="mb-1">Hari Libur</h3>
-    <p class="text-muted mb-0">Kelola daftar hari libur nasional maupun lokal.</p>
-  </div>
-</div>
-<div class="row">
-  <div class="col-12 mb-3">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title">Tambah Holiday</h3>
-        <form method="GET" action="{{ route('holidays.index') }}" class="d-flex gap-2">
-          <select name="type" class="form-select form-select-sm" style="width:auto">
-            <option value="">Jenis: Semua</option>
-            <option value="national" @selected(request('type')==='national')>Nasional</option>
-            <option value="local" @selected(request('type')==='local')>Lokal</option>
-          </select>
-          @if(auth()->user()->hasRole('Super Admin'))
-          <select name="location_id" class="form-select form-select-sm" style="width:auto">
-            <option value="">Lokasi: Semua</option>
-            @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
-              <option value="{{ $loc->id }}" @selected(request('location_id')==$loc->id)>{{ $loc->name }}</option>
-            @endforeach
-          </select>
-          @endif
-          <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto"/>
-          <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto"/>
-          <button class="btn btn-sm btn-outline-primary" type="submit">Filter</button>
-        </form>
+<div class="content-wrapper">
+  <div class="content pt-4">
+    <div class="container-fluid">
+      <div class="row mb-5 align-items-center">
+        <div class="col-lg-5">
+          <h1 class="fw-bold mb-1" style="font-size: 2.2rem; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ __('Holiday Calendar') }}
+          </h1>
+          <p class="text-muted mb-0" style="font-size: 1.1rem; opacity: 0.8;">{{ __('Schedule observed national holidays and regional closures.') }}</p>
+        </div>
+        <div class="col-lg-7 text-lg-end mt-4 mt-lg-0">
+          <form method="GET" action="{{ route('holidays.index') }}" class="d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
+            <select name="type" class="form-select form-select-sm rounded-pill px-4 border-light shadow-soft fw-bold" style="width:auto">
+              <option value="">{{ __('Any Category') }}</option>
+              <option value="national" @selected(request('type')==='national')>{{ __('National Only') }}</option>
+              <option value="local" @selected(request('type')==='local')>{{ __('Regional Only') }}</option>
+            </select>
+            
+            @if(auth()->user()->hasRole('Super Admin'))
+              <select name="location_id" class="form-select form-select-sm rounded-pill px-4 border-light shadow-soft fw-bold" style="width:auto">
+                <option value="">{{ __('All Locations') }}</option>
+                @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
+                  <option value="{{ $loc->id }}" @selected(request('location_id') == $loc->id)>{{ $loc->name }}</option>
+                @endforeach
+              </select>
+            @endif
+
+            <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-soft" type="submit">{{ __('Filter') }}</button>
+            <a href="{{ route('holidays.index') }}" class="btn btn-light rounded-pill px-3 fw-bold border text-muted" title="{{ __('Reset Filters') }}">
+                <i class="mdi mdi-refresh"></i>
+            </a>
+          </form>
+        </div>
       </div>
-      <div class="card-body">
-        @if ($errors->any())
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-              @endforeach
-            </ul>
-          </div>
-        @endif
-        @if (session('success'))
-          <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-        <form method="POST" action="{{ route('holidays.store') }}" class="row g-2">
-          @csrf
-          <div class="col-md-4">
-            <label class="form-label">Tanggal</label>
-            <input type="date" name="date" class="form-control" required />
-          </div>
-          <div class="col-md-8">
-            <label class="form-label">Nama Libur</label>
-            <input type="text" name="name" class="form-control" placeholder="Contoh: Hari Kemerdekaan" required />
-          </div>
-          @if(auth()->user()->hasRole('Super Admin'))
-          <div class="col-md-4">
-            <div class="form-check mt-4">
-              <input class="form-check-input" type="checkbox" name="is_national" id="is_national" />
-              <label class="form-check-label" for="is_national">Libur Nasional</label>
+
+      <div class="row g-4 mb-5">
+        <!-- Add Holiday Form -->
+        <div class="col-xl-4 col-lg-5">
+          <div class="card border-0 shadow-soft rounded-5 sticky-top bg-white" style="top: 20px;">
+            <div class="card-body p-5">
+                <h5 class="text-dark fw-bold mb-4 d-flex align-items-center">
+                  <i class="mdi mdi-calendar-plus text-primary me-2 fs-4"></i>
+                  {{ __('Register New Holiday') }}
+                </h5>
+
+                @if ($errors->any())
+                  <div class="alert alert-danger border-0 rounded-4 p-3 mb-4 shadow-sm">
+                    <ul class="mb-0 small fw-bold">
+                      @foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach
+                    </ul>
+                  </div>
+                @endif
+
+                <form method="POST" action="{{ route('holidays.store') }}">
+                  @csrf
+                  <div class="mb-4">
+                    <label class="form-label text-muted status-badge mb-2 d-block ms-1">{{ __('Observed Date') }}</label>
+                    <input type="date" name="date" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" required />
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="form-label text-muted status-badge mb-2 d-block ms-1">{{ __('Event Description') }}</label>
+                    <input type="text" name="name" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" placeholder="{{ __('e.g. Lunar New Year') }}" required />
+                  </div>
+
+                  @if(auth()->user()->hasRole('Super Admin'))
+                    <div class="mb-4">
+                      <label class="form-label text-muted status-badge mb-2 d-block ms-1">{{ __('Targeted Deployment Scope') }}</label>
+                      <select name="scope" class="form-select rounded-pill px-4 border-light shadow-none fw-bold">
+                        <option value="national">🌍 {{ __('All Operational Sites (National)') }}</option>
+                        @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
+                          <option value="{{ $loc->id }}">📍 {{ $loc->name }}</option>
+                        @endforeach
+                      </select>
+                      <div class="smallest text-muted mt-2 fw-medium italic ps-1">* {{ __('Select "All Sites" to commit globally.') }}</div>
+                    </div>
+                  @else
+                    <div class="mb-4 p-3 bg-light bg-opacity-50 rounded-4 border border-light d-flex align-items-center justify-content-between">
+                       <span class="text-muted status-badge">{{ __('LOCATION SCOPE') }}</span>
+                       <span class="badge badge-indigo border-0">{{ auth()->user()->location->name ?? 'Primary Site' }}</span>
+                    </div>
+                  @endif
+
+                  <button type="submit" class="btn btn-primary rounded-pill w-100 py-3 fw-bold shadow-soft mt-3">
+                    <i class="mdi mdi-content-save-check-outline me-2"></i>{{ __('Commit to Calendar') }}
+                  </button>
+                </form>
             </div>
           </div>
-          <div class="col-md-8">
-            <label class="form-label">Location (Opsional untuk non-nasional)</label>
-            <select name="location_id" id="location_id" class="form-select">
-              <option value="">- none - (nasional)</option>
-              @foreach(\App\Models\Location::orderBy('name')->get() as $loc)
-                <option value="{{ $loc->id }}">{{ $loc->name }}</option>
-              @endforeach
-            </select>
+        </div>
+
+        <!-- Holiday List -->
+        <div class="col-xl-8 col-lg-7">
+          <div class="card border-0 shadow-soft rounded-5 overflow-hidden h-100 bg-white">
+            <div class="card-header border-bottom border-light p-4 bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 text-dark fw-bold"><i class="mdi mdi-format-list-bulleted text-info me-2"></i>{{ __('Programmed Occasions') }}</h5>
+                <span class="badge badge-mint border-0 status-badge shadow-none">{{ $holidays->total() ?? 0 }} entries</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0" style="min-width: 700px;">
+                        <thead class="bg-light bg-opacity-50">
+                            <tr>
+                                <th class="ps-4 py-3 border-0 status-badge text-muted">ID</th>
+                                <th class="py-3 border-0 status-badge text-muted">{{ __('Chronology') }}</th>
+                                <th class="py-3 border-0 status-badge text-muted">{{ __('Event Framework') }}</th>
+                                <th class="py-3 border-0 status-badge text-muted">{{ __('Classification') }}</th>
+                                <th class="pe-4 text-end py-3 border-0 status-badge text-muted">{{ __('Operations') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($holidays as $h)
+                                <tr class="transition-base">
+                                    <td class="ps-4 text-muted fw-bold smallest" style="width: 60px;">{{ $loop->iteration + (method_exists($holidays,'currentPage') ? ($holidays->currentPage()-1)*$holidays->perPage() : 0) }}</td>
+                                    <td>
+                                        <div class="text-dark fw-800 smaller">{{ $h->date->format('d M Y') }}</div>
+                                        <div class="text-muted smallest fw-bold text-uppercase letter-spacing-1">{{ $h->date->format('l') }}</div>
+                                    </td>
+                                    <td><span class="text-dark fw-bold smaller">{{ $h->name }}</span></td>
+                                    <td>
+                                        <span class="badge {{ $h->is_national ? 'badge-sky' : 'badge-honey' }} border-0 px-3 py-1 fw-bold status-badge">
+                                            {{ $h->is_national ? __('National') : __('Regional') }}
+                                        </span>
+                                        @if(!$h->is_national)
+                                            <div class="smallest text-muted mt-1 fw-bold px-1"><i class="mdi mdi-map-marker-outline me-1"></i>{{ optional(\App\Models\Location::find($h->location_id))->name }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="pe-4 text-end">
+                                        <form method="POST" action="{{ route('holidays.destroy', $h) }}" class="d-inline" onsubmit="return confirm('{{ __('Are you sure?') }}')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-light text-dark border bg-white rounded-pill px-3 fw-bold shadow-soft smallest">
+                                                <i class="mdi mdi-trash-can-outline text-danger me-1"></i>{{ __('Void') }}
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="py-5 opacity-25">
+                                            <i class="mdi mdi-calendar-blank fs-1 d-block mb-3"></i>
+                                            <p class="mb-0 fw-bold">{{ __('No scheduled events in this operational scope.') }}</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @if(method_exists($holidays, 'links'))
+                <div class="card-footer bg-white border-top border-light p-4 d-flex justify-content-end">
+                    {{ $holidays->links() }}
+                </div>
+            @endif
           </div>
-          @else
-            <div class="col-md-12 small text-muted">Admin Lokasi: Holiday akan tersimpan untuk lokasi Anda.</div>
-          @endif
-          <div class="col-12">
-            <button type="submit" class="btn btn-primary">Simpan</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header"><h3 class="card-title">Daftar Holiday</h3></div>
-      <div class="card-body table-responsive">
-        <table class="table table-sm table-bordered">
-          <thead>
-            <tr>
-              <th style="width:50px">No</th><th>Tanggal</th><th>Nama</th><th>Jenis</th><th>Lokasi</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($holidays as $h)
-            <tr>
-              <td>{{ $loop->iteration + (method_exists($holidays,'currentPage') ? ($holidays->currentPage()-1)*$holidays->perPage() : 0) }}</td>
-              <td>{{ $h->date->format('Y-m-d') }}</td>
-              <td>{{ $h->name }}</td>
-              <td>{{ $h->is_national ? 'Nasional' : 'Lokal' }}</td>
-              <td>{{ $h->is_national ? 'Semua Lokasi' : (optional(\App\Models\Location::find($h->location_id))->name ?? '-') }}</td>
-              <td>
-                <form method="POST" action="{{ route('holidays.destroy', $h) }}" onsubmit="return confirm('Hapus holiday ini?')">
-                  @csrf @method('DELETE')
-                  <button class="btn btn-sm btn-danger">Hapus</button>
-                </form>
-              </td>
-            </tr>
-            @empty
-            <tr><td colspan="5" class="text-center">Belum ada data</td></tr>
-            @endforelse
-          </tbody>
-        </table>
-        @if(method_exists($holidays, 'links'))
-          <div class="mt-2">{{ $holidays->links() }}</div>
-        @endif
+        </div>
       </div>
     </div>
   </div>
 </div>
-@endsection
 
-@section('scripts')
-<script>
-  document.addEventListener('DOMContentLoaded', function(){
-    const national = document.getElementById('is_national');
-    const loc = document.getElementById('location_id');
-    if (national && loc) {
-      function toggle(){
-        if (national.checked) {
-          loc.value = '';
-          loc.setAttribute('disabled', 'disabled');
-        } else {
-          loc.removeAttribute('disabled');
-        }
-      }
-      national.addEventListener('change', toggle);
-      toggle();
-    }
-  });
-  </script>
+<style>
+    .status-badge { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05rem; text-transform: uppercase; }
+    .smaller { font-size: 0.85rem; }
+    .smallest { font-size: 0.7rem; }
+    .fw-800 { font-weight: 800; }
+    .letter-spacing-1 { letter-spacing: 0.5px; }
+    .shadow-soft { box-shadow: 0 10px 40px rgba(0,0,0,0.04) !important; }
+    .transition-base { transition: all 0.2s ease; }
+    tr.transition-base:hover { background-color: rgba(248, 250, 252, 0.8); }
+</style>
 @endsection

@@ -2,8 +2,8 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tugas Saya</h3>
-        <p class="text-muted mb-0">Daftar tugas yang Anda buat atau kerjakan.</p>
+        <h3 class="mb-1">My Tasks</h3>
+        <p class="text-muted mb-0">List of tasks you created or are working on.</p>
     </div>
     <a href="{{ route('master-tasks.create.self') }}" class="btn btn-primary btn-sm">Create Task</a>
 </div>

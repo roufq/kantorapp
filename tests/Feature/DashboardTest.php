@@ -28,13 +28,13 @@ class DashboardTest extends TestCase
 
         // Users
         $admin = User::factory()->create(['location_id' => $l1->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
         $u1 = User::factory()->create(['location_id' => $l1->id]);
-        $u1->assignRole('Karyawan');
+        $u1->assignRole('Employee');
         $u2 = User::factory()->create(['location_id' => $l1->id]);
-        $u2->assignRole('Karyawan');
+        $u2->assignRole('Employee');
         $u3 = User::factory()->create(['location_id' => $l2->id]);
-        $u3->assignRole('Karyawan');
+        $u3->assignRole('Employee');
 
         // Tasks: for L1 -> 2 total, 1 completed; for L2 -> 1 completed
         Task::create(['title' => 't1', 'description' => 'd', 'assigned_by' => $admin->id, 'assigned_to' => $u1->id, 'status' => 'completed']);

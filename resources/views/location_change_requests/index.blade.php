@@ -4,9 +4,9 @@
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
         <h3 class="mb-1">Location Change Requests</h3>
-        <p class="text-muted mb-0">Kelola permintaan pindah lokasi karyawan.</p>
+        <p class="text-muted mb-0">Manage employee location change requests.</p>
     </div>
-    @if(auth()->user()->hasRole('Karyawan') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
+    @if(auth()->user()->hasRole('Employee') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Super Admin'))
     <a href="{{ route('location-change-requests.create') }}" class="btn btn-outline-secondary btn-sm">
         <i class="mdi mdi-plus-circle-outline mr-1"></i> Create New Request
     </a>
@@ -76,7 +76,7 @@
                             <tr>
                                 <th class="text-uppercase small" style="width:50px">No</th>
                                 <th class="text-uppercase small">Date</th>
-                                @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
+                                @if(auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Super Admin'))
                                     <th class="text-uppercase small">Employee</th>
                                 @endif
                                 <th class="text-uppercase small">Original Location</th>
@@ -92,7 +92,7 @@
                             <tr>
                                 <td>{{ $loop->iteration + ($requests->currentPage()-1)*$requests->perPage() }}</td>
                                 <td>{{ \Illuminate\Support\Carbon::parse($request->request_date)->format('Y-m-d') }}</td>
-                                @if(auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin'))
+                                @if(auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Super Admin'))
                                     <td>{{ optional($request->user)->name ?? '-' }}</td>
                                 @endif
                                 <td>{{ optional($request->originalLocation)->name ?? '-' }}</td>
@@ -112,7 +112,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if((auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin')) && $request->status === 'pending')
+                                    @if((auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Super Admin')) && $request->status === 'pending')
                                         <div class="d-inline-flex gap-1 flex-wrap justify-content-center">
                                             <form action="{{ route('location-change-requests.updateStatus', $request) }}" method="POST">
                                                 @csrf
@@ -134,7 +134,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="{{ auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Super Admin') ? 8 : 7 }}" class="text-center py-4 text-muted">
+                                <td colspan="{{ auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Super Admin') ? 8 : 7 }}" class="text-center py-4 text-muted">
                                     No location change requests found.
                                 </td>
                             </tr>

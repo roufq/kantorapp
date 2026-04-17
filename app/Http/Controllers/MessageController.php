@@ -32,7 +32,7 @@ class MessageController extends Controller
         // Restrict recipient list by role/location
         if ($user->hasRole('Super Admin')) {
             $users = User::where('id', '!=', $user->id)->get();
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $users = User::where('id', '!=', $user->id)
                 ->where(function ($q) use ($user) {
                     $q->where('location_id', $user->location_id)
@@ -42,12 +42,12 @@ class MessageController extends Controller
                 })
                 ->get();
         } else {
-            // Karyawan: same location users and any admins (Admin Lokasi/Super Admin)
+            // Employee: same location users and any admins (Location Admin/Super Admin)
             $users = User::where('id', '!=', $user->id)
                 ->where(function ($q) use ($user) {
                     $q->where('location_id', $user->location_id)
                       ->orWhereHas('roles', function ($r) {
-                          $r->whereIn('name', ['Admin Lokasi', 'Super Admin']);
+                          $r->whereIn('name', ['Location Admin', 'Super Admin']);
                       });
                 })
                 ->get();

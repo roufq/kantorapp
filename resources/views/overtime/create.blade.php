@@ -1,107 +1,149 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h1 class="h3 mb-1">Buat Pengajuan Lembur</h1>
-            <p class="text-muted mb-0">Ajukan permintaan lembur dengan durasi dan alasan yang jelas.</p>
+<div class="content-wrapper">
+  <div class="content">
+    <div class="container-fluid">
+      <div class="row mb-4 align-items-center">
+        <div class="col-lg-7">
+          <h2 class="text-dark mb-1 fw-bold" style="font-size: 1.8rem; letter-spacing: -0.5px;">{{ __('Create Overtime Request') }}</h2>
+          <p class="text-muted mb-0" style="font-size: 1.05rem;">{{ __('Fill in the overtime request with clear duration and reason.') }}</p>
         </div>
-        <div>
-            <a href="{{ route('overtime.index') }}" class="text-decoration-none">Kembali</a>
+        <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+          <a href="{{ route('overtime.index') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
+            <i class="mdi mdi-arrow-left me-2 fs-5 align-middle"></i>{{ __('Back') }}
+          </a>
         </div>
-    </div>
-</div>
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Request Overtime</h3>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('overtime.store') }}" method="POST">
-                    @csrf
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="date" class="form-label">Date</label>
-                                <input type="date" name="date" class="form-control" id="date" required>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="start_time" class="form-label">Start Time (WIB)</label>
-                                <input type="time" name="start_time" class="form-control time-24" id="start_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
-                                <small class="form-text text-muted">Format: HH:MM (24-jam)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="end_time" class="form-label">End Time (WIB)</label>
-                                <input type="time" name="end_time" class="form-control time-24" id="end_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
-                                <small class="form-text text-muted">Format: HH:MM (24-jam)</small>
-                            </div>
-                        </div>
-                    </div>
-                    @if(isset($limits))
-                    <div class="alert alert-secondary">
-                        Batas lembur: {{ $limits['daily'] }} jam/hari, {{ $limits['weekly'] }} jam/minggu.
-                    </div>
-                    @endif
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">Reason for Overtime</label>
-                        <textarea name="reason" class="form-control" id="reason" rows="4" required placeholder="Please explain why you need to work overtime..."></textarea>
-                    </div>
-                    @php $isEmployee = auth()->user()->hasRole('Karyawan'); @endphp
+      </div>
 
-                    @if($isEmployee)
-                        <div class="mb-3">
-                            <label class="form-label">Approvers</label>
-                            <div class="card card-body bg-light">
-                                <p class="mb-2">Pengajuan Anda akan dikirim ke:</p>
-                                <ul class="mb-0">
-                                    @foreach($autoApprovers as $entry)
-                                        @php($approver = $entry['user'])
-                                        <li>
-                                            Level {{ $entry['level'] }} - {{ $approver->name }}
-                                            @if($approver->hasRole('Admin Lokasi'))
-                                                <span class="badge bg-info ms-1">Admin Lokasi</span>
-                                            @else
-                                                <span class="badge bg-primary ms-1">Super Admin</span>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                            <small class="form-text text-muted">Jika tidak ada Admin Lokasi untuk Anda, permintaan akan diteruskan ke Super Admin.</small>
+      <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="border-radius: 24px !important;">
+                <div class="card-body p-4">
+                    @if ($errors->any())
+                        <div class="alert alert-danger rounded-3 p-3 mb-4 shadow-sm border-0 bg-danger bg-opacity-25 text-white">
+                            <div class="fw-bold mb-2"><i class="mdi mdi-alert-circle-outline me-1"></i>{{ __('Validation failed:') }}</div>
+                            <ul class="mb-0 small">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
                         </div>
-                    @else
-                        <div class="mb-3">
-                            <label class="form-label">Select up to 2 Super Admins for Approval</label>
-                            <div class="row">
-                                @foreach($masters as $master)
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input master-checkbox" type="checkbox" name="selected_masters[]" value="{{ $master->id }}" id="master{{ $master->id }}">
-                                            <label class="form-check-label" for="master{{ $master->id }}">
-                                                {{ $master->name }}
-                                            </label>
+                    @endif
+
+                    <form action="{{ route('overtime.store') }}" method="POST">
+                        @csrf
+                        <div class="row g-4 mb-4">
+                            <div class="col-lg-6">
+                                <div class="card shadow-sm border-0 p-4 rounded-4 border border-light h-100">
+                                    <h5 class="text-dark fw-bold mb-4 d-flex align-items-center">
+                                        <i class="mdi mdi-clock-edit-outline me-2 text-info"></i>{{ __('Request Overtime Detail') }}
+                                    </h5>
+                                    
+                                    <div class="mb-4">
+                                        <label for="date" class="form-label text-muted small fw-bold text-uppercase letter-spacing-1">{{ __('Date') }}</label>
+                                        <input type="date" name="date" class="form-control rounded-pill px-4 shadow-sm" id="date" required value="{{ old('date', date('Y-m-d')) }}">
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="start_time" class="form-label text-muted small fw-bold text-uppercase letter-spacing-1">{{ __('Start Time (WIB)') }}</label>
+                                            <input type="time" name="start_time" class="form-control rounded-pill px-4 shadow-sm time-24" id="start_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
+                                            <small class="text-muted smaller italic mt-1 d-block">{{ __('Format: HH:MM (24-hour)') }}</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="end_time" class="form-label text-muted small fw-bold text-uppercase letter-spacing-1">{{ __('End Time (WIB)') }}</label>
+                                            <input type="time" name="end_time" class="form-control rounded-pill px-4 shadow-sm time-24" id="end_time" required step="60" pattern="[0-9]{2}:[0-9]{2}" lang="id-ID" inputmode="numeric" placeholder="HH:MM">
+                                            <small class="text-muted smaller italic mt-1 d-block">{{ __('Format: HH:MM (24-hour)') }}</small>
                                         </div>
                                     </div>
-                                @endforeach
+
+                                    @if(isset($limits))
+                                    <div class="alert alert-info border-0 bg-info bg-opacity-10 text-white rounded-3 mt-4 mb-0 smaller">
+                                        <i class="mdi mdi-information-outline me-1"></i>
+                                        {{ __('Overtime limits:') }} <strong>{{ $limits['daily'] }} {{ __('hours/day') }}</strong>, <strong>{{ $limits['weekly'] }} {{ __('hours/week') }}</strong>.
+                                    </div>
+                                    @endif
+                                </div>
                             </div>
-                            <small class="form-text text-muted">Select at least 1 approver (max 2).</small>
+                            
+                            <div class="col-lg-6">
+                                <div class="card shadow-sm border-0 p-4 rounded-4 border border-light h-100">
+                                    <h5 class="text-dark fw-bold mb-4 d-flex align-items-center">
+                                        <i class="mdi mdi-message-text-outline me-2 text-warning"></i>{{ __('Reason for Overtime') }}
+                                    </h5>
+                                    <textarea name="reason" class="form-control mb-4" id="reason" rows="6" required placeholder="{{ __('Please explain why you need to work overtime...') }}" style="border-radius: 15px !important;">{{ old('reason') }}</textarea>
+
+                                    @php $isEmployee = auth()->user()->hasRole('Employee'); @endphp
+
+                                    @if($isEmployee)
+                                        <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                                            <label class="text-dark fw-bold small mb-2 d-flex align-items-center">
+                                                <i class="mdi mdi-account-group-outline me-2 text-info"></i>{{ __('Approvers') }}
+                                            </label>
+                                            <p class="text-muted smaller mb-2 italic">{{ __('Your request will be sent to:') }}</p>
+                                            <div class="d-flex flex-column gap-2">
+                                                @foreach($autoApprovers as $entry)
+                                                    @php($approver = $entry['user'])
+                                                    <div class="d-flex align-items-center justify-content-between p-2 px-3 bg-dark bg-opacity-25 rounded-pill border border-white border-opacity-5">
+                                                        <span class="text-dark small fw-bold"><span class="text-muted fw-normal">{{ __('Level') }} {{ $entry['level'] }}:</span> {{ $approver->name }}</span>
+                                                        <span class="badge rounded-pill bg-{{ $approver->hasRole('Location Admin') ? 'info' : 'primary' }} bg-opacity-25 text-{{ $approver->hasRole('Location Admin') ? 'info' : 'primary' }} smaller">
+                                                            {{ $approver->hasRole('Location Admin') ? __('Location Admin') : __('Super Admin') }}
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            <small class="text-muted italic smaller mt-2 d-block">{{ __('If no location admin exists, request goes to Super Admin.') }}</small>
+                                        </div>
+                                    @else
+                                        <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                                            <label class="text-dark fw-bold small mb-3 d-flex align-items-center">
+                                                <i class="mdi mdi-account-multiple-check-outline me-2 text-info"></i>{{ __('Select up to 2 Super Admins for Approval') }}
+                                            </label>
+                                            <div class="row g-2">
+                                                @foreach($masters as $master)
+                                                    <div class="col-md-6">
+                                                        <div class="form-check custom-check">
+                                                            <input class="form-check-input master-checkbox" type="checkbox" name="selected_masters[]" value="{{ $master->id }}" id="master{{ $master->id }}">
+                                                            <label class="form-check-label text-dark small" for="master{{ $master->id }}">
+                                                                {{ $master->name }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            <small class="text-muted italic smaller mt-3 d-block border-top border-white border-opacity-5 pt-2">{{ __('Select at least 1 approver (max 2).') }}</small>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
-                    @endif
-                    <button type="submit" class="btn btn-primary" id="submitBtn" @if(!$isEmployee) disabled @endif>Submit Request</button>
-                    <a href="{{ route('overtime.index') }}" class="btn btn-secondary">Cancel</a>
-                </form>
+
+                        <div class="text-end mt-5 pt-4 border-top border-white border-opacity-5 d-flex gap-3 justify-content-end">
+                            <a href="{{ route('overtime.index') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">{{ __('Cancel') }}</a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-lg py-2" id="submitBtn" @if(!$isEmployee) disabled @endif>
+                                <i class="mdi mdi-send-check me-2"></i>{{ __('Submit Request') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 
-@if(!auth()->user()->hasRole('Karyawan'))
+<style>
+.italic { font-style: italic; }
+.smaller { font-size: 0.8rem; }
+.letter-spacing-1 { letter-spacing: 1px; }
+.custom-check .form-check-input { background-color: #f1f5f9; border-color: rgba(255,255,255,0.1); cursor: pointer; }
+.custom-check .form-check-input:checked { background-color: #06b6d4; border-color: #06b6d4; }
+.custom-check .form-check-label { cursor: pointer; }
+</style>
+
+@if(!auth()->user()->hasRole('Employee'))
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.master-checkbox');
@@ -117,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const checkedCount = document.querySelectorAll('.master-checkbox:checked').length;
             if (checkedCount > 2) {
                 this.checked = false;
-                alert('You can select at most 2 approvers.');
+                alert("{{ __('Select at most 2 approvers.') }}");
             }
             updateSubmitButton();
         });

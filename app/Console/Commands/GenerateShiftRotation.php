@@ -25,7 +25,7 @@ class GenerateShiftRotation extends Command
             return self::FAILURE;
         }
 
-        $users = User::role('Karyawan')->where('location_id', $locationId)->orderBy('id')->get();
+        $users = User::role('Employee')->where('location_id', $locationId)->orderBy('id')->get();
         if ($users->isEmpty()) {
             $this->warn('No employees in this location.');
             return self::SUCCESS;

@@ -12,7 +12,7 @@ return new class extends Migration
         // Map legacy roles to Spatie role names
         $map = [
             'master' => 'Super Admin',
-            'employee' => 'Karyawan',
+            'employee' => 'Employee',
         ];
 
         // Assign Spatie roles based on legacy users.role values (if column exists)
@@ -69,7 +69,7 @@ return new class extends Migration
         if (Schema::hasTable('model_has_roles') && Schema::hasTable('roles')) {
             $roleMap = [
                 'Super Admin' => 'master',
-                'Karyawan' => 'employee',
+                'Employee' => 'employee',
             ];
             $pairs = DB::table('model_has_roles as m')
                 ->join('roles as r', 'r.id', '=', 'm.role_id')

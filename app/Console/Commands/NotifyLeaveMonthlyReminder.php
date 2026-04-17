@@ -28,7 +28,7 @@ class NotifyLeaveMonthlyReminder extends Command
             return self::SUCCESS;
         }
 
-        $employees = User::role('Karyawan')->get();
+        $employees = User::role('Employee')->get();
         $adminDetails = [];
         foreach ($employees as $employee) {
             $employee->loadMissing('location');
@@ -45,7 +45,7 @@ class NotifyLeaveMonthlyReminder extends Command
             }
         }
 
-        $admins = User::role('Admin Lokasi')->with('location')->get();
+        $admins = User::role('Location Admin')->with('location')->get();
         foreach ($admins as $admin) {
             if (!$this->shouldSendForLocation($admin->location, 'notify_leave_monthly_reminder_time')) {
                 continue;

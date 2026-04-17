@@ -14,27 +14,27 @@
     </style>
 </head>
 <body>
-    <h2>Rekap Jam Kerja Bulanan</h2>
-    <div>Periode: {{ $startDate }} s.d {{ $endDate }}</div>
-    <div>Karyawan: {{ $employeeName ?? $employeeId }}</div>
+    <h2>Monthly Working Hours Recap</h2>
+    <div>Period: {{ $startDate }} to {{ $endDate }}</div>
+    <div>Employee: {{ $employeeName ?? $employeeId }}</div>
 
     <table class="summary-table" style="margin-top: 8px;">
         <tr>
-            <td><strong>Target (menit)</strong>: {{ $slotSummary['target_minutes'] ?? '-' }}</td>
-            <td><strong>Slot Approved (menit)</strong>: {{ $slotSummary['slot_minutes'] }}</td>
-            <td><strong>Kehadiran (menit)</strong>: {{ $slotSummary['attendance_minutes'] }}</td>
-            <td><strong>Sisa (menit)</strong>: {{ $slotSummary['remaining'] ?? '-' }}</td>
+            <td><strong>Target (minutes)</strong>: {{ $slotSummary['target_minutes'] ?? '-' }}</td>
+            <td><strong>Approved Slot (minutes)</strong>: {{ $slotSummary['slot_minutes'] }}</td>
+            <td><strong>Attendance (minutes)</strong>: {{ $slotSummary['attendance_minutes'] }}</td>
+            <td><strong>Remaining (minutes)</strong>: {{ $slotSummary['remaining'] ?? '-' }}</td>
         </tr>
     </table>
 
-    <h3 style="margin-top: 16px;">Detail Slot Approved</h3>
+    <h3 style="margin-top: 16px;">Approved Slot Details</h3>
     <table>
         <thead>
             <tr>
                 <th>Task</th>
                 <th>Slot</th>
-                <th>Menit</th>
-                <th>Approved</th>
+                <th>Minutes</th>
+                <th>Approved at</th>
             </tr>
         </thead>
         <tbody>
@@ -46,19 +46,19 @@
                     <td>{{ optional($slot->approved_at)->format('d M Y H:i') }}</td>
                 </tr>
             @empty
-                <tr><td colspan="4" class="text-center">Belum ada slot approved pada rentang ini.</td></tr>
+                <tr><td colspan="4" class="text-center">No approved slots in this period.</td></tr>
             @endforelse
         </tbody>
     </table>
 
-    <h3 style="margin-top: 16px;">Detail Kehadiran</h3>
+    <h3 style="margin-top: 16px;">Attendance Details</h3>
     <table>
         <thead>
             <tr>
-                <th>Tanggal</th>
+                <th>Date</th>
                 <th>Check-in</th>
                 <th>Check-out</th>
-                <th>Durasi (menit)</th>
+                <th>Duration (minutes)</th>
             </tr>
         </thead>
         <tbody>
@@ -70,7 +70,7 @@
                     <td class="text-right">{{ $att->duration_minutes ?? 0 }}</td>
                 </tr>
             @empty
-                <tr><td colspan="4" class="text-center">Belum ada data kehadiran pada rentang ini.</td></tr>
+                <tr><td colspan="4" class="text-center">No attendance data in this period.</td></tr>
             @endforelse
         </tbody>
     </table>

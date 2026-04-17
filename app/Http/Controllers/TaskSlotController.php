@@ -25,11 +25,11 @@ class TaskSlotController extends Controller
         if ($user->hasRole('Super Admin')) {
             return;
         }
-        if (!$user->hasRole('Admin Lokasi')) {
+        if (!$user->hasRole('Location Admin')) {
             abort(403);
         }
         if ($task->requires_approval && $task->approval_status !== 'approved') {
-            abort(403, 'Struktur tugas belum bisa diubah karena tugas menunggu persetujuan.');
+            abort(403, 'Struktur task belum bisa diubah karena task menunggu persetujuan.');
         }
         if (optional($task->assignee)->location_id !== $user->location_id) {
             abort(403);
@@ -43,9 +43,9 @@ class TaskSlotController extends Controller
             return;
         }
         if ($slot->task && $slot->task->requires_approval && $slot->task->approval_status !== 'approved') {
-            abort(403, 'Tugas ini belum disetujui.');
+            abort(403, 'Task ini belum disetujui.');
         }
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             if (optional($slot->task->assignee)->location_id !== $user->location_id) {
                 abort(403);
             }
@@ -61,9 +61,9 @@ class TaskSlotController extends Controller
             return;
         }
         if ($task->requires_approval && $task->approval_status !== 'approved') {
-            abort(403, 'Tugas ini belum disetujui.');
+            abort(403, 'Task ini belum disetujui.');
         }
-        if ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id) {
+        if ($user->hasRole('Location Admin') && optional($task->assignee)->location_id === $user->location_id) {
             return;
         }
         abort(403);
@@ -73,12 +73,12 @@ class TaskSlotController extends Controller
     {
         $user = Auth::user();
         if ($slot->task && $slot->task->requires_approval && $slot->task->approval_status !== 'approved') {
-            abort(403, 'Tugas ini belum disetujui.');
+            abort(403, 'Task ini belum disetujui.');
         }
         if ($user->id === optional($slot->task)->assigned_to) {
             return;
         }
-        if ($user->hasRole(['Super Admin', 'Admin Lokasi'])) {
+        if ($user->hasRole(['Super Admin', 'Location Admin'])) {
             return;
         }
         abort(403);
@@ -281,20 +281,20 @@ class TaskSlotController extends Controller
             'actor_id' => Auth::id(),
         ]);
 
-        // Notifikasi: kiriman karyawan -> Admin Lokasi & Super Admin; kiriman Admin Lokasi -> Super Admin
+        // Notifikasi: kiriman employee -> Location Admin & Super Admin; kiriman Location Admin -> Super Admin
         $submitter = Auth::user();
         $task = $slot->task;
-        $submittedByRole = $submitter->hasRole('Admin Lokasi') ? 'admin_lokasi' : ($submitter->hasRole('Super Admin') ? 'super_admin' : 'karyawan');
+        $submittedByRole = $submitter->hasRole('Location Admin') ? 'admin_lokasi' : ($submitter->hasRole('Super Admin') ? 'super_admin' : 'employee');
         $notifyUsers = collect();
 
-        if ($submitter->hasRole('Admin Lokasi')) {
+        if ($submitter->hasRole('Location Admin')) {
             $notifyUsers = $notifyUsers->merge(User::role('Super Admin')->get());
         } elseif ($submitter->hasRole('Super Admin')) {
             // do nothing (already highest)
         } else {
-            // karyawan
+            // employee
             if (optional($task->assignee)->location_id) {
-                $notifyUsers = $notifyUsers->merge(User::role('Admin Lokasi')->where('location_id', $task->assignee->location_id)->get());
+                $notifyUsers = $notifyUsers->merge(User::role('Location Admin')->where('location_id', $task->assignee->location_id)->get());
             }
             $notifyUsers = $notifyUsers->merge(User::role('Super Admin')->get());
         }
@@ -363,7 +363,7 @@ class TaskSlotController extends Controller
 
         $pendingSlots = $task->slots()->where('status', 'pending')->get();
         if ($pendingSlots->isEmpty()) {
-            return back()->with('info', 'Tidak ada slot pending untuk tugas ini.');
+            return back()->with('info', 'Tidak ada slot pending untuk task ini.');
         }
 
         $totalMinutes = (int) $pendingSlots->sum('minutes');
@@ -412,7 +412,7 @@ class TaskSlotController extends Controller
             }
         }
 
-        return back()->with('success', 'Semua slot pending pada tugas ini telah disetujui.');
+        return back()->with('success', 'Semua slot pending pada task ini telah disetujui.');
     }
 
     public function reject(Request $request, TaskSlot $slot)
@@ -470,7 +470,7 @@ class TaskSlotController extends Controller
 
         $pendingSlots = $task->slots()->where('status', 'pending')->get();
         if ($pendingSlots->isEmpty()) {
-            return back()->with('info', 'Tidak ada slot pending untuk tugas ini.');
+            return back()->with('info', 'Tidak ada slot pending untuk task ini.');
         }
 
         DB::transaction(function () use ($pendingSlots, $task, $data) {
@@ -507,11 +507,11 @@ class TaskSlotController extends Controller
             $task->recalcProgressFromSlots();
         });
 
-        return back()->with('success', 'Semua slot pending pada tugas ini telah ditolak.');
+        return back()->with('success', 'Semua slot pending pada task ini telah ditolak.');
     }
 
     /**
-     * Kurangi target jam kerja (menit) karyawan saat slot disetujui.
+     * Kurangi target jam kerja (menit) employee saat slot disetujui.
      * Jika tidak ada target, dilewati. Jika sisa tidak cukup, lempar ValidationException.
      */
     private function applyWorkTargetConsumption(Task $task, int $minutesToConsume): void
@@ -525,7 +525,7 @@ class TaskSlotController extends Controller
             return;
         }
 
-        $employeeId = $assignee->employee_id ?? $assignee->karyawan_id;
+        $employeeId = $assignee->employee_id ?? $assignee->employee_id;
         $locationId = $assignee->location_id;
         if (!$employeeId || !$locationId) {
             return;

@@ -52,13 +52,13 @@ class WorkRecapController extends Controller
 
         if ($employeeId) {
             $employee = Employee::find($employeeId);
-            $employeeName = $employee?->nama ?? "Karyawan {$employeeId}";
+            $employeeName = $employee?->nama ?? "Employee {$employeeId}";
             $start = Carbon::parse($startDate)->startOfDay();
             $end = Carbon::parse($endDate)->endOfDay();
 
-            // user ids untuk karyawan ini
+            // user ids untuk employee ini
             $userIds = User::where('employee_id', $employeeId)->pluck('id');
-            $locationScoped = $locationFilter ?? ($user->hasRole('Admin Lokasi') ? $user->location_id : null);
+            $locationScoped = $locationFilter ?? ($user->hasRole('Location Admin') ? $user->location_id : null);
             $locationScoped = $locationScoped ?: $user->location_id;
 
             // Slot approved (berdasarkan assignee user_id)
@@ -66,7 +66,7 @@ class WorkRecapController extends Controller
                 ->whereBetween('approved_at', [$start, $end])
                 ->whereHas('task', function ($q) use ($userIds, $locationScoped, $user) {
                     $q->whereIn('assigned_to', $userIds);
-                    if ($user->hasRole('Admin Lokasi')) {
+                    if ($user->hasRole('Location Admin')) {
                         $q->whereHas('assignee', function ($sq) use ($user) {
                             $sq->where('location_id', $user->location_id);
                         });
@@ -82,7 +82,7 @@ class WorkRecapController extends Controller
                 ->whereBetween('approved_at', [$start, $end])
                 ->whereHas('task', function ($q) use ($userIds, $locationScoped, $user) {
                     $q->whereIn('assigned_to', $userIds);
-                    if ($user->hasRole('Admin Lokasi')) {
+                    if ($user->hasRole('Location Admin')) {
                         $q->whereHas('assignee', function ($sq) use ($user) {
                             $sq->where('location_id', $user->location_id);
                         });
@@ -117,7 +117,7 @@ class WorkRecapController extends Controller
 
             $slotSummary['attendance_minutes'] = (int) $attendanceDetails->sum('duration_minutes');
 
-            // Target per bulan (pakai bulan dari start_date), prioritas target karyawan, lalu target lokasi
+            // Target per bulan (pakai bulan dari start_date), prioritas target employee, lalu target lokasi
             $startCarbon = Carbon::parse($startDate)->startOfMonth();
             $year = (int) $startCarbon->year;
             $month = (int) $startCarbon->month;
@@ -138,7 +138,7 @@ class WorkRecapController extends Controller
 
             $slotSummary['target_minutes'] = $target?->target_minutes;
             if ($slotSummary['target_minutes'] !== null) {
-                // Sisa target hanya dikurangi oleh slot tugas yang disetujui (kehadiran tidak memotong target)
+                // Sisa target hanya dikurangi oleh slot task yang disetujui (kehadiran tidak memotong target)
                 $slotSummary['remaining'] = max(0, $slotSummary['target_minutes'] - $slotSummary['slot_minutes']);
             }
         }
@@ -190,7 +190,7 @@ class WorkRecapController extends Controller
         ]);
 
         [$year, $month] = explode('-', $data['month']);
-        $locationId = $user->hasRole('Admin Lokasi') ? $user->location_id : ($data['location_id'] ?? null);
+        $locationId = $user->hasRole('Location Admin') ? $user->location_id : ($data['location_id'] ?? null);
 
         $exists = EmployeeWorkRecap::where('employee_id', $data['employee_id'])
             ->where('location_id', $locationId)
@@ -199,7 +199,7 @@ class WorkRecapController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->withErrors(['month' => 'Data rekap untuk karyawan, lokasi, dan bulan tersebut sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Data rekap untuk employee, lokasi, dan bulan tersebut sudah ada.'])->withInput();
         }
 
         $total = (int) $data['slot_minutes_approved'] + (int) $data['attendance_minutes'];
@@ -220,7 +220,7 @@ class WorkRecapController extends Controller
     public function edit(EmployeeWorkRecap $work_recap)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_recap->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_recap->location_id !== $user->location_id) {
             abort(403);
         }
 
@@ -245,7 +245,7 @@ class WorkRecapController extends Controller
     public function update(Request $request, EmployeeWorkRecap $work_recap)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_recap->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_recap->location_id !== $user->location_id) {
             abort(403);
         }
 
@@ -258,7 +258,7 @@ class WorkRecapController extends Controller
         ]);
 
         [$year, $month] = explode('-', $data['month']);
-        $locationId = $user->hasRole('Admin Lokasi') ? $user->location_id : ($data['location_id'] ?? null);
+        $locationId = $user->hasRole('Location Admin') ? $user->location_id : ($data['location_id'] ?? null);
 
         $exists = EmployeeWorkRecap::where('employee_id', $data['employee_id'])
             ->where('location_id', $locationId)
@@ -268,7 +268,7 @@ class WorkRecapController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->withErrors(['month' => 'Data rekap untuk karyawan, lokasi, dan bulan tersebut sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Data rekap untuk employee, lokasi, dan bulan tersebut sudah ada.'])->withInput();
         }
 
         $total = (int) $data['slot_minutes_approved'] + (int) $data['attendance_minutes'];
@@ -289,7 +289,7 @@ class WorkRecapController extends Controller
     public function destroy(EmployeeWorkRecap $work_recap)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_recap->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_recap->location_id !== $user->location_id) {
             abort(403);
         }
 

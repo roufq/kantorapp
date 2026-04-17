@@ -18,7 +18,7 @@ class ShiftAssignmentSeeder extends Seeder
         $locations = Location::all();
         foreach ($locations as $loc) {
             // Ambil maksimal 2 karyawan per lokasi
-            $users = User::role('Karyawan')->where('location_id', $loc->id)->take(2)->get();
+            $users = User::role('Employee')->where('location_id', $loc->id)->take(2)->get();
             if ($users->isEmpty()) {
                 continue;
             }

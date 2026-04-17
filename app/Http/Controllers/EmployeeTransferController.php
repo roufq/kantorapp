@@ -46,7 +46,7 @@ class EmployeeTransferController extends Controller
         $data['created_by'] = Auth::id();
         EmployeeTransfer::create($data);
 
-        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi karyawan disimpan.');
+        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi employee disimpan.');
     }
 
     public function edit(EmployeeTransfer $employee_transfer)
@@ -68,12 +68,12 @@ class EmployeeTransferController extends Controller
 
         $employee_transfer->update($data);
 
-        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi karyawan diperbarui.');
+        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi employee diperbarui.');
     }
 
     public function destroy(EmployeeTransfer $employee_transfer)
     {
         $employee_transfer->delete();
-        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi karyawan dihapus.');
+        return redirect()->route('employee-transfers.index')->with('success', 'Mutasi employee dihapus.');
     }
 }

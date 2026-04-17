@@ -22,7 +22,7 @@ class LocationSettingsTest extends TestCase
     {
         $loc = Location::create(['name' => 'Loc1', 'code' => 'L1']);
         $admin = User::factory()->create(['location_id' => $loc->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $this->actingAs($admin)
             ->patchJson("/locations/{$loc->id}/settings", [

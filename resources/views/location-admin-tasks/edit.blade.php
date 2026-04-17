@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <h3 class="mb-1">Edit Tugas Lokasi</h3>
-    <p class="text-muted mb-0">Perbarui detail tugas. Progres dikirim lewat link pada slot.</p>
+    <h3 class="mb-1">Edit Location Task</h3>
+    <p class="text-muted mb-0">Update task details. Progress is sent via link in slot.</p>
   </div>
-  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
   <div class="col-12">
@@ -40,7 +40,7 @@
             <input type="date" name="due_date" id="due_date" value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}" class="form-control">
             @error('due_date')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
-          <p class="text-muted">Bukti progres dikirim via link pada slot, tanpa upload file.</p>
+          <p class="text-muted">Progress evidence is sent via link in slot, without file upload.</p>
           <button type="submit" class="btn btn-primary">Update Task</button>
           <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-secondary">Cancel</a>
         </form>

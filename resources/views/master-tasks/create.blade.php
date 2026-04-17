@@ -3,9 +3,9 @@
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
         <h3 class="mb-1">Assign Master Task</h3>
-        <p class="text-muted mb-0">Super Admin dapat menetapkan tugas ke Super Admin lain atau karyawan.</p>
+        <p class="text-muted mb-0">Super Admins can assign tasks to other Super Admins or employees.</p>
     </div>
-    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">

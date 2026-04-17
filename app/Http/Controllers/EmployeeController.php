@@ -16,8 +16,8 @@ class EmployeeController extends Controller
     public function __construct()
     {
         // Authorize all resource methods using the EmployeePolicy.
-        // The 'karyawan' parameter name must match the route parameter name.
-        $this->authorizeResource(Employee::class, 'karyawan');
+        // The 'employee' parameter name must match the route parameter name.
+        $this->authorizeResource(Employee::class, 'employee');
     }
 
     /**
@@ -28,15 +28,15 @@ class EmployeeController extends Controller
         $user = Auth::user();
         $query = Employee::with(['division', 'location']);
 
-        // If the user is an Admin Lokasi, only show employees from their location.
+        // If the user is an Location Admin, only show employees from their location.
         // Super Admins will not be affected by this and will see all.
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
         }
 
         $employees = $query->paginate(20);
 
-        return view('karyawans.index', compact('employees'));
+        return view('employees.index', compact('employees'));
     }
 
     /**
@@ -46,7 +46,7 @@ class EmployeeController extends Controller
     {
         $divisions = Division::all();
         $locations = Location::active()->orderBy('name')->get();
-        return view('karyawans.create', compact('divisions', 'locations'));
+        return view('employees.create', compact('divisions', 'locations'));
     }
 
     /**
@@ -66,7 +66,7 @@ class EmployeeController extends Controller
             'tanggal_masuk_kerja' => 'nullable|date',
             'divisi_id' => 'required|exists:divisions,id',
         ];
-        // Super Admin must pick a location; Admin Lokasi is auto-bound
+        // Super Admin must pick a location; Location Admin is auto-bound
         if ($auth->hasRole('Super Admin')) {
             $rules['location_id'] = 'required|exists:locations,id';
         } else {
@@ -74,46 +74,46 @@ class EmployeeController extends Controller
         }
         $request->validate($rules);
 
-        // Enforce Admin Lokasi boundary on location_id
+        // Enforce Location Admin boundary on location_id
         $data = $request->all();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             // If not provided, default to admin's location; if provided, must match
             $data['location_id'] = $auth->location_id;
         }
 
         Employee::create($data);
 
-        return redirect()->route('karyawans.index')->with('success', 'Employee created successfully.');
+        return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Employee $karyawan)
+    public function show(Employee $employee)
     {
-        $karyawan->load(['division', 'location']);
-        return view('karyawans.show', compact('karyawan'));
+        $employee->load(['division', 'location']);
+        return view('employees.show', compact('employee'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Employee $karyawan)
+    public function edit(Employee $employee)
     {
         $divisions = Division::all();
         $locations = Location::active()->orderBy('name')->get();
-        return view('karyawans.edit', compact('karyawan', 'divisions', 'locations'));
+        return view('employees.edit', compact('employee', 'divisions', 'locations'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Employee $karyawan)
+    public function update(Request $request, Employee $employee)
     {
         $auth = Auth::user();
         $updateRules = [
             'nama' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:employees,email,' . $karyawan->id,
+            'email' => 'required|string|email|max:255|unique:employees,email,' . $employee->id,
             'telepon' => 'nullable|string|max:20',
             'alamat' => 'nullable|string',
             'jabatan' => 'nullable|string|max:255',
@@ -129,24 +129,24 @@ class EmployeeController extends Controller
         }
         $request->validate($updateRules);
 
-        // Enforce Admin Lokasi boundary on location_id
+        // Enforce Location Admin boundary on location_id
         $data = $request->all();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $data['location_id'] = $auth->location_id;
         }
 
-        $karyawan->update($data);
+        $employee->update($data);
 
-        return redirect()->route('karyawans.index')->with('success', 'Employee updated successfully.');
+        return redirect()->route('employees.index')->with('success', 'Employee updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Employee $karyawan)
+    public function destroy(Employee $employee)
     {
-        $karyawan->delete();
+        $employee->delete();
 
-        return redirect()->route('karyawans.index')->with('success', 'Employee deleted successfully.');
+        return redirect()->route('employees.index')->with('success', 'Employee deleted successfully.');
     }
 }

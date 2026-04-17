@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="id">
 <!--begin::Head-->
 
@@ -200,7 +200,7 @@
           $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'super_admin')
           ->where('status', 'pending')
           ->count();
-          } elseif ($authUser->hasRole('Admin Lokasi')) {
+          } elseif ($authUser->hasRole('Location Admin')) {
           $pendingReportCount = \App\Models\ReportApproval::where('approver_role', 'admin_lokasi')
           ->where('status', 'pending')
           ->where(function ($q) use ($authUser) {
@@ -216,7 +216,7 @@
           $totalNotifications = $unreadMessagesCount + $pendingOvertimeCount + $pendingReportCount + $unreadNotificationCount;
           @endphp
           @php
-            $notificationLink = ($authUser->hasRole('Super Admin') || $authUser->hasRole('Admin Lokasi'))
+            $notificationLink = ($authUser->hasRole('Super Admin') || $authUser->hasRole('Location Admin'))
               ? route('tasks.progress.approvals')
               : route('tasks.index');
             $taskNotifTypes = [
@@ -237,25 +237,25 @@
               @endif
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-              <span class="dropdown-item dropdown-header">{{ $totalNotifications }} Notifikasi</span>
+              <span class="dropdown-item dropdown-header">{{ $totalNotifications }} Notifications</span>
               <div class="dropdown-divider"></div>
               <a href="{{ route('messages.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
-                <div><i class="bi bi-envelope me-2"></i> Pesan baru</div>
+                <div><i class="bi bi-envelope me-2"></i> New messages</div>
                 <span class="badge text-bg-secondary">{{ $unreadMessagesCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
               <a href="{{ route('reports.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
-                <div><i class="bi bi-clipboard-check me-2"></i> Laporan menunggu</div>
+                <div><i class="bi bi-clipboard-check me-2"></i> Pending reports</div>
                 <span class="badge text-bg-secondary">{{ $pendingReportCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
               <a href="{{ route('overtime.index') }}" class="dropdown-item d-flex justify-content-between align-items-center">
-                <div><i class="bi bi-clock me-2"></i> Overtime menunggu</div>
+                <div><i class="bi bi-clock me-2"></i> Pending overtime</div>
                 <span class="badge text-bg-secondary">{{ $pendingOvertimeCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
               <a href="{{ $notificationLink }}" class="dropdown-item d-flex justify-content-between align-items-center">
-                <div><i class="bi bi-bell me-2"></i> Notifikasi tugas/progres</div>
+                <div><i class="bi bi-bell me-2"></i> Task/progress notifications</div>
                 <span class="badge text-bg-secondary">{{ $unreadNotificationCount }}</span>
               </a>
               @if($recentTaskNotifs->count() > 0)
@@ -263,7 +263,7 @@
                 @foreach($recentTaskNotifs as $notif)
                   @php
                     $data = $notif->data ?? [];
-                    $title = $data['task_title'] ?? 'Tugas';
+                    $title = $data['task_title'] ?? 'Task';
                     $status = $data['status'] ?? null;
                     $label = $status ? ucfirst($status) : 'Info';
                     $taskId = $data['task_id'] ?? null;
@@ -282,7 +282,7 @@
                 @endforeach
               @endif
               <div class="dropdown-divider"></div>
-              <a href="{{ $notificationLink }}" class="dropdown-item dropdown-footer">Lihat semua</a>
+              <a href="{{ $notificationLink }}" class="dropdown-item dropdown-footer">See all</a>
             </div>
           </li>
           <!--end::Notifications Dropdown Menu-->
@@ -409,7 +409,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item">
               <a href="{{ route('messages.index') }}" class="nav-link {{ request()->routeIs('messages.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-chat-dots"></i>
@@ -423,12 +423,12 @@
                 <p>Tasks</p>
               </a>
             </li>
-            @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+            @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin']))
             <li class="nav-item">
               @php
                 $pendingCreationCount = \App\Models\Task::where('requires_approval', true)
                   ->where('approval_status', 'pending')
-                  ->when(auth()->user()->hasRole('Admin Lokasi'), function ($q) {
+                  ->when(auth()->user()->hasRole('Location Admin'), function ($q) {
                       $q->where('approval_level', 'location_admin')
                         ->whereHas('assignee', function ($qq) {
                             $qq->where('location_id', auth()->user()->location_id);
@@ -438,27 +438,27 @@
               @endphp
               <a href="{{ route('tasks.progress.approvals') }}" class="nav-link {{ request()->routeIs('tasks.progress.approvals') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-shield-check"></i>
-                <p>Approval Tugas @if($pendingCreationCount>0)<span class="badge text-bg-warning ms-2">{{ $pendingCreationCount }}</span>@endif</p>
+                <p>Task Approvals @if($pendingCreationCount>0)<span class="badge text-bg-warning ms-2">{{ $pendingCreationCount }}</span>@endif</p>
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+            @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin']))
             <li class="nav-item">
               <a href="{{ route('shifts.rosters.calendar') }}" class="nav-link {{ request()->routeIs('shifts.rosters.calendar') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-calendar-week"></i>
-                <p>Kalender</p>
+                <p>Calendar</p>
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin'))
             <li class="nav-item">
               <a href="{{ route('karyawans.index') }}" class="nav-link {{ request()->routeIs('karyawans.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-person-badge"></i>
-                <p>Karyawan</p>
+                <p>Employees</p>
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item">
               <a href="{{ route('location-change-requests.index') }}" class="nav-link {{ request()->routeIs('location-change-requests.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-arrow-left-right"></i>
@@ -466,7 +466,7 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item {{ request()->routeIs('attendance.*') ? 'menu-open' : '' }}">
               <a href="#" class="nav-link">
                 <i class="nav-icon bi bi-calendar-check"></i>
@@ -480,7 +480,7 @@
                     <p>Check In/Out</p>
                   </a>
                 </li>
-                @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
+                @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin'))
                 <li class="nav-item">
                   <a href="{{ route('attendance.report') }}" class="nav-link {{ request()->routeIs('attendance.report') ? 'active' : '' }}">
                     <i class="nav-icon bi bi-dot"></i>
@@ -504,7 +504,7 @@
               </ul>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item">
               <a href="{{ route('overtime.index') }}" class="nav-link {{ request()->routeIs('overtime.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clock"></i>
@@ -512,30 +512,30 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item">
               <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clipboard-check"></i>
-                <p>Laporan</p>
+                <p>Reports</p>
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+            @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin']))
             <li class="nav-item">
               <a href="{{ route('work-recaps.index') }}" class="nav-link {{ request()->routeIs('work-recaps.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-clock-history"></i>
-                <p>Rekap Jam Kerja</p>
+                <p>Working Hours Recap</p>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ route('work-targets.index') }}" class="nav-link {{ request()->routeIs('work-targets.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-bullseye"></i>
-                <p>Target Jam Kerja</p>
+                <p>Target Working Hours</p>
               </a>
             </li>
             @endif
 
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin'))
             <li class="nav-item">
               @php
               $today = now()->toDateString();
@@ -562,12 +562,12 @@
               </a>
             </li>
             @endif
-            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi') || auth()->user()->hasRole('Karyawan'))
+            @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin') || auth()->user()->hasRole('Employee'))
             <li class="nav-item">
               @php
               if (auth()->user()->hasRole('Super Admin')) {
               $pendingLeavesCount = \App\Models\EmployeeLeave::where('status','pending')->count();
-              } elseif (auth()->user()->hasRole('Admin Lokasi')) {
+              } elseif (auth()->user()->hasRole('Location Admin')) {
               $pendingLeavesCount = \App\Models\EmployeeLeave::where('status','pending')->where('location_id', auth()->user()->location_id)->count();
               } else {
               $pendingLeavesCount = 0;
@@ -575,12 +575,12 @@
               @endphp
               <a href="{{ route('leaves.index') }}" class="nav-link {{ request()->routeIs('leaves.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-person-exclamation"></i>
-                <p>Leaves @if($pendingLeavesCount>0 && (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi')))<span class="badge text-bg-warning ms-2">{{ $pendingLeavesCount }}</span>@endif</p>
+                <p>Leaves @if($pendingLeavesCount>0 && (auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin')))<span class="badge text-bg-warning ms-2">{{ $pendingLeavesCount }}</span>@endif</p>
               </a>
             </li>
             @endif
 
-            @if(auth()->user()->hasRole('Admin Lokasi'))
+            @if(auth()->user()->hasRole('Location Admin'))
             <li class="nav-header">Location</li>
             <li class="nav-item">
               <a href="{{ route('location-admin-tasks.index') }}" class="nav-link {{ request()->routeIs('location-admin-tasks.*') ? 'active' : '' }}">
@@ -626,19 +626,19 @@
             <li class="nav-item">
                 <a href="{{ route('employee-positions.index') }}" class="nav-link {{ request()->routeIs('employee-positions.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-id-badge"></i>
-                    <p>Histori Jabatan</p>
+                    <p>Position History</p>
                 </a>
             </li>
             <li class="nav-item">
                 <a href="{{ route('employee-transfers.index') }}" class="nav-link {{ request()->routeIs('employee-transfers.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-exchange-alt"></i>
-                    <p>Mutasi</p>
+                    <p>Transfers</p>
                 </a>
             </li>
             <li class="nav-item">
                 <a href="{{ route('employee-contracts.index') }}" class="nav-link {{ request()->routeIs('employee-contracts.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-file-signature"></i>
-                    <p>Kontrak Kerja</p>
+                    <p>Contracts</p>
                 </a>
             </li>
             @endif
@@ -669,7 +669,7 @@
                     <p>All Locations</p>
                   </a>
                 </li>
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
+                @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin']))
                 <li class="nav-item">
                   <a href="{{ route('shifts.rosters.index') }}" class="nav-link {{ request()->routeIs('shifts.rosters.*') ? 'active' : '' }}">
                     <i class="nav-icon bi bi-dot"></i>

@@ -18,8 +18,8 @@ class AttendancePrefersAssignmentTest extends TestCase
     private function ensureRoles(): void
     {
         \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Admin Lokasi']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Karyawan']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Location Admin']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Employee']);
     }
 
     public function test_checkin_uses_today_assignment_shift(): void
@@ -32,7 +32,7 @@ class AttendancePrefersAssignmentTest extends TestCase
         $user = User::create([
             'name' => 'Emp','email' => 'emp@test.com','password' => Hash::make('password'),'location_id' => $loc->id,
         ]);
-        $user->assignRole('Karyawan');
+        $user->assignRole('Employee');
 
         $shift = Shift::create([
             'name' => 'Full Day','code' => 'FULL','shift_type' => 'single','time_slots' => ['start' => '00:00','end' => '23:59'],'is_active' => true,

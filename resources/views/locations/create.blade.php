@@ -1,12 +1,12 @@
-﻿@extends('layouts.appnew')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tambah Lokasi</h3>
-        <p class="text-muted mb-0">Lengkapi detail lokasi baru untuk keperluan operasional dan penugasan.</p>
+        <h3 class="mb-1">Add Location</h3>
+        <p class="text-muted mb-0">Complete details for new location for operational and assignment purposes.</p>
     </div>
-    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="content-wrapper">
     <!-- Main content -->
@@ -50,7 +50,7 @@
                                         <div id="loc-map" style="height: 340px; border-radius: 6px; overflow: hidden; border: 1px solid #dee2e6; position:relative;">
                                             <div id="loc-map-status" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#6c757d;font-size:14px;">Loading map…</div>
                                         </div>
-                                        <small class="text-muted d-block mt-1">Tip: drag marker atau klik peta untuk memilih titik. Gunakan pencarian untuk mencari alamat.</small>
+                                        <small class="text-muted d-block mt-1">Tip: drag marker or click map to select a point. Use search to find an address.</small>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -226,7 +226,7 @@
                                             @error('default_shift_id')
                                             <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
                                             @enderror
-                                            <small class="form-text text-muted">Saat "Enable Shift System" dicentang tampil opsi Multiple Shift, jika tidak maka tampil Single Shift. Nilai yang disimpan adalah shift_id terpilih.</small>
+                                            <small class="form-text text-muted">When Shift System is enabled, Multiple Shift options will be shown. Otherwise, Single Shift options will be shown. Selected shift_id will be saved.</small>
                                         </div>
                                     </div>
                                 </div>
@@ -413,7 +413,7 @@
                 const geocoder = L.Control.geocoder({
                     defaultMarkGeocode: false,
                     collapsed: false,
-                    placeholder: "Cari alamat atau tempat…",
+                    placeholder: "Search address or place…",
                     position: "topleft",
                     geocoder: geocoderService,
                     suggestMinLength: 3,

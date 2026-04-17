@@ -6,7 +6,7 @@
         <h3 class="mb-1">Edit Divisi</h3>
         <p class="text-muted mb-0">Perbarui nama atau detail divisi sesuai kebutuhan organisasi.</p>
     </div>
-    <a href="{{ route('divisions.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('divisions.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -19,7 +19,7 @@
                     @csrf
                     @method('PATCH')
                     <div class="mb-3">
-                        <label for="nama" class="form-label">Nama</label>
+                        <label for="nama" class="form-label">Name</label>
                         <input type="text" class="form-control" id="nama" name="nama" value="{{ old('nama', $division->nama) }}" required>
                         @error('nama')
                             <div class="text-danger">{{ $message }}</div>

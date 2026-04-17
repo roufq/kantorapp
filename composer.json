@@ -1,7 +1,7 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/kantor-app-multi-location",
-    "name_create" : "ARoM", 
+    "name_create": "ARoM",
     "type": "project",
     "description": "One App for multiple locations.",
     "keywords": [
@@ -15,15 +15,12 @@
         "jenssegers/agent": "^2.6",
         "laravel/framework": "^12.0",
         "laravel/reverb": "^1.6",
-        "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "^4.0@dev",
         "pragmarx/google2fa-laravel": "^2.2",
         "spatie/laravel-permission": "^6.21",
         "twilio/sdk": "^7.0"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
@@ -87,7 +84,7 @@
         }
     },
     "config": {
-        "optimize-autoloader": true,
+        "optimize-autoloader": false,
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {

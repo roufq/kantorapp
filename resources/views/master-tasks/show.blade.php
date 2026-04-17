@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Detail Master Task</h3>
+        <h3 class="mb-1">Master Task Detail</h3>
         <p class="text-muted mb-0">{{ $masterTask->title }}</p>
     </div>
-    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -39,7 +39,7 @@
                             <div class="progress" style="height:10px;">
                                 <div class="progress-bar" role="progressbar" style="width: {{ $masterTask->progress ?? 0 }}%;" aria-valuenow="{{ $masterTask->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
-                            <small class="text-muted">Update progres 0-100% dengan lampiran foto/dokumen.</small>
+                            <small class="text-muted">Update progress 0-100% with photo/document attachment.</small>
                         </div>
                     </div>
                 </div>
@@ -105,19 +105,19 @@
                     <div class="col-md-4">
                         <label class="form-label">Progress (%)</label>
                         <input type="number" name="progress" class="form-control" min="0" max="100" value="{{ old('progress', $masterTask->progress) }}" required>
-                        <small class="text-muted">Status otomatis menyesuaikan progres.</small>
+                        <small class="text-muted">Status automatically adjusts with progress.</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Foto Bukti</label>
+                        <label class="form-label">Evidence Photo</label>
                         <input type="file" name="photo" class="form-control" accept="image/*">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Dokumen Bukti</label>
+                        <label class="form-label">Evidence Document</label>
                         <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Simpan Progress</button>
-                        <small class="text-muted ms-2">Wajib melampirkan minimal satu file.</small>
+                        <button type="submit" class="btn btn-primary">Save Progress</button>
+                        <small class="text-muted ms-2">Must attach at least one file.</small>
                     </div>
                 </form>
             </div>

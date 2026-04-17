@@ -4,11 +4,11 @@
 <div class="bg-light p-3 mb-3 rounded border">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
         <div>
-            <h1 class="h3 mb-1">Buat Tugas untuk Diri Sendiri</h1>
-            <p class="text-muted mb-0">Catat tugas pribadi dan pantau progresnya.</p>
+            <h1 class="h3 mb-1">Create Task for Yourself</h1>
+            <p class="text-muted mb-0">Record personal tasks and monitor their progress.</p>
         </div>
         <div>
-            <a href="{{ route('tasks.index') }}" class="text-decoration-none">Kembali</a>
+            <a href="{{ route('tasks.index') }}" class="text-decoration-none">Back</a>
         </div>
     </div>
 </div>
@@ -21,7 +21,7 @@
             <div class="card-body">
                 @if ($errors->any())
                     <div class="alert alert-danger">
-                        <div class="fw-semibold mb-1">Validasi gagal:</div>
+                        <div class="fw-semibold mb-1">Validation failed:</div>
                         <ul class="mb-0">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
@@ -30,8 +30,8 @@
                     </div>
                 @endif
                 <div class="alert alert-warning">
-                    Tugas yang Anda buat untuk diri sendiri akan menunggu persetujuan:
-                    Admin Lokasi (jika ada) atau Super Admin. Anda baru bisa update progres setelah disetujui.
+                    Tasks created for yourself will await approval:
+                    Location Admin (if any) or Super Admin. You can update progress after it is approved.
                 </div>
                 <form action="{{ route('tasks.store.self') }}" method="POST">
                     @csrf
@@ -46,27 +46,27 @@
                     <div class="mb-3">
                         <label for="task_catalog_id" class="form-label">Task Catalog</label>
                         <select name="task_catalog_id" id="task_catalog_id" class="form-select" required>
-                            <option value="">-- Pilih Task Catalog --</option>
+                            <option value="">-- Select Task Catalog --</option>
                             @foreach($catalogs ?? [] as $catalog)
                                 <option value="{{ $catalog->id }}" data-unit="{{ $catalog->unit }}" data-value="{{ $catalog->value }}" @selected(old('task_catalog_id') == $catalog->id)>
                                     {{ $catalog->name }} ({{ $catalog->unit }} {{ $catalog->value }})
                                 </option>
                             @endforeach
                         </select>
-                        <small class="text-muted">Hanya catalog sesuai jobdesk Anda yang ditampilkan.</small>
+                        <small class="text-muted">Only catalogs corresponding to your jobdesk are displayed.</small>
                     </div>
                     <div class="mb-3" id="durationField">
-                        <label for="duration_minutes" class="form-label">Durasi (menit)</label>
-                        <input type="number" name="duration_minutes" class="form-control" id="duration_minutes" min="1" placeholder="Misal 240 untuk 4 jam" value="{{ old('duration_minutes') }}">
-                        <small class="text-muted" id="durationHelp">Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.</small>
+                        <label for="duration_minutes" class="form-label">Duration (minutes)</label>
+                        <input type="number" name="duration_minutes" class="form-control" id="duration_minutes" min="1" placeholder="e.g., 240 for 4 hours" value="{{ old('duration_minutes') }}">
+                        <small class="text-muted" id="durationHelp">Total minutes to be divided into progress slots. Due date remains the final target.</small>
                     </div>
                     <div class="mb-3">
                         <label for="due_date" class="form-label">Due Date</label>
                         <input type="date" name="due_date" class="form-control" id="due_date" value="{{ old('due_date') }}">
                     </div>
-                    <p class="text-muted">Progres tugas pribadi diupdate lewat halaman detail menggunakan bukti berupa link.</p>
+                    <p class="text-muted">Personal task progress is updated via the detail page using a link as evidence.</p>
                     <hr>
-                    <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
+                    <h5 class="mb-2">Progress Slots (required, total % = 100%)</h5>
                     @php
                         $oldSlots = old('slots', [['name' => '', 'percentage' => '', 'minutes' => '', 'order' => 0]]);
                     @endphp
@@ -74,19 +74,19 @@
                         @foreach($oldSlots as $idx => $slot)
                             <div class="row g-2 mb-2 slot-row">
                                 <div class="col-md-4">
-                                    <label class="form-label">Nama / Tujuan</label>
-                                    <input type="text" name="slots[{{ $idx }}][name]" class="form-control" placeholder="Contoh: Riset" required value="{{ $slot['name'] }}">
+                                    <label class="form-label">Name / Goal</label>
+                                    <input type="text" name="slots[{{ $idx }}][name]" class="form-control" placeholder="Example: Research" required value="{{ $slot['name'] }}">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Persentase (%)</label>
+                                    <label class="form-label">Percentage (%)</label>
                                     <input type="number" name="slots[{{ $idx }}][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="25" required value="{{ $slot['percentage'] }}">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Menit</label>
+                                    <label class="form-label">Minutes</label>
                                     <input type="number" name="slots[{{ $idx }}][minutes]" class="form-control" min="1" placeholder="60" required value="{{ $slot['minutes'] }}">
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">Urutan</label>
+                                    <label class="form-label">Order</label>
                                     <input type="number" name="slots[{{ $idx }}][order]" class="form-control" min="0" value="{{ $slot['order'] ?? $idx }}">
                                 </div>
                             </div>
@@ -94,9 +94,9 @@
                     </div>
                     <div id="slotSummarySelf" class="small text-muted mb-2"></div>
                     <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnSelf">Tambah Slot</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnSelf">Hapus Semua Slot</button>
-                        <span class="small text-muted ms-2">Minimal 1 slot. Total persentase harus 100%, total menit harus sama dengan durasi (jika diisi).</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnSelf">Add Slot</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnSelf">Clear All Slots</button>
+                        <span class="small text-muted ms-2">Minimum 1 slot. Total percentage must be 100%, total minutes must equal duration (if provided).</span>
                     </div>
                     <button type="submit" class="btn btn-primary">Create Task</button>
                 </form>
@@ -117,7 +117,7 @@
       if (!option || !option.value) {
         durationInput.readOnly = false;
         if (durationHelp) {
-          durationHelp.textContent = 'Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.';
+          durationHelp.textContent = 'Total minutes to be divided into progress slots. Due date remains the final target.';
         }
         return;
       }
@@ -128,7 +128,7 @@
         durationInput.value = minutes || '';
         durationInput.readOnly = true;
         if (durationHelp) {
-          durationHelp.textContent = `Durasi otomatis: ${value} point x ${POINT_TO_MINUTES} menit = ${minutes} menit.`;
+          durationHelp.textContent = `Automatic duration: ${value} point x ${POINT_TO_MINUTES} minutes = ${minutes} minutes.`;
         }
       } else {
         if (value && (!durationInput.value || parseFloat(durationInput.value) <= 0)) {
@@ -136,7 +136,7 @@
         }
         durationInput.readOnly = false;
         if (durationHelp) {
-          durationHelp.textContent = 'Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.';
+          durationHelp.textContent = 'Total minutes to be divided into progress slots. Due date remains the final target.';
         }
       }
     };
@@ -173,8 +173,8 @@
         let totalPct = 0;
         let totalMinutes = 0;
         slotList.querySelectorAll('.slot-row').forEach((row) => {
-          const pct = parseFloat(row.querySelector('input[name$=\"[percentage]\"]')?.value);
-          const min = parseFloat(row.querySelector('input[name$=\"[minutes]\"]')?.value);
+          const pct = parseFloat(row.querySelector('input[name$="[percentage]"]')?.value);
+          const min = parseFloat(row.querySelector('input[name$="[minutes]"]')?.value);
           if (!isNaN(pct)) totalPct += pct;
           if (!isNaN(min)) totalMinutes += min;
         });
@@ -185,17 +185,17 @@
         let remainingMin = durationVal !== null ? durationVal - totalMinutes : null;
         if (remainingMin !== null && Math.abs(remainingMin) < 0.01) remainingMin = 0;
         slotSummary.textContent = [
-          `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (sisa ${formatPct(remainingPct)})` : ''),
+          `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (remaining ${formatPct(remainingPct)})` : ''),
           durationVal !== null
-            ? `Total menit: ${totalMinutes} / ${durationVal}` + (remainingMin !== null ? ` (sisa ${remainingMin})` : '')
-            : `Total menit: ${totalMinutes}`
+            ? `Total minutes: ${totalMinutes} / ${durationVal}` + (remainingMin !== null ? ` (remaining ${remainingMin})` : '')
+            : `Total minutes: ${totalMinutes}`
         ].join(' | ');
       };
 
       const syncRow = (row, from) => {
         if (isSyncing) return;
-        const pctInput = row.querySelector('input[name$=\"[percentage]\"]');
-        const minInput = row.querySelector('input[name$=\"[minutes]\"]');
+        const pctInput = row.querySelector('input[name$="[percentage]"]');
+        const minInput = row.querySelector('input[name$="[minutes]"]');
         if (!pctInput || !minInput) return;
         const durationVal = getDuration();
         isSyncing = true;
@@ -233,8 +233,8 @@
       };
 
       const attachSlotSync = (row) => {
-        const pctInput = row.querySelector('input[name$=\"[percentage]\"]');
-        const minInput = row.querySelector('input[name$=\"[minutes]\"]');
+        const pctInput = row.querySelector('input[name$="[percentage]"]');
+        const minInput = row.querySelector('input[name$="[minutes]"]');
         if (!pctInput || !minInput) return;
         pctInput.addEventListener('input', () => syncRow(row, 'percentage'));
         minInput.addEventListener('input', () => syncRow(row, 'minutes'));
@@ -254,13 +254,13 @@
         row.className = 'row g-2 mb-2 slot-row';
         row.innerHTML = `
           <div class="col-md-4">
-            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Nama / Tujuan" required>
+            <input type="text" name="slots[${idx}][name]" class="form-control" placeholder="Name / Goal" required>
           </div>
           <div class="col-md-3">
             <input type="number" name="slots[${idx}][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="%" required>
           </div>
           <div class="col-md-3">
-            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Menit" required>
+            <input type="number" name="slots[${idx}][minutes]" class="form-control" min="1" placeholder="Minutes" required>
           </div>
           <div class="col-md-2 d-flex align-items-center gap-2">
             <input type="number" name="slots[${idx}][order]" class="form-control" min="0" value="${idx}">

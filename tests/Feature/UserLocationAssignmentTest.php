@@ -24,10 +24,10 @@ class UserLocationAssignmentTest extends TestCase
         $l2 = Location::create(['name' => 'L2', 'code' => 'L2']);
 
         $admin = User::factory()->create(['location_id' => $l1->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $emp = User::factory()->create(['location_id' => $l1->id]);
-        $emp->assignRole('Karyawan');
+        $emp->assignRole('Employee');
 
         // Can view and update same location user
         $this->actingAs($admin)->get("/users/{$emp->id}")->assertStatus(200);

@@ -1,66 +1,128 @@
 <?php $__env->startSection('content'); ?>
-<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <h3 class="mb-1">Karyawan</h3>
-        <p class="text-muted mb-0">Kelola data karyawan, jabatan, dan lokasi kerja.</p>
-    </div>
-    <a href="<?php echo e(route('karyawans.create')); ?>" class="btn btn-primary btn-sm">Tambah Karyawan</a>
-</div>
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Employees</h3>
+<div class="content-wrapper">
+  <div class="content">
+    <div class="container-fluid">
+      <div class="row mb-4 align-items-center">
+        <div class="col-lg-7">
+          <h2 class="text-white mb-1 fw-bold" style="font-size: 1.8rem; letter-spacing: -0.5px;"><?php echo e(__('Employees')); ?></h2>
+          <p class="text-muted mb-0" style="font-size: 1.05rem;"><?php echo e(__('Manage employee profiles, positions, and work assignments.')); ?></p>
+        </div>
+        <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+          <a href="<?php echo e(route('karyawans.create')); ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg">
+            <i class="mdi mdi-account-plus-outline me-2"></i><?php echo e(__('Add Employee')); ?>
+
+          </a>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12">
+          <div class="card shadow-sm border-0" style="border-radius: 24px !important;">
+            <div class="card-header border-bottom border-white border-opacity-10 p-4 bg-transparent d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0 text-white fw-bold"><i class="mdi mdi-account-card-details-outline text-info me-2 fs-4"></i><?php echo e(__('Employee List')); ?></h5>
             </div>
-            <div class="card-body table-responsive p-0">
-                <table class="table table-hover text-nowrap">
-                    <thead>
-                        <tr>
-                            <th>NO</th>
-                            <th>Nama</th>
-                            <th>Email</th>
-                            <th>Jabatan</th>
-                            <th>Divisi</th>
-                            <th>Tgl Masuk</th>
-                            <th>Lokasi</th>
-
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $__currentLoopData = $employees; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $employee): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                       
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-white">
+                        <thead class="bg-white bg-opacity-5">
                             <tr>
-                                <td><?php echo e($loop->iteration + ($employees->currentPage()-1)*$employees->perPage()); ?></td>
-                                <td><?php echo e($employee->nama); ?></td>
-                                <td><?php echo e($employee->email); ?></td>
-                                <td><?php echo e($employee->jabatan); ?></td>
-                                <td><?php echo e($employee->division->nama ?? 'N/A'); ?></td>
-                                <td><?php echo e($employee->tanggal_masuk_kerja ? $employee->tanggal_masuk_kerja->format('d M Y') : '-'); ?></td>
-                                <td><?php echo e($employee->location->name ?? 'N/A'); ?></td>
-
+                                <th class="ps-4 py-3 text-muted small fw-bold text-uppercase letter-spacing-1" style="width: 80px"><?php echo e(__('NO')); ?></th>
+                                <th class="py-3 text-muted small fw-bold text-uppercase letter-spacing-1"><?php echo e(__('Name')); ?></th>
+                                <th class="py-3 text-muted small fw-bold text-uppercase letter-spacing-1"><?php echo e(__('Position')); ?></th>
+                                <th class="py-3 text-muted small fw-bold text-uppercase letter-spacing-1"><?php echo e(__('Division')); ?></th>
+                                <th class="py-3 text-muted small fw-bold text-uppercase letter-spacing-1"><?php echo e(__('Join Date')); ?></th>
+                                <th class="py-3 text-muted small fw-bold text-uppercase letter-spacing-1"><?php echo e(__('Location')); ?></th>
+                                <th class="pe-4 py-3 text-muted small fw-bold text-uppercase letter-spacing-1 text-end"><?php echo e(__('Actions')); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__empty_1 = true; $__currentLoopData = $employees; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $employee): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <tr class="border-bottom border-white border-opacity-5">
+                                <td class="ps-4 fw-bold text-muted"><?php echo e($loop->iteration + ($employees->currentPage()-1)*$employees->perPage()); ?></td>
                                 <td>
-                                    <a href="<?php echo e(route('karyawans.show', $employee)); ?>" class="btn btn-sm btn-outline-info">View</a>
-                                    <a href="<?php echo e(route('karyawans.edit', $employee)); ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form action="<?php echo e(route('karyawans.destroy', $employee)); ?>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure?')">
-                                        <?php echo csrf_field(); ?>
-                                        <?php echo method_field('DELETE'); ?>
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                    </form>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; font-size: 14px;">
+                                                <?php echo e(strtoupper(substr($employee->nama, 0, 2))); ?>
+
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-6"><?php echo e($employee->nama); ?></div>
+                                            <div class="text-info smallest"><?php echo e($employee->email); ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="text-white small fw-medium"><?php echo e($employee->jabatan); ?></span></td>
+                                <td>
+                                    <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 smaller">
+                                        <?php echo e($employee->division->nama ?? 'N/A'); ?>
+
+                                    </span>
+                                </td>
+                                <td><span class="text-muted small"><?php echo e($employee->tanggal_masuk_kerja ? $employee->tanggal_masuk_kerja->format('d M Y') : '-'); ?></span></td>
+                                <td>
+                                    <?php if($employee->location): ?>
+                                        <span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-1 smaller">
+                                            <?php echo e($employee->location->name); ?>
+
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted smaller italic">N/A</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="<?php echo e(route('karyawans.show', $employee)); ?>" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold shadow-none" title="<?php echo e(__('View')); ?>">
+                                            <i class="mdi mdi-eye-outline me-1"></i><?php echo e(__('View')); ?>
+
+                                        </a>
+                                        <a href="<?php echo e(route('karyawans.edit', $employee)); ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-none" title="<?php echo e(__('Edit')); ?>">
+                                            <i class="mdi mdi-pencil-outline me-1"></i><?php echo e(__('Edit')); ?>
+
+                                        </a>
+                                        <form action="<?php echo e(route('karyawans.destroy', $employee)); ?>" method="POST" onsubmit="return confirm('<?php echo e(__('Delete this employee?')); ?>')">
+                                            <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold shadow-none" title="<?php echo e(__('Delete')); ?>">
+                                                <i class="mdi mdi-trash-can-outline me-1"></i><?php echo e(__('Delete')); ?>
+
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
-                        
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </tbody>
-                </table>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="mdi mdi-account-off-outline fs-1 text-white opacity-25 d-block mb-2"></i>
+                                    <span class="text-muted italic"><?php echo e(__('No data yet')); ?></span>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="card-footer">
-                <?php echo e($employees->links()); ?>
+            <?php if($employees->hasPages()): ?>
+                <div class="card-footer border-top border-white border-opacity-10 p-4 bg-transparent">
+                    <?php echo e($employees->links()); ?>
 
-            </div>
+                </div>
+            <?php endif; ?>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </div>
+
+<style>
+.italic { font-style: italic; }
+.smaller { font-size: 0.75rem; }
+.smallest { font-size: 0.7rem; }
+.letter-spacing-1 { letter-spacing: 1px; }
+.table-hover tbody tr:hover { background-color: rgba(255,255,255,0.02) !important; }
+</style>
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.appnew', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\www\kantorapp\resources\views/karyawans/index.blade.php ENDPATH**/ ?>

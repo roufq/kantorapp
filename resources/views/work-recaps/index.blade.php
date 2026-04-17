@@ -2,159 +2,198 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border">
-    <div>
-        <h3 class="mb-1">Rekap Jam Kerja Bulanan</h3>
-        <p class="text-muted mb-0">Total menit dari slot tugas yang disetujui + kehadiran (jika ada).</p>
-    </div>
-</div>
+<div class="content-wrapper">
+  <div class="content pt-4">
+    <div class="container-fluid">
+      <div class="row mb-5 align-items-center">
+        <div class="col-lg-7">
+          <h1 class="fw-bold mb-1" style="font-size: 2.2rem; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ __('Productivity Recap') }}
+          </h1>
+          <p class="text-muted mb-0" style="font-size: 1.1rem; opacity: 0.8;">{{ __('Consolidated view of approved tasks and attendance records.') }}</p>
+        </div>
+        <div class="col-lg-5 text-lg-end mt-4 mt-lg-0">
+          <a href="{{ route('dashboard') }}" class="btn btn-light border rounded-pill px-4 fw-bold text-muted shadow-sm">
+            <i class="mdi mdi-arrow-left me-2"></i>{{ __('Dashboard') }}
+          </a>
+        </div>
+      </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="GET" class="row g-3 align-items-end">
-            @if(auth()->user()->hasRole('Super Admin'))
-                <div class="col-md-3">
-                    <label class="form-label">Lokasi</label>
-                    <select name="location_id" class="form-select">
-                        <option value="">Pilih lokasi</option>
-                        @foreach($locations as $loc)
-                            <option value="{{ $loc->id }}" @selected($locationFilter == $loc->id)>{{ $loc->name ?? $loc->nama ?? 'Lokasi '.$loc->id }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            @endif
-            <div class="col-md-3">
-                <label class="form-label">Karyawan</label>
-                <select name="employee_id" class="form-select">
-                    <option value="">Pilih karyawan</option>
-                    @foreach($employees as $emp)
-                        <option value="{{ $emp->id }}" @selected($employeeId == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Mulai</label>
-                <input type="date" name="start_date" value="{{ $startDate }}" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Selesai</label>
-                <input type="date" name="end_date" value="{{ $endDate }}" class="form-control">
-            </div>
-            <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-1">
-                <button type="submit" class="btn btn-primary waves-effect waves-light">Terapkan</button>
-                <a href="{{ route('work-recaps.index') }}" class="btn btn-outline-secondary waves-effect">Reset</a>
-                @if($employeeId)
-                    <button type="submit" name="export" value="1" class="btn btn-outline-success waves-effect">Export PDF</button>
-                @endif
-            </div>
-        </form>
-    </div>
-</div>
+      <!-- Filter Section -->
+      <div class="card mb-5 border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+              <form method="GET">
+                  <div class="row g-3">
+                      @if(auth()->user()->hasRole('Super Admin'))
+                      <div class="col-xl-3 col-md-6">
+                          <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Site') }}</label>
+                          <select name="location_id" class="form-select rounded-pill px-4 border-light shadow-none fw-bold">
+                              <option value="">{{ __('Global Sites') }}</option>
+                              @foreach($locations as $loc)
+                                <option value="{{ $loc->id }}" @selected($locationFilter == $loc->id)>{{ $loc->name ?? $loc->nama ?? __('Location').' '.$loc->id }}</option>
+                              @endforeach
+                          </select>
+                      </div>
+                      @endif
 
-@if($employeeId)
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Target (menit)</div>
-                <div class="h4 mb-0">{{ $slotSummary['target_minutes'] ?? '—' }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Slot Approved (menit)</div>
-                <div class="h4 mb-0">{{ $slotSummary['slot_minutes'] }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Kehadiran (menit)</div>
-                <div class="h4 mb-0">{{ $slotSummary['attendance_minutes'] }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Sisa (menit)</div>
-                <div class="h4 mb-0">{{ $slotSummary['remaining'] ?? '—' }}</div>
-            </div>
-        </div>
-    </div>
-</div>
+                      <div class="col-xl-3 col-md-6">
+                          <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Member') }}</label>
+                          <select name="employee_id" class="form-select rounded-pill px-4 border-light shadow-none fw-bold">
+                              <option value="">{{ __('Select Colleague') }}</option>
+                              @foreach($employees as $emp)
+                                <option value="{{ $emp->id }}" @selected($employeeId == $emp->id)>{{ $emp->nama ?? $emp->id }}</option>
+                              @endforeach
+                          </select>
+                      </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h5 class="card-title mb-0">Detail Slot Approved</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:50px">No</th>
-                        <th>Task</th>
-                        <th>Slot</th>
-                        <th>Menit</th>
-                        <th>Approved</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($slotDetails as $slot)
-                        <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $slot->task->title ?? 'Task #'.$slot->task_id }}</td>
-                            <td>{{ $slot->name }}</td>
-                            <td>{{ $slot->minutes }}</td>
-                            <td>{{ optional($slot->approved_at)->format('d M Y H:i') }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="text-center text-muted">Belum ada slot approved pada rentang ini.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+                      <div class="col-xl-2 col-md-6">
+                          <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('From') }}</label>
+                          <input type="date" name="start_date" value="{{ $startDate }}" class="form-control rounded-pill px-4 border-light shadow-none">
+                      </div>
 
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title mb-0">Detail Kehadiran</h5>
+                      <div class="col-xl-2 col-md-6">
+                          <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('To') }}</label>
+                          <input type="date" name="end_date" value="{{ $endDate }}" class="form-control rounded-pill px-4 border-light shadow-none">
+                      </div>
+
+                      <div class="col-xl-2 col-md-12 d-flex align-items-end gap-2">
+                          <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold flex-grow-1 shadow-sm">{{ __('Recap') }}</button>
+                          @if($employeeId)
+                            <button type="submit" name="export" value="1" class="btn btn-danger rounded-pill px-3 shadow-sm" title="{{ __('Export PDF') }}">
+                              <i class="mdi mdi-file-pdf-box"></i>
+                            </button>
+                          @endif
+                      </div>
+                  </div>
+              </form>
+          </div>
+      </div>
+
+      @if($employeeId)
+      <!-- Statistics Row -->
+      <div class="row g-4 mb-5">
+          <div class="col-md-3">
+              <div class="card p-4 rounded-4 border-0 shadow-sm h-100">
+                  <div class="text-muted small fw-bold text-uppercase mb-1">{{ __('Quota Target') }}</div>
+                  <div class="h3 mb-0 text-dark fw-bold">{{ number_format($slotSummary['target_minutes'] ?? 0) }} <small class="text-muted fw-normal" style="font-size: 0.6em;">min</small></div>
+              </div>
+          </div>
+          <div class="col-md-3">
+              <div class="card p-4 rounded-4 border-0 shadow-sm h-100 soft-card-celeste">
+                  <div class="text-info small fw-bold text-uppercase mb-1">{{ __('Slot Verified') }}</div>
+                  <div class="h3 mb-0 text-dark fw-bold">{{ number_format($slotSummary['slot_minutes']) }} <small class="text-muted fw-normal" style="font-size: 0.6em;">min</small></div>
+              </div>
+          </div>
+          <div class="col-md-3">
+              <div class="card p-4 rounded-4 border-0 shadow-sm h-100 soft-card-mint">
+                  <div class="text-success small fw-bold text-uppercase mb-1">{{ __('Logged Presence') }}</div>
+                  <div class="h3 mb-0 text-dark fw-bold">{{ number_format($slotSummary['attendance_minutes']) }} <small class="text-muted fw-normal" style="font-size: 0.6em;">min</small></div>
+              </div>
+          </div>
+          <div class="col-md-3">
+              <div class="card p-4 rounded-4 border-0 shadow-sm h-100 soft-card-rose">
+                  <div class="text-danger small fw-bold text-uppercase mb-1">{{ __('Remaining') }}</div>
+                  <div class="h3 mb-0 text-dark fw-bold">{{ number_format($slotSummary['remaining'] ?? 0) }} <small class="text-muted fw-normal" style="font-size: 0.6em;">min</small></div>
+              </div>
+          </div>
+      </div>
+
+      <!-- Approved Slots Table -->
+      <div class="card border-0 shadow-sm overflow-hidden mb-5">
+          <div class="card-header border-bottom border-light p-4 bg-transparent d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0 text-dark fw-bold"><i class="mdi mdi-checkbox-marked-circle-outline text-info me-2"></i>{{ __('Verified Task Breakdown') }}</h5>
+          </div>
+          <div class="card-body p-0">
+              <div class="table-responsive">
+                  <table class="table align-middle mb-0">
+                      <thead>
+                          <tr>
+                              <th class="ps-4">No</th>
+                              <th>{{ __('Activity') }}</th>
+                              <th>{{ __('Scope') }}</th>
+                              <th class="text-center">{{ __('Verified Time') }}</th>
+                              <th class="pe-4 text-end">{{ __('Date Approved') }}</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          @forelse($slotDetails as $slot)
+                              <tr>
+                                  <td class="ps-4 text-muted fw-bold" style="width: 60px;">{{ $loop->iteration }}</td>
+                                  <td><div class="fw-bold text-dark">{{ $slot->task->title ?? __('Task').' #'.$slot->task_id }}</div></td>
+                                  <td><span class="badge badge-info">{{ $slot->name }}</span></td>
+                                  <td class="text-center"><span class="fw-bold text-dark">{{ $slot->minutes }} m</span></td>
+                                  <td class="pe-4 text-end">
+                                      <div class="text-dark fw-bold">{{ optional($slot->approved_at)->format('d M Y') }}</div>
+                                      <div class="text-muted smallest">{{ optional($slot->approved_at)->format('H:i') }}</div>
+                                  </td>
+                              </tr>
+                          @empty
+                              <tr>
+                                  <td colspan="5" class="text-center py-5 opacity-50">
+                                      <p class="mb-0 italic">{{ __('No verified task data.') }}</p>
+                                  </td>
+                              </tr>
+                          @endforelse
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+      <!-- Attendance Table -->
+      <div class="card border-0 shadow-sm overflow-hidden">
+          <div class="card-header border-bottom border-light p-4 bg-transparent d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0 text-dark fw-bold"><i class="mdi mdi-clock-check-outline text-success me-2"></i>{{ __('Activity Log Details') }}</h5>
+          </div>
+          <div class="card-body p-0">
+              <div class="table-responsive">
+                  <table class="table align-middle mb-0">
+                      <thead>
+                          <tr>
+                              <th class="ps-4">No</th>
+                              <th>{{ __('Work Date') }}</th>
+                              <th class="text-center">{{ __('Check-In') }}</th>
+                              <th class="text-center">{{ __('Check-Out') }}</th>
+                              <th class="pe-4 text-end">{{ __('Duration') }}</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          @forelse($attendanceDetails as $att)
+                              <tr>
+                                  <td class="ps-4 text-muted fw-bold" style="width: 60px;">{{ $loop->iteration }}</td>
+                                  <td><div class="fw-bold text-dark">{{ optional($att->check_in_time)->format('Y-m-d') }}</div></td>
+                                  <td class="text-center"><span class="badge badge-success px-3">{{ optional($att->check_in_time)->format('H:i') }}</span></td>
+                                  <td class="text-center">
+                                      @if($att->check_out_time)
+                                        <span class="badge badge-warning px-3">{{ $att->check_out_time->format('H:i') }}</span>
+                                      @else
+                                        <span class="text-muted smallest italic">Pending...</span>
+                                      @endif
+                                  </td>
+                                  <td class="pe-4 text-end"><span class="fw-bold text-dark">{{ number_format($att->duration_minutes ?? 0) }} min</span></td>
+                                </tr>
+                          @empty
+                              <tr>
+                                  <td colspan="5" class="text-center py-5 opacity-50">
+                                      <p class="mb-0 italic">{{ __('No presence data logged.') }}</p>
+                                  </td>
+                              </tr>
+                          @endforelse
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+      @else
+          <div class="card border-0 shadow-sm p-5 rounded-4 text-center">
+              <div class="py-5">
+                  <i class="mdi mdi-account-card-outline text-muted opacity-25" style="font-size: 5rem;"></i>
+                  <h4 class="text-dark fw-bold mt-4">Analytic Insight</h4>
+                  <p class="text-muted mx-auto" style="max-width: 440px;">Select a team member to access their consolidated work duration and performance metrics.</p>
+              </div>
+          </div>
+      @endif
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:50px">No</th>
-                        <th>Tanggal</th>
-                        <th>Check-in</th>
-                        <th>Check-out</th>
-                        <th>Durasi (menit)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($attendanceDetails as $att)
-                        <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ optional($att->check_in_time)->format('d M Y') }}</td>
-                            <td>{{ optional($att->check_in_time)->format('H:i') }}</td>
-                            <td>{{ optional($att->check_out_time)->format('H:i') }}</td>
-                            <td>{{ $att->duration_minutes ?? 0 }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="text-center text-muted">Belum ada data kehadiran pada rentang ini.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+  </div>
 </div>
-@else
-    <div class="alert alert-info">Pilih karyawan untuk melihat ringkasan dan detail.</div>
-@endif
 @endsection

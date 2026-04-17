@@ -38,7 +38,7 @@ class AuthorizationTest extends TestCase
         $l2 = Location::create(['name' => 'B', 'code' => 'B', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
 
         $admin = User::factory()->create(['location_id' => $l1->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $u1 = User::factory()->create(['location_id' => $l1->id]);
         $u2 = User::factory()->create(['location_id' => $l2->id]);

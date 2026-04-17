@@ -1,12 +1,12 @@
 <table>
     <thead>
     <tr>
-        <th>Tanggal</th>
+        <th>Date</th>
         <th>Slot</th>
-        <th>Jam</th>
-        <th>Karyawan</th>
+        <th>Time</th>
+        <th>Employees</th>
         <th>Status</th>
-        <th>Catatan</th>
+        <th>Notes</th>
     </tr>
     </thead>
     <tbody>
@@ -16,7 +16,7 @@
             <td>{{ $e->status === 'off' ? 'OFF' : $e->slot_index + 1 }}</td>
             <td>
                 @if($e->status === 'off')
-                    Hari libur
+                    Day off
                 @elseif(isset($slotMap[$e->slot_index]))
                     {{ $slotMap[$e->slot_index]['start'] ?? '?' }} - {{ $slotMap[$e->slot_index]['end'] ?? '?' }}
                 @else

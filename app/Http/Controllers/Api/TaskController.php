@@ -16,7 +16,7 @@ class TaskController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             $query = Task::with('assignee', 'assigner');
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $query = Task::whereHas('assignee', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
@@ -54,7 +54,7 @@ class TaskController extends Controller
             return response()->json($task->load('assignee', 'assigner'));
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
                 return response()->json($task->load('assignee', 'assigner'));
@@ -73,7 +73,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi')) {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Location Admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -85,12 +85,12 @@ class TaskController extends Controller
         ]);
 
         // Authorization checks
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             if ((int)$request->assigned_to !== (int)$user->id) {
                 $valid = \App\Models\User::where('id', $request->assigned_to)
                     ->where('location_id', $user->location_id)
                     ->whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                     ->exists();
                 if (!$valid) {
@@ -100,7 +100,7 @@ class TaskController extends Controller
         }
 
         $assignee = User::findOrFail($request->assigned_to);
-        $employee = $assignee->employee ?? $assignee->karyawan;
+        $employee = $assignee->employee ?? $assignee->employee;
         $department = $employee?->departemen;
         $approvalValue = (int) ($request->get('duration_minutes') ?? 0);
         $approvalMeta = Task::determineCreationApproval($user, $assignee, [
@@ -134,7 +134,7 @@ class TaskController extends Controller
         if ($isStatusOnly) {
             if ($user->hasRole('Super Admin')) {
                 // allowed
-            } elseif ($user->hasRole('Admin Lokasi')) {
+            } elseif ($user->hasRole('Location Admin')) {
                 if (optional($task->assignee)->location_id !== $user->location_id) {
                     return response()->json(['message' => 'Unauthorized'], 403);
                 }
@@ -150,7 +150,7 @@ class TaskController extends Controller
             return response()->json($task);
         }
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Admin Lokasi')) {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Location Admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -162,8 +162,8 @@ class TaskController extends Controller
             'due_date' => 'nullable|date|after_or_equal:today',
         ]);
 
-        // Authorization checks for Admin Lokasi
-        if ($user->hasRole('Admin Lokasi')) {
+        // Authorization checks for Location Admin
+        if ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if (!$assignee || $assignee->location_id !== $user->location_id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
@@ -172,7 +172,7 @@ class TaskController extends Controller
                 $valid = \App\Models\User::where('id', $request->assigned_to)
                     ->where('location_id', $user->location_id)
                     ->whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                     ->exists();
                 if (!$valid) {
@@ -195,7 +195,7 @@ class TaskController extends Controller
             return response()->json(['message' => 'Task deleted']);
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $assignee = $task->assignee;
             if ($assignee && $assignee->location_id === $user->location_id) {
                 $task->delete();

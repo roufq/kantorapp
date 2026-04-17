@@ -2,8 +2,8 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Tugas Super Admin Saya</h3>
-        <p class="text-muted mb-0">Daftar tugas Super Admin yang ditugaskan ke Anda.</p>
+        <h3 class="mb-1">My Super Admin Tasks</h3>
+        <p class="text-muted mb-0">List of Super Admin tasks assigned to you.</p>
     </div>
     <a href="{{ route('master-tasks.create.self') }}" class="btn btn-success btn-sm">Create Super Admin Task</a>
 </div>

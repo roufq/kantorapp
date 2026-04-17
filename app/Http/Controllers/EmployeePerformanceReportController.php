@@ -31,12 +31,12 @@ class EmployeePerformanceReportController extends Controller
         $employeeId = $request->get('employee_id');
         $locationId = $request->get('location_id');
 
-        $usersQuery = User::role('Karyawan')->with('location');
+        $usersQuery = User::role('Employee')->with('location');
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $usersQuery->where('location_id', $locationId);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $employeeId = $user->id;
             $usersQuery->where('id', $user->id);
         } elseif ($locationId) {
@@ -58,8 +58,8 @@ class EmployeePerformanceReportController extends Controller
             ? Location::orderBy('name')->get()
             : collect();
 
-        $employeeOptions = User::role('Karyawan')
-            ->when($user->hasRole('Admin Lokasi'), function ($query) use ($user) {
+        $employeeOptions = User::role('Employee')
+            ->when($user->hasRole('Location Admin'), function ($query) use ($user) {
                 $query->where('location_id', $user->location_id);
             })
             ->when($locationId && ($user->hasRole('Super Admin') || $user->hasRole('HR')), function ($query) use ($locationId) {
@@ -92,12 +92,12 @@ class EmployeePerformanceReportController extends Controller
         $employeeId = $request->get('employee_id');
         $locationId = $request->get('location_id');
 
-        $usersQuery = User::role('Karyawan')->with('location');
+        $usersQuery = User::role('Employee')->with('location');
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $usersQuery->where('location_id', $locationId);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $employeeId = $user->id;
             $usersQuery->where('id', $user->id);
         } elseif ($locationId) {
@@ -145,7 +145,7 @@ class EmployeePerformanceReportController extends Controller
                 number_format($metrics['overtime_hours'], 2),
                 $metrics['attendance_minutes'],
                 $metrics['min_attendance_minutes'],
-                is_null($metrics['min_attendance_met']) ? '-' : ($metrics['min_attendance_met'] ? 'Ya' : 'Tidak'),
+                is_null($metrics['min_attendance_met']) ? '-' : ($metrics['min_attendance_met'] ? __('Yes') : __('No')),
                 number_format($metrics['output_efficiency_rate'], 2) . '%',
                 number_format((float) $metrics['output_points'], 2),
                 $metrics['target_points'],
@@ -156,26 +156,26 @@ class EmployeePerformanceReportController extends Controller
         }
 
         $headings = [
-            'Nama',
-            'Lokasi',
-            'Kehadiran (%)',
-            'Hadir (hari)',
-            'Keterlambatan (%)',
-            'Terlambat (x)',
-            'Total Kehadiran',
-            'Overtime (jam)',
-            'Hadir (menit)',
-            'Min Hadir (menit)',
-            'Min Hadir Terpenuhi',
-            'Efisiensi Output (%)',
-            'Output (poin)',
-            'Target (poin)',
-            'Tugas Selesai',
-            'Tugas Dibuat',
-            'Produktivitas (%)',
+            __('Name'),
+            __('Location'),
+            __('Attendance (%)'),
+            __('Present (days)'),
+            __('Lateness (%)'),
+            __('Late (x)'),
+            __('Total Attendance'),
+            __('Overtime (hours)'),
+            __('Present (minutes)'),
+            __('Min Present (minutes)'),
+            __('Min Present Met'),
+            __('Output Efficiency (%)'),
+            __('Output (points)'),
+            __('Target (points)'),
+            __('Tasks Completed'),
+            __('Tasks Created'),
+            __('Productivity (%)'),
         ];
 
-        $filename = 'performa_karyawan_' . now()->format('Ymd_His') . '.xlsx';
+        $filename = 'employee_performance_' . now()->format('Ymd_His') . '.xlsx';
         return Excel::download(new KpiExport($rows, $headings), $filename, \Maatwebsite\Excel\Excel::XLSX);
     }
 
@@ -263,9 +263,9 @@ class EmployeePerformanceReportController extends Controller
                 ->keyBy('user_id');
 
             $userEmployeeMap = User::whereIn('id', $userIds)
-                ->get(['id', 'employee_id', 'karyawan_id'])
+                ->get(['id', 'employee_id', 'employee_id'])
                 ->mapWithKeys(function ($u) {
-                    return [$u->id => ($u->employee_id ?: $u->karyawan_id)];
+                    return [$u->id => ($u->employee_id ?: $u->employee_id)];
                 });
             $employeeIds = $userEmployeeMap->values()->filter()->unique()->values()->all();
 
@@ -338,7 +338,7 @@ class EmployeePerformanceReportController extends Controller
             $completedCount = (int) ($tasksCompleted->tasks_completed ?? 0);
             $productivityRate = $createdCount > 0 ? round(($completedCount / $createdCount) * 100, 2) : 0.0;
 
-            $employeeId = $row->employee_id ?? $row->karyawan_id;
+            $employeeId = $row->employee_id ?? $row->employee_id;
             $outputPoints = (float) ($output->output_points ?? 0);
             $targetPoints = (int) ($targetPointsByEmployeeId[$employeeId] ?? 0);
             $efficiencyRate = $targetPoints > 0 ? round(($outputPoints / $targetPoints) * 100, 2) : 0.0;

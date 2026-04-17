@@ -32,7 +32,7 @@ class ShiftController extends Controller
             $locationShifts = LocationShift::with('shift')
                 ->where('location_id', $locationId)
                 ->get();
-            $users = User::role('Karyawan')->where('location_id', $locationId)->orderBy('name')->get();
+            $users = User::role('Employee')->where('location_id', $locationId)->orderBy('name')->get();
         }
 
         return view('shifts.scheduler', compact('locations', 'locationId', 'locationShifts', 'users'));

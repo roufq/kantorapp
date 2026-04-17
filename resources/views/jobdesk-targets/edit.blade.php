@@ -5,7 +5,7 @@
         <h3 class="mb-1">Edit Target Output</h3>
         <p class="text-muted mb-0">Jobdesk: {{ $target->jobdesk?->name ?? '-' }}</p>
     </div>
-    <a href="{{ route('jobdesk-targets.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('jobdesk-targets.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 
 <div class="card">
@@ -22,16 +22,16 @@
                 </select>
             </div>
             <div class="col-md-6">
-                <label class="form-label">Karyawan (opsional)</label>
+                <label class="form-label">Employee (optional)</label>
                 <select name="employee_id" class="form-select">
-                    <option value="">Semua Karyawan</option>
+                    <option value="">All Employees</option>
                     @foreach($employees as $emp)
                         <option value="{{ $emp->id }}" @selected(old('employee_id', $target->employee_id) == $emp->id)>{{ $emp->nama }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label">Bulan</label>
+                <label class="form-label">Month</label>
                 <input type="month" name="month" class="form-control" value="{{ old('month', $monthParam) }}" required>
             </div>
             <div class="col-md-4">
@@ -47,8 +47,8 @@
                 <input type="number" name="target_value" class="form-control" min="0" value="{{ old('target_value', $target->target_value) }}" required>
             </div>
             <div class="col-12">
-                <button class="btn btn-primary">Simpan</button>
-                <a href="{{ route('jobdesk-targets.index') }}" class="btn btn-secondary">Batal</a>
+                <button class="btn btn-primary">Save</button>
+                <a href="{{ route('jobdesk-targets.index') }}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>

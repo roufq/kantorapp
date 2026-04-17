@@ -22,8 +22,8 @@ class OvertimeController extends Controller
         if ($user->hasRole('Super Admin')) {
             // Super Admins can see all overtime requests
             $query = Overtime::with('user', 'approvals.master');
-        } elseif ($user->hasRole('Admin Lokasi')) {
-            // Admin Lokasi can see overtime requests for users in their location
+        } elseif ($user->hasRole('Location Admin')) {
+            // Location Admin can see overtime requests for users in their location
             $loc = $user->location_id;
             $query = Overtime::whereHas('user', function ($q) use ($loc) {
                 $q->where('location_id', $loc);
@@ -53,7 +53,7 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Karyawan')) {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Employee')) {
             abort(403, 'Not authorized to request overtime');
         }
 
@@ -66,7 +66,7 @@ class OvertimeController extends Controller
         $autoApprovers = collect();
         $limits = $this->resolveOvertimeLimits($user->location);
 
-        if ($user->hasRole('Karyawan')) {
+        if ($user->hasRole('Employee')) {
             $autoApprovers = $this->getApprovalChainForEmployee($user);
 
             if ($autoApprovers->isEmpty()) {
@@ -81,7 +81,7 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('Super Admin') && !$user->hasRole('Karyawan')) {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Employee')) {
             abort(403, 'Not authorized to request overtime');
         }
 
@@ -174,7 +174,7 @@ class OvertimeController extends Controller
         $autoApprovers = collect();
         $limits = $this->resolveOvertimeLimits($overtime->user?->location);
 
-        if ($overtime->user && $overtime->user->hasRole('Karyawan')) {
+        if ($overtime->user && $overtime->user->hasRole('Employee')) {
             $autoApprovers = $this->getApprovalChainForEmployee($overtime->user);
         }
 
@@ -277,7 +277,7 @@ class OvertimeController extends Controller
             return;
         }
 
-        if ($user->hasRole('Karyawan') && $overtime->user_id === $user->id) {
+        if ($user->hasRole('Employee') && $overtime->user_id === $user->id) {
             return;
         }
 
@@ -288,10 +288,10 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('Karyawan') && $overtime->user_id !== $user->id) {
+        if ($user->hasRole('Employee') && $overtime->user_id !== $user->id) {
             abort(403, 'You can only view your own overtime requests');
         }
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             if ($overtime->user && $overtime->user->location_id !== $user->location_id) {
                 abort(403, 'Not authorized to view this request');
             }
@@ -309,7 +309,7 @@ class OvertimeController extends Controller
         if ($user->hasRole('Super Admin')) {
             // Super Admins can see all overtime requests
             $query = Overtime::with('user', 'approvals.master');
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $loc = $user->location_id;
             $query = Overtime::whereHas('user', function ($q) use ($loc) {
                 $q->where('location_id', $loc);
@@ -352,7 +352,7 @@ class OvertimeController extends Controller
         if ($user->hasRole('Super Admin')) {
             // Super Admins can export all overtime requests
             $query = Overtime::with('user', 'approvals.master');
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $loc = $user->location_id;
             $query = Overtime::whereHas('user', function ($q) use ($loc) {
                 $q->where('location_id', $loc);
@@ -417,7 +417,7 @@ class OvertimeController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasAnyRole(['Super Admin', 'Admin Lokasi'])) {
+        if (!$user->hasAnyRole(['Super Admin', 'Location Admin'])) {
             abort(403, 'Not authorized to approve overtime requests');
         }
 
@@ -477,7 +477,7 @@ class OvertimeController extends Controller
     {
         $chain = collect();
 
-        if ($user->location_id && ($locationRole = $this->findRole('Admin Lokasi'))) {
+        if ($user->location_id && ($locationRole = $this->findRole('Location Admin'))) {
             $locationAdmins = User::where('location_id', $user->location_id)
                 ->whereHas('roles', function ($query) use ($locationRole) {
                     $query->where('id', $locationRole->id);

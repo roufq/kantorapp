@@ -151,7 +151,7 @@ class Task extends Model
                 $approvalLevel = $rule->approval_level;
                 if ($approvalLevel === 'location_admin') {
                     $locationAdmin = $creator->location_id
-                        ? User::role('Admin Lokasi')->where('location_id', $creator->location_id)->first()
+                        ? User::role('Location Admin')->where('location_id', $creator->location_id)->first()
                         : null;
                     $approvalLevel = $locationAdmin ? 'location_admin' : 'super_admin';
                 }
@@ -172,8 +172,8 @@ class Task extends Model
             return $approved;
         }
 
-        // Self-assigned by Admin Lokasi -> requires Super Admin approval
-        if ($creator->hasRole('Admin Lokasi')) {
+        // Self-assigned by Location Admin -> requires Super Admin approval
+        if ($creator->hasRole('Location Admin')) {
             return [
                 'requires_approval' => true,
                 'approval_status' => 'pending',
@@ -184,9 +184,9 @@ class Task extends Model
             ];
         }
 
-        // Self-assigned by Karyawan (or other roles) -> prefer Location Admin in same location, fallback to Super Admin
+        // Self-assigned by Employee (or other roles) -> prefer Location Admin in same location, fallback to Super Admin
         $locationAdmin = $creator->location_id
-            ? User::role('Admin Lokasi')->where('location_id', $creator->location_id)->first()
+            ? User::role('Location Admin')->where('location_id', $creator->location_id)->first()
             : null;
 
         $hasLocationAdmin = (bool) $locationAdmin;

@@ -33,7 +33,7 @@ class BrandingTest extends TestCase
         $loc->setSetting('theme', 'blue');
 
         $user = User::factory()->create(['location_id' => $loc->id]);
-        $user->assignRole('Karyawan');
+        $user->assignRole('Employee');
 
         $html = $this->actingAs($user)->get('/dashboard')->assertStatus(200)->getContent();
 

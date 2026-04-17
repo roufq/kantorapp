@@ -12,7 +12,7 @@ class WeeklyOffController extends Controller
     {
         $auth = Auth::user();
         $q = WeeklyOff::query();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $q->where('location_id', $auth->location_id);
         }
         if ($request->filled('day_of_week')) {
@@ -32,7 +32,7 @@ class WeeklyOffController extends Controller
         ]);
 
         $data = $request->only('day_of_week','user_id','location_id');
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             // Admin lokasi hanya boleh set untuk lokasi sendiri atau user di lokasi sendiri
             $data['location_id'] = $auth->location_id;
             if (!empty($data['user_id'])) {
@@ -53,7 +53,7 @@ class WeeklyOffController extends Controller
     public function destroy(WeeklyOff $weeklyOff)
     {
         $auth = Auth::user();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             abort_unless($weeklyOff->location_id === $auth->location_id, 403);
         }
         $weeklyOff->delete();

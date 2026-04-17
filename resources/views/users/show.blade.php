@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Detail User</h3>
+        <h3 class="mb-1">User Details</h3>
         <p class="text-muted mb-0">{{ $user->name }}</p>
     </div>
-    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">
@@ -70,7 +70,7 @@
             <div class="card-header"><h3 class="card-title">Role Management</h3></div>
             <div class="card-body">
                 @php($roles = $user->getRoleNames())
-                @if($roles->contains('Admin Lokasi'))
+                @if($roles->contains('Location Admin'))
                     <form action="{{ route('users.demote.employee', $user) }}" method="POST" onsubmit="return confirm('Demote this user to Employee?')">
                         @csrf
                         <button type="submit" class="btn btn-warning">Demote to Employee</button>
@@ -89,7 +89,7 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <button type="submit" class="btn btn-primary">Promote to Admin Lokasi</button>
+                                <button type="submit" class="btn btn-primary">Promote to Location Admin</button>
                             </div>
                         </div>
                     </form>
@@ -103,7 +103,7 @@
                         <button type="submit" class="btn btn-warning">Demote HR to Employee</button>
                     </form>
                 @else
-                    <form action="{{ route('users.promote.hr', $user) }}" method="POST" onsubmit="return confirm('Promote this user to HR? This will remove Admin Lokasi/Karyawan roles.')">
+                    <form action="{{ route('users.promote.hr', $user) }}" method="POST" onsubmit="return confirm('Promote this user to HR? This will remove Location Admin / Employee roles.')">
                         @csrf
                         <button type="submit" class="btn btn-outline-primary">Promote to HR</button>
                     </form>

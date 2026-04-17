@@ -30,8 +30,8 @@ class NotifyLeaveMonthlySummary extends Command
             return self::SUCCESS;
         }
         $year = (int) $today->format('Y');
-        $employees = User::role('Karyawan')->with('location')->get();
-        $admins = User::role('Admin Lokasi')->with('location')->get()->groupBy('location_id');
+        $employees = User::role('Employee')->with('location')->get();
+        $admins = User::role('Location Admin')->with('location')->get()->groupBy('location_id');
         $sent = 0;
 
         $adminDetails = [];

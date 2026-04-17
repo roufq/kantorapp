@@ -46,7 +46,7 @@ class EmployeeContractController extends Controller
         $data['created_by'] = Auth::id();
         EmployeeContract::create($data);
 
-        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak karyawan disimpan.');
+        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak employee disimpan.');
     }
 
     public function edit(EmployeeContract $employee_contract)
@@ -68,12 +68,12 @@ class EmployeeContractController extends Controller
 
         $employee_contract->update($data);
 
-        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak karyawan diperbarui.');
+        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak employee diperbarui.');
     }
 
     public function destroy(EmployeeContract $employee_contract)
     {
         $employee_contract->delete();
-        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak karyawan dihapus.');
+        return redirect()->route('employee-contracts.index')->with('success', 'Kontrak employee dihapus.');
     }
 }

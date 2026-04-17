@@ -20,7 +20,7 @@ class ShiftTemplatesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['name' => 'Karyawan']);
+        Role::firstOrCreate(['name' => 'Employee']);
     }
 
     public function test_seed_shift_templates_creates_default_shifts_and_links_locations(): void
@@ -44,8 +44,8 @@ class ShiftTemplatesTest extends TestCase
 
         $u1 = User::factory()->create(['location_id' => $loc->id, 'email' => 'u1@example.com']);
         $u2 = User::factory()->create(['location_id' => $loc->id, 'email' => 'u2@example.com']);
-        $u1->assignRole('Karyawan');
-        $u2->assignRole('Karyawan');
+        $u1->assignRole('Employee');
+        $u2->assignRole('Employee');
 
         Artisan::call(GenerateShiftRotation::class, ['location_id' => $loc->id, '--days' => 2]);
 

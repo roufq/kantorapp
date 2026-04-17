@@ -31,14 +31,14 @@ class DashboardController extends Controller
         if ($user->hasRole('Super Admin')) {
             // Super Admin sees all tasks
             $query = Task::with('assignee', 'assigner');
-        } else if ($user->hasRole('Admin Lokasi')) {
-            // Admin Lokasi sees tasks for users in their location
+        } else if ($user->hasRole('Location Admin')) {
+            // Location Admin sees tasks for users in their location
             $locationId = $user->location_id;
             $query = Task::whereHas('assignee', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
             })->with('assignee', 'assigner');
         } else {
-            // Karyawan sees only their own tasks
+            // Employee sees only their own tasks
             $query = Task::where('assigned_to', $user->id)->with('assignee', 'assigner');
         }
 
@@ -80,12 +80,12 @@ class DashboardController extends Controller
         // Get counts for dashboard (location-aware for non Super Admin)
         if ($user->hasRole('Super Admin')) {
             $totalMasters = User::role('Super Admin')->count();
-            $totalEmployees = User::role('Karyawan')->count();
+            $totalEmployees = User::role('Employee')->count();
             $totalTasks = Task::count();
             $totalMessages = Message::count(); // keep global for admins
             $totalUsers = User::count();
             $totalDivisions = Division::count();
-            $totalKaryawans = Employee::count();
+            $totalEmployees = Employee::count();
             $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)->count();
             $absencesTodayCount = EmployeeAbsence::whereDate('date', $today)->count();
 
@@ -102,7 +102,7 @@ class DashboardController extends Controller
         } else {
             $locationId = $user->location_id;
             $totalMasters = User::role('Super Admin')->count(); // global masters
-            $totalEmployees = User::role('Karyawan')->where('location_id', $locationId)->count();
+            $totalEmployees = User::role('Employee')->where('location_id', $locationId)->count();
             $totalTasks = Task::whereHas('assignee', function ($q) use ($locationId) {
                 $q->where('location_id', $locationId);
             })->count();
@@ -112,7 +112,7 @@ class DashboardController extends Controller
             })->distinct('id')->count('id');
             $totalUsers = User::where('location_id', $locationId)->count();
             $totalDivisions = Division::count(); // divisions not location-specific yet
-            $totalKaryawans = Employee::where('location_id', $locationId)->count();
+            $totalEmployees = Employee::where('location_id', $locationId)->count();
 
             $chartMetrics['total_employees'] = $totalEmployees;
             $chartMetrics['total_tasks'] = $totalTasks;
@@ -133,7 +133,7 @@ class DashboardController extends Controller
             $chartMetrics['total_divisions'] = $totalDivisions;
             $chartMetrics['total_messages'] = $totalMessages;
             $chartMetrics['unread_messages'] = $unreadMessages;
-            if ($user->hasRole('Admin Lokasi')) {
+            if ($user->hasRole('Location Admin')) {
                 $todayAssignmentsCount = ShiftAssignment::whereDate('date', $today)
                     ->where('location_id', $locationId)
                     ->count();
@@ -179,7 +179,7 @@ class DashboardController extends Controller
             $completedTasksAll = Task::where('status', 'completed')->count();
             $locationMetrics['task_completion_rate'] = $totalTasksAll > 0 ? round(($completedTasksAll / $totalTasksAll) * 100, 2) : 0.0;
 
-            $totalEmployeesAll = User::role('Karyawan')->count();
+            $totalEmployeesAll = User::role('Employee')->count();
             $checkedInTodayAll = Attendance::whereDate('check_in_time', $today)->distinct('user_id')->count('user_id');
             $locationMetrics['attendance_rate_today'] = $totalEmployeesAll > 0 ? round(($checkedInTodayAll / $totalEmployeesAll) * 100, 2) : 0.0;
 
@@ -196,7 +196,7 @@ class DashboardController extends Controller
                 })->count();
             $locationMetrics['task_completion_rate'] = $totalTasksLoc > 0 ? round(($completedTasksLoc / $totalTasksLoc) * 100, 2) : 0.0;
 
-            $totalEmployeesLoc = User::role('Karyawan')->where('location_id', $locationId)->count();
+            $totalEmployeesLoc = User::role('Employee')->where('location_id', $locationId)->count();
             $checkedInTodayLoc = Attendance::whereDate('check_in_time', $today)
                 ->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); })
                 ->distinct('user_id')->count('user_id');
@@ -214,13 +214,13 @@ class DashboardController extends Controller
         $overtimeQuery = Overtime::where('status', 'approved')->whereBetween('date', [$kpiStart->toDateString(), $kpiEnd->toDateString()]);
 
         if ($user->hasRole('Super Admin')) {
-            $totalEmployeesForKpi = User::role('Karyawan')->count();
-        } elseif ($user->hasRole('Admin Lokasi')) {
+            $totalEmployeesForKpi = User::role('Employee')->count();
+        } elseif ($user->hasRole('Location Admin')) {
             $locationId = $user->location_id;
             $attendanceQuery->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
             $taskBaseQuery->whereHas('assignee', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
             $overtimeQuery->whereHas('user', function ($q) use ($locationId) { $q->where('location_id', $locationId); });
-            $totalEmployeesForKpi = User::role('Karyawan')->where('location_id', $locationId)->count();
+            $totalEmployeesForKpi = User::role('Employee')->where('location_id', $locationId)->count();
         } else {
             $attendanceQuery->where('user_id', $user->id);
             $taskBaseQuery->where('assigned_to', $user->id);
@@ -257,7 +257,7 @@ class DashboardController extends Controller
         $userCountsByLocation = collect();
         if ($user->hasRole('Super Admin')) {
             $locations = Location::orderBy('name')->get(['id', 'name']);
-            $employeeCountsByLocation = User::role('Karyawan')
+            $employeeCountsByLocation = User::role('Employee')
                 ->select('location_id', DB::raw('count(*) as total'))
                 ->whereNotNull('location_id')
                 ->groupBy('location_id')
@@ -268,7 +268,7 @@ class DashboardController extends Controller
                 ->pluck('total', 'location_id');
         } elseif ($user->location_id) {
             $locations = Location::where('id', $user->location_id)->get(['id', 'name']);
-            $employeeCountsByLocation = User::role('Karyawan')
+            $employeeCountsByLocation = User::role('Employee')
                 ->select('location_id', DB::raw('count(*) as total'))
                 ->where('location_id', $user->location_id)
                 ->groupBy('location_id')
@@ -289,7 +289,7 @@ class DashboardController extends Controller
             return (int) ($userCountsByLocation[$loc->id] ?? 0);
         });
 
-        if ($user->hasRole('Karyawan')) {
+        if ($user->hasRole('Employee')) {
             $chartMetrics['total_employees'] = 1;
             $chartMetrics['attendance_total'] = 1;
             $chartMetrics['checked_in_today'] = Attendance::where('user_id', $user->id)
@@ -324,7 +324,7 @@ class DashboardController extends Controller
                 : ($todayRosterEntry?->date ?? $todayAssignment?->date);
             if (!$isOffToday && WorkdayService::isWorkingDay($user, now()) === false) {
                 $isOffToday = true;
-                $todayAssignmentTime = 'Hari libur Anda';
+                $todayAssignmentTime = __('Your holiday');
                 $todayAssignment = null;
                 $slotIndex = null;
             }
@@ -344,7 +344,7 @@ class DashboardController extends Controller
                 }
             }
             if ($isOffToday) {
-                $todayAssignmentTime = 'Hari libur Anda';
+                $todayAssignmentTime = __('Your holiday');
                 $todayAssignment = null;
             }
             $myUpcomingAssignments = ShiftAssignment::with('shift')
@@ -382,15 +382,15 @@ class DashboardController extends Controller
                         }
                     })->get();
                 foreach ($holidaysToday as $h) {
-                    $notices[] = ($h->is_national ? 'Libur Nasional' : 'Libur Lokasi') . ': ' . $h->name;
+                    $notices[] = ($h->is_national ? __('National Holiday') : __('Local Holiday')) . ': ' . $h->name;
                 }
                 if (!$holidaysToday->count() && WorkdayService::isWeeklyOff($user, now())) {
-                    $notices[] = 'Weekly Off';
+                    $notices[] = __('Weekly Off');
                 }
                 $onLeave = EmployeeLeave::where('user_id', $user->id)->where('status', 'approved')
                     ->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->first();
                 if ($onLeave) {
-                    $notices[] = 'Izin/Cuti (' . $onLeave->type . ')';
+                    $notices[] = __('Leave/Absence') . ' (' . $onLeave->type . ')';
                 }
             }
             return $notices;
@@ -413,15 +413,15 @@ class DashboardController extends Controller
                         }
                     })->get();
                 foreach ($holidays as $h) {
-                    $labels[] = ($h->is_national ? 'Libur Nasional' : 'Libur Lokasi') . ': ' . $h->name;
+                    $labels[] = ($h->is_national ? __('National Holiday') : __('Local Holiday')) . ': ' . $h->name;
                 }
                 if (WorkdayService::isWeeklyOff($user, $d)) {
-                    $labels[] = 'Weekly Off';
+                    $labels[] = __('Weekly Off');
                 }
                 $onLeave = EmployeeLeave::where('user_id', $user->id)->where('status', 'approved')
                     ->whereDate('start_date', '<=', $dateStr)->whereDate('end_date', '>=', $dateStr)->exists();
                 if ($onLeave) {
-                    $labels[] = 'Izin/Cuti';
+                    $labels[] = __('Leave/Absence');
                 }
                 if (!empty($labels)) {
                     $list[] = [
@@ -433,7 +433,7 @@ class DashboardController extends Controller
             return $list;
         });
 
-        // Get today's attendance for the user (and for Admin Lokasi themselves)
+        // Get today's attendance for the user (and for Location Admin themselves)
         $todayAttendance = Attendance::where('user_id', $user->id)
             ->whereDate('check_in_time', now()->toDateString())
             ->first();
@@ -442,7 +442,7 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'user', 'tasks', 'unreadMessages',
-            'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalKaryawans',
+            'totalMasters', 'totalEmployees', 'totalTasks', 'totalMessages', 'totalUsers', 'totalDivisions', 'totalEmployees',
           'todayAttendance', 'todayAssignment', 'todayAssignmentsCount', 'recentAssignments', 'myUpcomingAssignments', 'locationMetrics', 'kpiMetrics', 'kpiDays', 'chartMetrics', 'todayNotices', 'upcomingNotices', 'absencesTodayCount',
           'locationLabels', 'employeeCountsByLocation', 'userCountsByLocation'
         ))->with('attendanceList', $attendanceList)

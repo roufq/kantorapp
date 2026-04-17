@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <h3 class="mb-1">Assign Tugas Lokasi</h3>
-    <p class="text-muted mb-0">Buat tugas untuk karyawan/Admin Lokasi di lokasi Anda.</p>
+    <h3 class="mb-1">Assign Location Task</h3>
+    <p class="text-muted mb-0">Create task for employees/Location Admins in your location.</p>
   </div>
-  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+  <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
   <div class="col-12">
@@ -15,7 +15,7 @@
       <div class="card-body">
         @if ($errors->any())
           <div class="alert alert-danger">
-            <div class="fw-semibold mb-1">Validasi gagal:</div>
+            <div class="fw-semibold mb-1">Validation failed:</div>
             <ul class="mb-0">
               @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -36,9 +36,9 @@
             @error('description')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
           <div class="mb-3">
-            <label for="duration_minutes" class="form-label">Durasi (menit)</label>
-            <input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="1" placeholder="Misal 240 untuk 4 jam" value="{{ old('duration_minutes') }}">
-            <small class="text-muted">Total menit yang akan dibagi ke slot progres. Due date tetap target akhir.</small>
+            <label for="duration_minutes" class="form-label">Duration (minutes)</label>
+            <input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="1" placeholder="Example: 240 for 4 hours" value="{{ old('duration_minutes') }}">
+            <small class="text-muted">Total minutes to be divided into progress slots. Due date remains the final target.</small>
             @error('duration_minutes')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
           <div class="mb-3">
@@ -55,9 +55,9 @@
             <input type="date" name="due_date" id="due_date" class="form-control" value="{{ old('due_date') }}">
             @error('due_date')<div class="text-danger">{{ $message }}</div>@enderror
           </div>
-        <p class="text-muted">Bukti progres dikirim via link di slot, tanpa upload file.</p>
+        <p class="text-muted">Progress evidence is sent via link in slot, without file upload.</p>
           <hr>
-          <h5 class="mb-2">Slot Progres (wajib, total % = 100%)</h5>
+          <h5 class="mb-2">Progress Slots (required, total % = 100%)</h5>
           @php
             $oldSlots = old('slots', [['name' => '', 'percentage' => '', 'minutes' => '', 'order' => 0]]);
           @endphp
@@ -65,15 +65,15 @@
             @foreach($oldSlots as $idx => $slot)
               <div class="row g-2 mb-2 slot-row">
                 <div class="col-md-4">
-                  <label class="form-label">Nama / Tujuan</label>
-                  <input type="text" name="slots[{{ $idx }}][name]" class="form-control" placeholder="Contoh: Analisa" required value="{{ $slot['name'] }}">
+                  <label class="form-label">Name / Target</label>
+                  <input type="text" name="slots[{{ $idx }}][name]" class="form-control" placeholder="Example: Analysis" required value="{{ $slot['name'] }}">
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label">Persentase (%)</label>
+                  <label class="form-label">Percentage (%)</label>
                   <input type="number" name="slots[{{ $idx }}][percentage]" class="form-control" min="0.01" max="100" step="0.01" placeholder="25" required value="{{ $slot['percentage'] }}">
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label">Menit</label>
+                  <label class="form-label">Minutes</label>
                   <input type="number" name="slots[{{ $idx }}][minutes]" class="form-control" min="1" placeholder="60" required value="{{ $slot['minutes'] }}">
                 </div>
                 <div class="col-md-2 d-flex align-items-center gap-2">
@@ -85,9 +85,9 @@
           </div>
           <div id="slotSummaryLoc" class="small text-muted mb-2"></div>
           <div class="d-flex gap-2 mb-3">
-            <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnLoc">Tambah Slot</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnLoc">Hapus Semua Slot</button>
-            <span class="small text-muted ms-2">Minimal 1 slot. Total persentase harus 100%, total menit harus sama dengan durasi (jika diisi).</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addSlotBtnLoc">Add Slot</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSlotsBtnLoc">Clear All Slots</button>
+            <span class="small text-muted ms-2">Minimum 1 slot. Total percentage must be 100%, total minutes must equal duration (if filled).</span>
           </div>
           <button type="submit" class="btn btn-primary">Create Task</button>
           <a href="{{ route('location-admin-tasks.index') }}" class="btn btn-secondary">Cancel</a>
@@ -137,10 +137,10 @@
         let remainingMin = durationVal !== null ? durationVal - totalMinutes : null;
         if (remainingMin !== null && Math.abs(remainingMin) < 0.01) remainingMin = 0;
         slotSummary.textContent = [
-          `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (sisa ${formatPct(remainingPct)})` : ''),
+          `Total %: ${formatPct(totalPct)} / 100` + (remainingPct ? ` (remaining ${formatPct(remainingPct)})` : ''),
           durationVal !== null
-            ? `Total menit: ${totalMinutes} / ${durationVal}` + (remainingMin !== null ? ` (sisa ${remainingMin})` : '')
-            : `Total menit: ${totalMinutes}`
+            ? `Total minutes: ${totalMinutes} / ${durationVal}` + (remainingMin !== null ? ` (remaining ${remainingMin})` : '')
+            : `Total minutes: ${totalMinutes}`
         ].join(' | ');
       };
 
@@ -206,13 +206,13 @@
         row.className = 'row g-2 mb-2 slot-row';
         row.innerHTML = `
           <div class=\"col-md-4\">
-            <input type=\"text\" name=\"slots[${idx}][name]\" class=\"form-control\" placeholder=\"Nama / Tujuan\" required>
+            <input type=\"text\" name=\"slots[${idx}][name]\" class=\"form-control\" placeholder=\"Name / Target\" required>
           </div>
           <div class=\"col-md-3\">
             <input type=\"number\" name=\"slots[${idx}][percentage]\" class=\"form-control\" min=\"0.01\" max=\"100\" step=\"0.01\" placeholder=\"%\" required>
           </div>
           <div class=\"col-md-3\">
-            <input type=\"number\" name=\"slots[${idx}][minutes]\" class=\"form-control\" min=\"1\" placeholder=\"Menit\" required>
+            <input type=\"number\" name=\"slots[${idx}][minutes]\" class=\"form-control\" min=\"1\" placeholder=\"Minutes\" required>
           </div>
           <div class=\"col-md-2 d-flex align-items-center gap-2\">
             <input type=\"number\" name=\"slots[${idx}][order]\" class=\"form-control\" min=\"0\" value=\"${idx}\">

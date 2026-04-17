@@ -5,99 +5,216 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <h3 class="mb-1">Task Detail</h3>
-        <p class="text-muted mb-0">{{ $task->title }}</p>
+<div class="row mb-4 align-items-center">
+    <div class="col-lg-7">
+        <h2 class="text-dark mb-1 fw-bold" style="font-size: 1.8rem; letter-spacing: -0.5px;">{{ __('Task Detail') }}</h2>
+        <p class="text-muted mb-0" style="font-size: 1.05rem;">{{ $task->title }}</p>
     </div>
-    <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+        <a href="{{ route('tasks.index') }}" class="btn btn-outline-light text-dark border bg-white rounded-pill px-4 fw-bold shadow-sm">
+            <i class="mdi mdi-keyboard-backspace me-2 fs-5 align-middle"></i>{{ __('Back to List') }}
+        </a>
+    </div>
 </div>
-<div class="row">
+
+<div class="row g-4">
     <div class="col-lg-8">
-        <div class="card" id="taskDetailCard">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                 <h4 class="card-title mb-0">{{ $task->title }}</h4>
-                 <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-outline-secondary">Back to List</a>
+        <div class="card shadow-sm border-light mb-4" id="taskDetailCard">
+            <div class="card-header border-bottom border-light p-4 d-flex justify-content-between align-items-center" style="background: #ffffff;">
+                <h5 class="card-title mb-0 text-dark fw-bold">{{ $task->title }}</h5>
+                <span class="badge {{ $task->status === 'completed' ? 'badge-success' : ($task->status === 'in_progress' ? 'badge-info' : 'badge-secondary') }}">
+                    {{ ucfirst(str_replace('_', ' ', $task->status)) }}
+                </span>
             </div>
-            <div class="card-body">
-                <p><strong>Description:</strong></p>
-                <p>{{ $task->description }}</p>
-                <hr>
-                <p class="mb-1"><strong>Status:</strong> <span class="badge text-bg-{{ $task->status === 'completed' ? 'success' : ($task->status === 'in_progress' ? 'info' : 'secondary') }}">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span></p>
-                @if($task->requires_approval)
-                    <p class="mb-1"><strong>Persetujuan Tugas:</strong>
-                        @if($task->approval_status === 'approved')
-                            <span class="badge text-bg-success">Disetujui @ {{ optional($task->approved_at)->format('d M Y H:i') }}</span>
-                            @if($task->approver)
-                                <span class="text-muted small">oleh {{ $task->approver->name }}</span>
-                            @endif
-                        @elseif($task->approval_status === 'pending')
-                            <span class="badge text-bg-warning">Menunggu {{ $task->approval_level === 'location_admin' ? 'Admin Lokasi' : 'Super Admin' }}</span>
-                        @else
-                            <span class="badge text-bg-danger">Ditolak</span>
-                            @if($task->approval_note)
-                                <span class="text-danger small">Alasan: {{ $task->approval_note }}</span>
-                            @endif
-                        @endif
-                    </p>
-                @endif
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between small">
-                        <span>Progress</span>
-                        <span>{{ $task->progress ?? 0 }}%</span>
-                    </div>
-                    <div class="progress" style="height:8px;">
-                        <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%;" aria-valuenow="{{ $task->progress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+            <div class="card-body p-4">
+                <div class="mb-4">
+                    <label class="text-muted smaller fw-bold mb-2 text-uppercase letter-spacing-1">{{ __('Description') }}</label>
+                    <div class="p-3 bg-light rounded-4 border border-light" style="background-color: #fcfdfe !important;">
+                        <p class="text-dark mb-0" style="line-height: 1.7; font-size: 0.95rem; opacity: 0.9;">{{ $task->description }}</p>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-sm-6">
-                        <p><strong>Assigned by:</strong><br>{{ $task->assigner->name }}</p>
+
+                <div class="row mb-4 g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 border border-light h-100" style="background: #ffffff;">
+                            <div class="text-muted smaller fw-bold text-uppercase mb-3">{{ __('Approval Status') }}</div>
+                            @if($task->requires_approval)
+                                @if($task->approval_status === 'approved')
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <div class="p-2 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                            <i class="mdi mdi-check-decagram-outline fs-5"></i>
+                                        </div>
+                                        <span class="text-dark fw-bold small">Approved</span>
+                                    </div>
+                                    <div class="smaller text-muted ms-5">{{ optional($task->approved_at)->format('d M Y H:i') }}</div>
+                                @elseif($task->approval_status === 'pending')
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="p-2 rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                            <i class="mdi mdi-clock-outline fs-5"></i>
+                                        </div>
+                                        <span class="text-dark fw-bold small">Waiting for {{ $task->approval_level === 'location_admin' ? 'Location Admin' : 'Super Admin' }}</span>
+                                    </div>
+                                @else
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="p-2 rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                            <i class="mdi mdi-close-octagon-outline fs-5"></i>
+                                        </div>
+                                        <span class="text-dark fw-bold small">Rejected</span>
+                                    </div>
+                                @endif
+                            @else
+                                <span class="text-muted smaller italic">No approval required</span>
+                            @endif
+                        </div>
                     </div>
-                    <div class="col-sm-6">
-                        <p><strong>Assigned to:</strong><br>{{ optional($task->assignee)->name ?? 'N/A' }}</p>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 border border-light h-100" style="background: #ffffff;">
+                            <div class="d-flex justify-content-between text-muted smaller fw-bold text-uppercase mb-3">
+                                <span>{{ __('Task Progress') }}</span>
+                                <span class="text-dark fw-bold">{{ $task->progress ?? 0 }}%</span>
+                            </div>
+                            <div class="progress rounded-pill shadow-none mb-2" style="height:10px; background: #f1f5f9;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ $task->progress ?? 0 }}%; background-color: #10b981;"></div>
+                            </div>
+                            <div class="smaller text-muted italic">Current completion rate</div>
+                        </div>
                     </div>
-                    <div class="col-sm-6">
-                        <p><strong>Created Date:</strong><br>{{ $task->created_at->format('d M Y') }}</p>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">{{ __('Assigned By') }}</div>
+                        <div class="text-dark fw-bold small">{{ $task->assigner->name }}</div>
                     </div>
-                    <div class="col-sm-6">
-                        <p><strong>Due Date:</strong><br>{{ $task->due_date ? $task->due_date->format('d M Y') : 'No due date' }}</p>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">{{ __('Assigned To') }}</div>
+                        <div class="text-primary fw-bold small">{{ optional($task->assignee)->name ?? 'N/A' }}</div>
                     </div>
-                    <div class="col-sm-6">
-                        <p><strong>Durasi (menit):</strong><br>{{ $task->duration_minutes ?? '-' }}</p>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">{{ __('Target Date') }}</div>
+                        <div class="text-dark small fw-bold">
+                            <span class="text-{{ $task->due_date && $task->due_date->isPast() ? 'danger' : 'dark' }}">
+                                {{ $task->due_date ? $task->due_date->format('d M Y') : 'No Due Date' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">{{ __('Est. Duration') }}</div>
+                        <div class="text-dark small fw-bold">{{ $task->duration_minutes ? $task->duration_minutes . ' mins' : '-' }}</div>
                     </div>
                 </div>
             </div>
-            <div class="card-footer d-flex justify-content-end">
-                @php
-                    $me = auth()->user();
-                    $hasSlots = $task->slots->count() > 0;
-                    $canUpdateProgress = $hasSlots && (!$task->requires_approval || $task->approval_status === 'approved') &&
-                        ($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $me->location_id));
-                @endphp
-                @if($canUpdateProgress)
-                    <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-primary me-2">Update Progress</a>
-                @elseif(!$hasSlots)
-                    <span class="text-muted me-2">Tambah slot progres dulu sebelum update.</span>
-                @elseif($task->requires_approval)
-                    @if($task->approval_status === 'rejected')
-                        <span class="text-danger me-2">Tugas Anda ditolak: {{ $task->approval_note ?? 'Alasan tidak tersedia.' }}</span>
-                    @else
-                        <span class="text-muted me-2">Menunggu persetujuan sebelum progres bisa diupdate.</span>
+            <div class="card-footer border-top border-light p-4 d-flex justify-content-between align-items-center" style="background: #ffffff;">
+                <div>
+                    @can('update', $task)
+                        <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                            <i class="mdi mdi-pencil-outline me-1"></i>{{ __('Edit Task') }}
+                        </a>
+                    @endcan
+                </div>
+                <div class="d-flex gap-2">
+                    @php
+                        $me = auth()->user();
+                        $hasSlots = $task->slots->count() > 0;
+                        $canUpdateProgress = $hasSlots && (!$task->requires_approval || $task->approval_status === 'approved') &&
+                            ($me->hasRole('Super Admin') || $task->assigned_to === $me->id || ($me->hasRole('Location Admin') && optional($task->assignee)->location_id === $me->location_id));
+                    @endphp
+                    @if($canUpdateProgress)
+                        <a href="{{ route('tasks.progress.create', $task) }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-soft">
+                            <i class="mdi mdi-update me-1"></i>{{ __('Update Progress') }}
+                        </a>
+                    @elseif(!$hasSlots)
+                        <span class="badge badge-warning"><i class="mdi mdi-alert-circle-outline me-1"></i> {{ __('Needs Slots') }}</span>
+                    @elseif($task->requires_approval && $task->approval_status !== 'approved')
+                         <span class="badge {{ $task->approval_status === 'rejected' ? 'badge-danger' : 'badge-warning' }}">
+                            <i class="mdi mdi-timer-sand me-1"></i> {{ $task->approval_status === 'rejected' ? 'Rejected' : 'Awaiting Approval' }}
+                         </span>
                     @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-light">
+            <div class="card-header border-bottom border-light p-4" style="background: #ffffff;">
+                <h5 class="mb-0 text-dark fw-bold"><i class="mdi mdi-view-list-outline me-2 text-info"></i>{{ __('Progress Slots') }}</h5>
+            </div>
+            <div class="card-body p-4">
+                @php
+                    $slotStatus = $task->getSlotCompositionStatus();
+                    $missingPercent = max(0, round(100 - $slotStatus['total_percent'], 2));
+                    $missingMinutes = $slotStatus['duration_minutes'] !== null
+                        ? max(0, $slotStatus['duration_minutes'] - $slotStatus['total_minutes'])
+                        : null;
+                    $slotIncomplete = !$slotStatus['complete'];
+                @endphp
+                
+                @if($slotIncomplete)
+                    <div class="alert badge-warning bg-opacity-10 border-0 p-3 mb-4 rounded-4 d-flex align-items-center">
+                        <i class="mdi mdi-alert-circle-outline fs-4 me-2"></i>
+                        <span class="fw-bold fw-bold smaller" style="text-transform: none; letter-spacing: 0;">
+                            {{ __('Slot composition is missing') }} {{ $missingPercent }}% {{ $missingMinutes ? 'and ' . $missingMinutes . ' mins.' : '.' }}
+                        </span>
+                    </div>
                 @endif
-                @can('update', $task)
-                    <a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-primary">Edit Task</a>
-                @endcan
+
+                @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin']))
+                    <div class="mb-4">
+                        <button class="btn btn-light border bg-white rounded-pill px-4 fw-bold shadow-sm w-100 mb-2 py-2" type="button" id="addSlotToggleBtn" data-bs-toggle="collapse" data-bs-target="#addSlotFormSide" @if(!$slotIncomplete) disabled @endif>
+                            <i class="mdi mdi-plus-circle-outline me-1"></i>{{ __('Create Progress Slot') }}
+                        </button>
+                        
+                        <div class="collapse" id="addSlotFormSide">
+                            <div class="card shadow-sm border-light p-4 rounded-4 mt-3">
+                                <div id="addSlotFormError" class="alert badge-danger rounded-3 p-3 mb-3 d-none"></div>
+                                <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-3" id="addSlotFormSideForm">
+                                    @csrf
+                                    <div class="col-md-6">
+                                        <label class="form-label text-muted smaller fw-bold text-uppercase">{{ __('Slot Name') }}</label>
+                                        <input type="text" name="name" class="form-control" required placeholder="e.g. Phase 1">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-muted smaller fw-bold text-uppercase">% Weight</label>
+                                        <input type="number" name="percentage" class="form-control" min="1" max="100" step="0.01" value="{{ old('percentage', $missingPercent > 0 ? $missingPercent : '') }}" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-muted smaller fw-bold text-uppercase">{{ __('Minutes') }}</label>
+                                        <input type="number" name="minutes" class="form-control" min="1" value="{{ old('minutes', $missingMinutes && $missingMinutes > 0 ? $missingMinutes : '') }}" required>
+                                    </div>
+                                    <div class="col-12 text-end">
+                                        <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-soft">
+                                            {{ __('Add Slot') }}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <div id="taskSlotList" data-duration-minutes="{{ $task->duration_minutes ?? '' }}" class="d-flex flex-column gap-3">
+                    @forelse($task->slots as $slot)
+                        @include('tasks.partials.slot-card', [
+                            'task' => $task,
+                            'slot' => $slot,
+                            'slotIncomplete' => $slotIncomplete,
+                        ])
+                    @empty
+                        <div class="text-center py-5 rounded-4 bg-light border border-dashed" id="taskSlotEmpty">
+                            <i class="mdi mdi-layers-off-outline fs-2 text-muted opacity-50 d-block mb-2"></i>
+                            <p class="text-muted small italic">{{ __('No slots defined for this task') }}</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
+
     <div class="col-lg-4">
-        <div class="card h-100" id="historyProgressCard">
-            <div class="card-header">
-                <h6 class="mb-0">History Progress</h6>
+        <div class="card h-100 shadow-sm border-light overflow-hidden" id="historyProgressCard">
+            <div class="card-header border-bottom border-light p-4 d-flex align-items-center" style="background: #ffffff;">
+                <h5 class="mb-0 text-dark fw-bold"><i class="mdi mdi-history me-2 text-warning"></i>{{ __('Progress History') }}</h5>
             </div>
-            <div class="card-body" id="historyProgressBody" style="overflow-y:auto;">
+            <div class="card-body p-4" id="historyProgressBody" style="overflow-y:auto;">
                 @php
                     $slotHistory = TaskSlotHistory::query()
                         ->whereIn('task_slot_id', $task->slots->pluck('id'))
@@ -107,336 +224,119 @@
                         ->get();
                 @endphp
                 @forelse($slotHistory as $history)
-                    <div class="border rounded p-2 mb-3">
-                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                            <div>
-                                @php
-                                    $data = $history->data_after ?? $history->data_before ?? [];
-                                    $slotName = $data['name'] ?? optional($history->slot)->name ?? '-';
-                                    $slotPercent = $data['percentage'] ?? optional($history->slot)->percentage ?? 0;
-                                    $slotMinutes = $data['minutes'] ?? optional($history->slot)->minutes ?? 0;
-                                    $statusClass = $history->action === 'approved' ? 'badge badge-success' : 'badge badge-danger';
-                                    $attachments = optional($history->slot)->attachments
-                                        ? $history->slot->attachments
-                                            ->where('type', 'link')
-                                            ->filter(function ($att) use ($history) {
-                                                return $att->created_at && $history->created_at && $att->created_at->lte($history->created_at);
-                                            })
-                                            ->sortByDesc('created_at')
-                                            ->values()
-                                        : collect();
-                                    $latestLink = $attachments->first();
-                                    $detailPayload = [
-                                        'name' => $slotName,
-                                        'percentage' => $slotPercent,
-                                        'minutes' => $slotMinutes,
-                                        'status' => $history->action,
-                                        'actor' => $history->actor ? $history->actor->name : '-',
-                                        'action_at' => $history->created_at ? $history->created_at->format('d M Y H:i') : '-',
-                                        'rejection_reason' => $data['rejection_reason'] ?? null,
-                                        'link' => $latestLink ? $latestLink->path_or_url : null,
-                                    ];
-                                @endphp
-                                <div class="fw-semibold">
-                                    {{ $slotName }} ({{ $slotPercent }}% | {{ $slotMinutes }} menit)
-                                </div>
-                                <div class="small text-muted">
-                                    <span class="{{ $statusClass }}">{{ ucfirst($history->action) }}</span>
-                                    @if($history->actor)
-                                        <span class="text-muted">oleh {{ $history->actor->name }} @ {{ $history->created_at->format('d M Y H:i') }}</span>
-                                    @endif
-                                </div>
+                    @php
+                        $data = $history->data_after ?? $history->data_before ?? [];
+                        $slotName = $data['name'] ?? optional($history->slot)->name ?? '-';
+                        $slotPercent = $data['percentage'] ?? optional($history->slot)->percentage ?? 0;
+                        $statusClass = $history->action === 'approved' ? 'badge-success' : 'badge-danger';
+                        $detailPayload = [
+                            'name' => $slotName,
+                            'status' => $history->action,
+                            'actor' => $history->actor ? $history->actor->name : '-',
+                            'action_at' => $history->created_at ? $history->created_at->format('d M Y H:i') : '-',
+                            'rejection_reason' => $data['rejection_reason'] ?? null,
+                            'link' => optional($history->slot->attachments->first())->path_or_url ?? null,
+                        ];
+                    @endphp
+                    <div class="p-3 rounded-4 border border-light mb-3 hover-lift shadow-sm bg-white">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                             <div>
+                                <div class="text-dark fw-bold small text-truncate" style="max-width: 15rem;">{{ $slotName }}</div>
+                                <div class="smaller text-muted mt-1">{{ $slotPercent }}% completed</div>
+                             </div>
+                             <span class="badge {{ $statusClass }} rounded-pill" style="font-size: 0.6rem !important;">
+                                {{ strtoupper($history->action) }}
+                             </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-light">
+                            <div class="smaller text-muted d-flex align-items-center">
+                                <i class="mdi mdi-account-circle-outline me-1"></i>
+                                <span class="text-truncate" style="max-width: 8rem;">{{ $history->actor ? $history->actor->name : '-' }}</span>
                             </div>
-                            <div>
-                                <button type="button" class="btn btn-outline-primary btn-sm history-detail-btn" data-toggle="modal" data-target="#historyDetailModal" data-details='@json($detailPayload)'>Detail</button>
-                            </div>
+                            <button type="button" class="btn btn-link text-primary btn-sm p-0 smaller fw-bold history-detail-btn text-decoration-none shadow-none" data-bs-toggle="modal" data-bs-target="#historyDetailModal" data-details='@json($detailPayload)'>
+                                {{ __('Details') }} <i class="mdi mdi-chevron-right"></i>
+                            </button>
                         </div>
                         @if($history->action === 'rejected' && !empty($data['rejection_reason']))
-                            <div class="mt-2 text-danger small"><strong>Alasan penolakan:</strong> {{ $data['rejection_reason'] }}</div>
+                            <div class="mt-2 text-rose smaller border-start border-danger border-2 ps-2 italic" style="color: #e11d48;">"{{ $data['rejection_reason'] }}"</div>
                         @endif
                     </div>
                 @empty
-                    <p class="text-muted mb-0">Belum ada history progress.</p>
+                    <div class="text-center py-5">
+                        <div class="p-3 bg-light rounded-circle d-inline-flex mb-3">
+                            <i class="mdi mdi-history fs-2 text-muted"></i>
+                        </div>
+                        <p class="text-muted smaller mb-0">{{ __('No entries in history.') }}</p>
+                    </div>
                 @endforelse
             </div>
         </div>
     </div>
 </div>
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">Slot Progres</h6>
+
+<!-- Modal -->
+<div class="modal fade" id="historyDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-bottom border-light px-4 py-3">
+                <h5 class="modal-title fw-bold text-dark"><i class="mdi mdi-clock-check-outline me-2 text-primary"></i>History Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="card-body">
-                @php
-                    $slotStatus = $task->getSlotCompositionStatus();
-                    $missingPercent = max(0, round(100 - $slotStatus['total_percent'], 2));
-                    $missingMinutes = $slotStatus['duration_minutes'] !== null
-                        ? max(0, $slotStatus['duration_minutes'] - $slotStatus['total_minutes'])
-                        : null;
-                    $slotIncomplete = !$slotStatus['complete'];
-                    $slotAlertMessage = 'Komposisi slot belum lengkap. ';
-                    if ($slotStatus['duration_minutes'] !== null) {
-                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '% dan ' . $missingMinutes . ' menit. Lengkapi slot terlebih dahulu.';
-                    } else {
-                        $slotAlertMessage .= 'Kurang ' . $missingPercent . '%. Lengkapi slot terlebih dahulu.';
-                    }
-                @endphp
-                <div id="slotIncompleteAlert" class="alert alert-warning small {{ $slotIncomplete ? '' : 'd-none' }}">
-                    <span id="slotIncompleteMessage">{{ $slotAlertMessage }}</span>
-                </div>
-                @if(auth()->user()->hasAnyRole(['Super Admin','Admin Lokasi']))
-                    <div class="mb-3">
-                        <button class="btn btn-sm btn-outline-primary w-100" type="button" id="addSlotToggleBtn" data-toggle="collapse" data-target="#addSlotFormSide" aria-expanded="false" aria-controls="addSlotFormSide" @if(!$slotIncomplete) disabled @endif>
-                            Tambah Slot
-                        </button>
-                        <div class="small text-muted mt-1">Tombol ini nonaktif jika total persentase sudah 100% dan total menit sudah sesuai durasi task.</div>
-                        <div class="collapse mt-2" id="addSlotFormSide">
-                            <div id="addSlotFormError" class="alert alert-danger small d-none"></div>
-                            <form action="{{ route('tasks.slots.store', $task) }}" method="POST" class="row g-2" id="addSlotFormSideForm">
-                                @csrf
-                                <div class="col-6">
-                                    <label class="form-label">Nama</label>
-                                    <input type="text" name="name" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">% (0-100)</label>
-                                    <input type="number" name="percentage" class="form-control form-control-sm" min="1" max="100" step="0.01" value="{{ old('percentage', $missingPercent > 0 ? $missingPercent : '') }}" required>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Menit</label>
-                                    <input type="number" name="minutes" class="form-control form-control-sm" min="1" value="{{ old('minutes', $missingMinutes && $missingMinutes > 0 ? $missingMinutes : '') }}" required>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Urutan</label>
-                                    <input type="number" name="order" class="form-control form-control-sm" min="0" value="0">
-                                </div>
-                                <div class="col-12 mt-2">
-                                    <button type="submit" class="btn btn-primary btn-sm w-100">Simpan Slot</button>
-                                    <div class="small text-muted mt-1">Pastikan total persen = 100% dan total menit = durasi task (jika diisi).</div>
-                                </div>
-                            </form>
-                        </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">Slot Name</div>
+                        <div id="historyDetailName" class="text-dark fw-bold">-</div>
                     </div>
-                @endif
-                <div id="taskSlotList" data-duration-minutes="{{ $task->duration_minutes ?? '' }}">
-                    @forelse($task->slots as $slot)
-                        @include('tasks.partials.slot-card', [
-                            'task' => $task,
-                            'slot' => $slot,
-                            'slotIncomplete' => $slotIncomplete,
-                            'slotAlertMessage' => $slotAlertMessage,
-                        ])
-                    @empty
-                        <p class="text-muted mb-0" id="taskSlotEmpty">Belum ada slot progres.</p>
-                    @endforelse
+                    <div class="col-6">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">Status</div>
+                        <div id="historyDetailStatus" class="fw-bold">-</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">Processed By</div>
+                        <div id="historyDetailActor" class="text-dark-blue fw-bold">-</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">Processed At</div>
+                        <div id="historyDetailTime" class="text-dark small">-</div>
+                    </div>
+                    <div class="col-12" id="historyDetailReasonRow">
+                        <div class="text-muted smaller fw-bold text-uppercase mb-1">Rejection Reason</div>
+                        <div id="historyDetailReason" class="text-danger italic small">-</div>
+                    </div>
                 </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <div id="historyDetailLinks" class="w-100"></div>
             </div>
         </div>
     </div>
 </div>
-<div class="modal fade" id="historyDetailModal" tabindex="-1" role="dialog" aria-labelledby="historyDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="historyDetailModalLabel">Detail History Slot</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-2"><strong>Nama Slot:</strong> <span id="historyDetailName">-</span></div>
-                <div class="mb-2"><strong>Persentase:</strong> <span id="historyDetailPercent">-</span></div>
-                <div class="mb-2"><strong>Menit:</strong> <span id="historyDetailMinutes">-</span></div>
-                <div class="mb-2"><strong>Status:</strong> <span id="historyDetailStatus">-</span></div>
-                <div class="mb-2"><strong>Diproses Oleh:</strong> <span id="historyDetailActor">-</span></div>
-                <div class="mb-2"><strong>Waktu:</strong> <span id="historyDetailTime">-</span></div>
-                <div class="mb-2"><strong>Alasan Reject:</strong> <span id="historyDetailReason">-</span></div>
-                <div class="mb-2">
-                    <strong>Link:</strong>
-                    <div id="historyDetailLinks" class="mt-1 d-flex flex-wrap gap-2"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
+<style>
+    .smaller { font-size: 0.75rem; }
+    .letter-spacing-1 { letter-spacing: 0.5px; }
+    .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important; }
+    .shadow-soft { box-shadow: 0 10px 20px rgba(16, 185, 129, 0.15) !important; }
+    .text-rose { color: #f43f5e; }
+    .text-dark-blue { color: #1e3a8a; }
+</style>
 @endsection
 
 @section('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('addSlotFormSideForm');
-        const list = document.getElementById('taskSlotList');
-        const alertBox = document.getElementById('slotIncompleteAlert');
-        const alertMessage = document.getElementById('slotIncompleteMessage');
-        const errorBox = document.getElementById('addSlotFormError');
-        const addSlotToggleBtn = document.getElementById('addSlotToggleBtn');
+        const historyBody = document.getElementById('historyProgressBody');
         const taskDetailCard = document.getElementById('taskDetailCard');
         const historyCard = document.getElementById('historyProgressCard');
-        const historyBody = document.getElementById('historyProgressBody');
-        if (!form || !list) return;
-
-        let slotIncomplete = @json($slotIncomplete);
-        let slotAlertText = @json($slotAlertMessage);
-        const percentInput = form.querySelector('input[name="percentage"]');
-        const minutesInput = form.querySelector('input[name="minutes"]');
-        const durationRaw = list.getAttribute('data-duration-minutes');
-        const durationMinutes = durationRaw ? parseInt(durationRaw, 10) : null;
-        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-        const round2 = (value) => Math.round(value * 100) / 100;
-
-        const buildStatusFromDom = () => {
-            let totalPercent = 0;
-            let totalMinutes = 0;
-            list.querySelectorAll('.slot-card').forEach((card) => {
-                const pct = parseFloat(card.getAttribute('data-percentage') || '0');
-                const mins = parseInt(card.getAttribute('data-minutes') || '0', 10);
-                totalPercent += isNaN(pct) ? 0 : pct;
-                totalMinutes += isNaN(mins) ? 0 : mins;
-            });
-            totalPercent = round2(totalPercent);
-            if (Math.abs(totalPercent - 100) <= 0.05) {
-                totalPercent = 100;
-            }
-            const percentComplete = Math.abs(totalPercent - 100) <= 0.01;
-            const minutesComplete = durationMinutes === null ? true : totalMinutes === durationMinutes;
-            const complete = percentComplete && minutesComplete;
-            const missingPercent = Math.max(0, round2(100 - totalPercent));
-            const missingMinutes = durationMinutes === null ? null : Math.max(0, durationMinutes - totalMinutes);
-            let message = 'Komposisi slot belum lengkap. ';
-            if (durationMinutes !== null) {
-                message += 'Kurang ' + missingPercent + '% dan ' + missingMinutes + ' menit. Lengkapi slot terlebih dahulu.';
-            } else {
-                message += 'Kurang ' + missingPercent + '%. Lengkapi slot terlebih dahulu.';
-            }
-            return {
-                complete,
-                total_percent: totalPercent,
-                total_minutes: totalMinutes,
-                duration_minutes: durationMinutes,
-                missing_percent: missingPercent,
-                missing_minutes: missingMinutes,
-                message,
-            };
-        };
-
-        const applyStatus = (status) => {
-            slotIncomplete = !status.complete;
-            slotAlertText = status.message;
-            if (alertMessage) {
-                alertMessage.textContent = status.message;
-            }
-            if (alertBox) {
-                alertBox.classList.toggle('d-none', status.complete);
-            }
-            if (addSlotToggleBtn) {
-                addSlotToggleBtn.disabled = status.complete;
-            }
-            if (percentInput) {
-                percentInput.value = status.missing_percent > 0 ? status.missing_percent : '';
-            }
-            if (minutesInput) {
-                minutesInput.value = (status.duration_minutes !== null && status.missing_minutes > 0) ? status.missing_minutes : '';
-            }
-        };
-
-        document.addEventListener('submit', function (event) {
-            const target = event.target;
-            if (target && target.matches('form[data-slot-submit="1"]') && slotIncomplete) {
-                event.preventDefault();
-                alert(slotAlertText || 'Komposisi slot belum lengkap.');
-            }
-        });
-
-        form.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            if (errorBox) {
-                errorBox.classList.add('d-none');
-                errorBox.textContent = '';
-            }
-
-            const formData = new FormData(form);
-            let response;
-            try {
-                response = await fetch(form.action, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrf,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: formData
-                });
-            } catch (error) {
-                if (errorBox) {
-                    errorBox.textContent = 'Gagal mengirim data. Coba lagi.';
-                    errorBox.classList.remove('d-none');
-                }
-                return;
-            }
-
-            let data = null;
-            if (!response.ok) {
-                try {
-                    data = await response.json();
-                } catch (error) {
-                    data = null;
-                }
-
-                if (response.status === 422 && data && data.errors) {
-                    const messages = [];
-                    Object.values(data.errors).forEach((items) => {
-                        items.forEach((item) => messages.push(item));
-                    });
-                    if (errorBox) {
-                        errorBox.textContent = messages.join(' ');
-                        errorBox.classList.remove('d-none');
-                    }
-                    return;
-                }
-
-                if (errorBox) {
-                    const message = data && (data.message || data.error) ? (data.message || data.error) : 'Gagal menambahkan slot. Coba lagi.';
-                    errorBox.textContent = message + ' (HTTP ' + response.status + ')';
-                    errorBox.classList.remove('d-none');
-                }
-                return;
-            }
-
-            try {
-                data = await response.json();
-            } catch (error) {
-                if (errorBox) {
-                    errorBox.textContent = 'Respon server tidak valid. Coba lagi.';
-                    errorBox.classList.remove('d-none');
-                }
-                return;
-            }
-            if (data.slot_html) {
-                list.insertAdjacentHTML('beforeend', data.slot_html);
-                const empty = document.getElementById('taskSlotEmpty');
-                if (empty) {
-                    empty.remove();
-                }
-            }
-            form.reset();
-            if (data.slot_status) {
-                applyStatus(data.slot_status);
-            } else {
-                applyStatus(buildStatusFromDom());
-            }
-        });
 
         const syncHistoryHeight = () => {
             if (!taskDetailCard || !historyCard || !historyBody) return;
             const detailHeight = taskDetailCard.offsetHeight;
             const header = historyCard.querySelector('.card-header');
             const headerHeight = header ? header.offsetHeight : 0;
-            const padding = 24;
-            const bodyHeight = Math.max(200, detailHeight - headerHeight - padding);
-            historyBody.style.maxHeight = bodyHeight + 'px';
+            const bodyPadding = 48;
+            historyBody.style.maxHeight = (detailHeight - headerHeight - bodyPadding) + 'px';
         };
 
         syncHistoryHeight();
@@ -444,40 +344,21 @@
 
         document.querySelectorAll('.history-detail-btn').forEach((item) => {
             item.addEventListener('click', () => {
-                const details = item.getAttribute('data-details');
+                const details = JSON.parse(item.getAttribute('data-details'));
                 if (!details) return;
-                let payload = null;
-                try {
-                    payload = JSON.parse(details);
-                } catch (error) {
-                    payload = null;
-                }
-                if (!payload) return;
-                const statusText = payload.status ? payload.status.charAt(0).toUpperCase() + payload.status.slice(1) : '-';
-                document.getElementById('historyDetailName').textContent = payload.name || '-';
-                document.getElementById('historyDetailPercent').textContent = (payload.percentage ?? '-') + '%';
-                document.getElementById('historyDetailMinutes').textContent = (payload.minutes ?? '-') + ' menit';
-                document.getElementById('historyDetailStatus').textContent = statusText;
-                document.getElementById('historyDetailActor').textContent = payload.actor || '-';
-                document.getElementById('historyDetailTime').textContent = payload.action_at || '-';
-                document.getElementById('historyDetailReason').textContent = payload.rejection_reason || '-';
+
+                document.getElementById('historyDetailName').textContent = details.name;
+                document.getElementById('historyDetailStatus').textContent = details.status.toUpperCase();
+                document.getElementById('historyDetailStatus').className = 'fw-bold ' + (details.status === 'approved' ? 'text-success' : 'text-danger');
+                document.getElementById('historyDetailActor').textContent = details.actor;
+                document.getElementById('historyDetailTime').textContent = details.action_at;
+                document.getElementById('historyDetailReason').textContent = details.rejection_reason || '-';
+                document.getElementById('historyDetailReasonRow').style.display = details.status === 'rejected' ? 'block' : 'none';
+
                 const linksWrap = document.getElementById('historyDetailLinks');
-                if (linksWrap) {
-                    linksWrap.innerHTML = '';
-                    if (payload.link) {
-                        const a = document.createElement('a');
-                        a.href = payload.link;
-                        a.target = '_blank';
-                        a.rel = 'noopener';
-                        a.className = 'btn btn-sm btn-outline-primary';
-                        a.textContent = 'Link';
-                        linksWrap.appendChild(a);
-                    } else {
-                        const span = document.createElement('span');
-                        span.className = 'text-muted small';
-                        span.textContent = 'Belum ada link.';
-                        linksWrap.appendChild(span);
-                    }
+                linksWrap.innerHTML = '';
+                if (details.link) {
+                    linksWrap.innerHTML = `<a href="${details.link}" target="_blank" class="btn btn-outline-primary w-100 rounded-pill fw-bold"><i class="mdi mdi-link-variant me-1"></i>View Link</a>`;
                 }
             });
         });

@@ -19,11 +19,11 @@ class TaskProgressController extends Controller
         $user = Auth::user();
 
         if ($task->requires_approval && $task->approval_status !== 'approved') {
-            return redirect()->route('tasks.show', $task)->with('error', 'Tugas ini belum disetujui, progres belum dapat diperbarui.');
+            return redirect()->route('tasks.show', $task)->with('error', 'Task ini belum disetujui, progres belum dapat diperbarui.');
         }
 
         if (!$task->slots()->exists()) {
-            return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
+            return redirect()->route('tasks.show', $task)->with('error', 'Task belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
         }
 
         $slotStatus = $task->getSlotCompositionStatus();
@@ -39,10 +39,10 @@ class TaskProgressController extends Controller
 
         // Authorization: The user must be the assignee, or an admin
         $isAssignee = $task->assigned_to === $user->id;
-        $isAdmin = $user->hasRole(['Super Admin', 'Admin Lokasi']);
+        $isAdmin = $user->hasRole(['Super Admin', 'Location Admin']);
 
         if (!$isAssignee && !$isAdmin) {
-            abort(403, 'Anda tidak berhak memperbarui progres tugas ini.');
+            abort(403, 'Anda tidak berhak memperbarui progres task ini.');
         }
 
         $task->load(['slots.attachments', 'assignee']);
@@ -56,11 +56,11 @@ class TaskProgressController extends Controller
         $user = Auth::user();
 
         if ($task->requires_approval && $task->approval_status !== 'approved') {
-            return redirect()->route('tasks.show', $task)->with('error', 'Tugas ini belum disetujui, progres belum dapat diperbarui.');
+            return redirect()->route('tasks.show', $task)->with('error', 'Task ini belum disetujui, progres belum dapat diperbarui.');
         }
 
         if (!$task->slots()->exists()) {
-            return redirect()->route('tasks.show', $task)->with('error', 'Tugas belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
+            return redirect()->route('tasks.show', $task)->with('error', 'Task belum memiliki slot. Tambahkan slot progres terlebih dahulu.');
         }
 
         $slotStatus = $task->getSlotCompositionStatus();
@@ -76,10 +76,10 @@ class TaskProgressController extends Controller
 
         // Authorization: The user must be the assignee, or an admin
         $isAssignee = $task->assigned_to === $user->id;
-        $isAdmin = $user->hasRole(['Super Admin', 'Admin Lokasi']);
+        $isAdmin = $user->hasRole(['Super Admin', 'Location Admin']);
 
         if (!$isAssignee && !$isAdmin) {
-            abort(403, 'Hanya penerima tugas atau admin yang boleh mengirim progres.');
+            abort(403, 'Hanya penerima task atau admin yang boleh mengirim progres.');
         }
 
         $data = $request->validate([
@@ -122,7 +122,7 @@ class TaskProgressController extends Controller
         $user = Auth::user();
         $isManager = \App\Models\Employee::where('master_id', $user->id)->exists();
 
-        if (!$user->hasRole(['Super Admin', 'Admin Lokasi']) && !$isManager) {
+        if (!$user->hasRole(['Super Admin', 'Location Admin']) && !$isManager) {
             abort(403, 'Anda tidak punya akses ke halaman persetujuan.');
         }
 
@@ -136,7 +136,7 @@ class TaskProgressController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             // all pending creation requests
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $taskApprovalQuery->where('approval_level', 'location_admin')
                 ->whereHas('assignee', function ($q) use ($user) {
                     $q->where('location_id', $user->location_id);
@@ -169,8 +169,8 @@ class TaskProgressController extends Controller
             if ($user->hasRole('Super Admin')) {
                 $q->whereIn('approval_level', ['super_admin', 'location_admin', 'manager']);
             }
-            // Admin Lokasi sees 'location_admin' requests for their location
-            elseif ($user->hasRole('Admin Lokasi')) {
+            // Location Admin sees 'location_admin' requests for their location
+            elseif ($user->hasRole('Location Admin')) {
                 $q->where('approval_level', 'location_admin')
                   ->whereHas('task.assignee', function ($assigneeQuery) use ($user) {
                       $assigneeQuery->where('location_id', $user->location_id);
@@ -218,7 +218,7 @@ class TaskProgressController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             // all tasks
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $taskQuery->whereHas('assignee', function ($q) use ($user) {
                 $q->where('location_id', $user->location_id);
             });
@@ -235,7 +235,7 @@ class TaskProgressController extends Controller
 
         $locations = \App\Models\Location::orderBy('name')->get();
         $assignees = $user->hasRole('Super Admin')
-            ? \App\Models\User::role(['Karyawan', 'Admin Lokasi'])->orderBy('name')->get()
+            ? \App\Models\User::role(['Employee', 'Location Admin'])->orderBy('name')->get()
             : \App\Models\User::where('location_id', $user->location_id)->orderBy('name')->get();
 
         return view('tasks.progress-approvals', compact('pendingUpdates', 'pendingTasks', 'pendingTaskCreations', 'locations', 'assignees', 'search', 'locationId', 'assigneeId'));
@@ -297,7 +297,7 @@ class TaskProgressController extends Controller
             'task_id' => $progressUpdate->task_id,
         ]);
 
-        return back()->with('success', 'Progres ditolak dengan alasan dikirim ke karyawan.');
+        return back()->with('success', 'Progres ditolak dengan alasan dikirim ke employee.');
     }
 
     private function authorizeApproval(User $user, TaskProgressUpdate $progressUpdate): void
@@ -318,8 +318,8 @@ class TaskProgressController extends Controller
             return;
         }
         
-        // Admin Lokasi can handle 'location_admin' level for their location.
-        if ($user->hasRole('Admin Lokasi') && $level === 'location_admin') {
+        // Location Admin can handle 'location_admin' level for their location.
+        if ($user->hasRole('Location Admin') && $level === 'location_admin') {
             if (optional($progressUpdate->task->assignee)->location_id === $user->location_id) {
                 return;
             }
@@ -343,8 +343,8 @@ class TaskProgressController extends Controller
             ];
         }
 
-        // 2. Admin Lokasi mengirim progres -> auto disetujui (self-approved)
-        if ($updater->hasRole('Admin Lokasi')) {
+        // 2. Location Admin mengirim progres -> auto disetujui (self-approved)
+        if ($updater->hasRole('Location Admin')) {
             return [
                 'level' => 'none',
                 'requires_approval' => false,
@@ -353,11 +353,11 @@ class TaskProgressController extends Controller
             ];
         }
 
-        // 3. Karyawan atau role lain:
-        //    - Jika ada Admin Lokasi untuk lokasi user, kirim ke Admin Lokasi
-        //    - Jika tidak ada Admin Lokasi, kirim ke Super Admin
+        // 3. Employee atau role lain:
+        //    - Jika ada Location Admin untuk lokasi user, kirim ke Location Admin
+        //    - Jika tidak ada Location Admin, kirim ke Super Admin
         $locationAdmin = $updater->location_id
-            ? User::role('Admin Lokasi')->where('location_id', $updater->location_id)->first()
+            ? User::role('Location Admin')->where('location_id', $updater->location_id)->first()
             : null;
         if ($locationAdmin) {
             return [
@@ -388,7 +388,7 @@ class TaskProgressController extends Controller
 
         $canView = $user->hasRole('Super Admin')
             || $task->assigned_to === $user->id
-            || ($user->hasRole('Admin Lokasi') && optional($task->assignee)->location_id === $user->location_id);
+            || ($user->hasRole('Location Admin') && optional($task->assignee)->location_id === $user->location_id);
 
         if (!$canView) {
             abort(403);

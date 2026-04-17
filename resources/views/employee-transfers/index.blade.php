@@ -2,19 +2,19 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Mutasi Karyawan</h3>
-        <p class="text-muted mb-0">Riwayat perpindahan lokasi karyawan.</p>
+        <h3 class="mb-1">Employee Transfers</h3>
+        <p class="text-muted mb-0">Employee location transfer history.</p>
     </div>
-    <a href="{{ route('employee-transfers.create') }}" class="btn btn-primary btn-sm">Tambah Mutasi</a>
+    <a href="{{ route('employee-transfers.create') }}" class="btn btn-primary btn-sm">Add Transfer</a>
 </div>
 
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">Karyawan</label>
+                <label class="form-label">Employees</label>
                 <select name="employee_id" class="form-select">
-                    <option value="">Semua</option>
+                    <option value="">All</option>
                     @foreach($employees as $emp)
                         <option value="{{ $emp->id }}" @selected(request('employee_id') == $emp->id)>{{ $emp->nama }}</option>
                     @endforeach
@@ -29,17 +29,17 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h3 class="card-title">Daftar Mutasi</h3></div>
+    <div class="card-header"><h3 class="card-title">Transfer List</h3></div>
     <div class="card-body table-responsive p-0">
         <table class="table table-hover text-nowrap">
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Karyawan</th>
-                    <th>Dari</th>
-                    <th>Ke</th>
-                    <th>Tanggal</th>
-                    <th>Aksi</th>
+                    <th>Employees</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Date</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,7 +52,7 @@
                         <td>{{ $transfer->effective_date?->format('Y-m-d') ?? '-' }}</td>
                         <td>
                             <a href="{{ route('employee-transfers.edit', $transfer) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('employee-transfers.destroy', $transfer) }}" method="POST" style="display:inline" onsubmit="return confirm('Hapus mutasi ini?')">
+                            <form action="{{ route('employee-transfers.destroy', $transfer) }}" method="POST" style="display:inline" onsubmit="return confirm('Delete this transfer?')">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">Delete</button>
@@ -60,7 +60,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted">Belum ada mutasi.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">No transfers yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

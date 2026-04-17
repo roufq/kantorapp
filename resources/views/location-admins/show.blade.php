@@ -1,43 +1,108 @@
 @extends('layouts.appnew')
 
 @section('content')
-<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
-  <div>
-    <h3 class="mb-1">Detail Admin Lokasi</h3>
-    <p class="text-muted mb-0">{{ $admin->name }}</p>
-  </div>
-  <a href="{{ route('location-admins.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
-</div>
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Location Admin Details</h3>
-        <div class="card-tools">
-          <a href="{{ route('location-admins.edit', $admin) }}" class="btn btn-sm btn-primary">Edit</a>
+<div class="content-wrapper">
+  <div class="content">
+    <div class="container-fluid">
+      <div class="row mb-4 align-items-center">
+        <div class="col-lg-7">
+          <h2 class="text-dark mb-1 fw-bold" style="font-size: 1.8rem; letter-spacing: -0.5px;">{{ __('Location Admin Details') }}</h2>
+          <p class="text-muted mb-0" style="font-size: 1.05rem;">{{ $admin->name }}</p>
+        </div>
+        <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+          <a href="{{ route('location-admins.index') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
+            <i class="mdi mdi-arrow-left me-2 fs-5 align-middle"></i>{{ __('Back') }}
+          </a>
         </div>
       </div>
-      <div class="card-body">
-        <p><strong>ID:</strong> {{ $admin->id }}</p>
-        <p><strong>Name:</strong> {{ $admin->name }}</p>
-        <p><strong>Email:</strong> {{ $admin->email }}</p>
-        <p><strong>Location:</strong> {{ optional($admin->location)->name ?: '-' }}</p>
-        <p><strong>Roles:</strong>
-          @php($roles = $admin->getRoleNames())
-          @if($roles->isNotEmpty())
-            {{ $roles->implode(', ') }}
-          @else
-            -
-          @endif
-        </p>
-        <p><strong>Created:</strong> {{ $admin->created_at->format('d M Y H:i') }}</p>
-        <hr>
-        <form action="{{ route('users.demote.employee', $admin) }}" method="POST" onsubmit="return confirm('Demote this admin to Employee?')">
-          @csrf
-          <button type="submit" class="btn btn-warning">Demote to Employee</button>
-        </form>
+
+      <div class="row justify-content-center">
+        <div class="col-xl-8">
+          <div class="card shadow-sm border-0 p-4 p-md-5 rounded-4 border border-light shadow-lg">
+            <div class="d-flex justify-content-between align-items-start mb-5">
+              <div class="d-flex align-items-center">
+                <div class="avatar-box me-3 rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info border border-info border-opacity-20" style="width: 64px; height: 64px;">
+                  <i class="mdi mdi-shield-account-outline fs-1"></i>
+                </div>
+                <div>
+                  <h4 class="text-dark fw-bold mb-0">{{ $admin->name }}</h4>
+                  <span class="badge rounded-pill bg-dark border border-light px-3 smaller">{{ __('Location Admin') }}</span>
+                </div>
+              </div>
+              <a href="{{ route('location-admins.edit', $admin) }}" class="btn btn-primary rounded-pill px-4 fw-bold">
+                <i class="mdi mdi-pencil-outline me-1"></i>{{ __('Edit') }}
+              </a>
+            </div>
+
+            <div class="row g-4 mb-5">
+              <div class="col-md-6">
+                <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                    <label class="text-muted small fw-bold text-uppercase letter-spacing-1 d-block mb-1">{{ __('ID:') }}</label>
+                    <div class="text-dark fw-bold">#{{ $admin->id }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                    <label class="text-muted small fw-bold text-uppercase letter-spacing-1 d-block mb-1">{{ __('Email') }}</label>
+                    <div class="text-dark fw-bold text-truncate">{{ $admin->email }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                    <label class="text-muted small fw-bold text-uppercase letter-spacing-1 d-block mb-1">{{ __('Location') }}</label>
+                    <div class="text-dark fw-bold">
+                      @if($admin->location)
+                        <i class="mdi mdi-map-marker text-info me-1"></i>{{ $admin->location->name }}
+                      @else
+                        <span class="text-muted text-opacity-50 italic">-</span>
+                      @endif
+                    </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                    <label class="text-muted small fw-bold text-uppercase letter-spacing-1 d-block mb-1">{{ __('Roles:') }}</label>
+                    <div class="text-dark fw-bold">
+                      @php($roles = $admin->getRoleNames())
+                      @if($roles->isNotEmpty())
+                        @foreach($roles as $role)
+                          <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 smaller">{{ $role }}</span>
+                        @endforeach
+                      @else
+                        <span class="text-muted text-opacity-50 italic">-</span>
+                      @endif
+                    </div>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-5">
+                    <label class="text-muted small fw-bold text-uppercase letter-spacing-1 d-block mb-1">{{ __('Created:') }}</label>
+                    <div class="text-muted smaller"><i class="mdi mdi-clock-outline me-1"></i>{{ $admin->created_at->format('d M Y, H:i') }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-top border-light d-flex justify-content-between align-items-center">
+              <p class="text-muted smaller mb-0 italic">
+                <i class="mdi mdi-information-outline me-1"></i>{{ __('Demoting an admin will remove their administrative privileges.') }}
+              </p>
+              <form action="{{ route('users.demote.employee', $admin) }}" method="POST" onsubmit="return confirm('{{ __('Demote this admin to Employee?') }}')">
+                @csrf
+                <button type="submit" class="btn btn-outline-warning rounded-pill px-4 fw-bold shadow-sm">
+                  <i class="mdi mdi-account-arrow-down-outline me-2"></i>{{ __('Demote') }}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+.smaller { font-size: 0.85rem; }
+.italic { font-style: italic; }
+.letter-spacing-1 { letter-spacing: 1px; }
+</style>
 @endsection

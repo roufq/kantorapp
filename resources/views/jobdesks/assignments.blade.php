@@ -5,7 +5,7 @@
         <h3 class="mb-1">Assign Jobdesk</h3>
         <p class="text-muted mb-0">Jobdesk: {{ $jobdesk->name }}</p>
     </div>
-    <a href="{{ route('jobdesks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('jobdesks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 
 <div class="card mb-3">
@@ -13,13 +13,13 @@
         <form method="POST" action="{{ route('jobdesks.assignments.store', $jobdesk) }}" class="row g-3">
             @csrf
             <div class="col-md-6">
-                <label class="form-label">Pilih Karyawan</label>
+                <label class="form-label">Select Employee</label>
                 <select name="employee_ids[]" class="form-select" multiple required>
                     @foreach($employees as $emp)
                         <option value="{{ $emp->id }}">{{ $emp->nama }} @if($emp->location) - {{ $emp->location->name ?? $emp->location->nama }} @endif</option>
                     @endforeach
                 </select>
-                <small class="text-muted">Gunakan Ctrl/Command untuk pilih banyak.</small>
+                <small class="text-muted">Use Ctrl/Command to select multiple.</small>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Start Date</label>
@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="col-12">
-                <button class="btn btn-primary">Simpan Assignment</button>
+                <button class="btn btn-primary">Save Assignment</button>
             </div>
         </form>
     </div>
@@ -44,19 +44,19 @@
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Assignment Aktif</h3>
+        <h3 class="card-title">Active Assignments</h3>
     </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-hover text-nowrap">
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Karyawan</th>
-                    <th>Lokasi</th>
+                    <th>Employees</th>
+                    <th>Location</th>
                     <th>Primary</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Aksi</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -65,11 +65,11 @@
                         <td>{{ $loop->iteration + ($assignments->currentPage()-1)*$assignments->perPage() }}</td>
                         <td>{{ $assignment->employee?->nama ?? '-' }}</td>
                         <td>{{ $assignment->employee?->location?->name ?? $assignment->employee?->location?->nama ?? '-' }}</td>
-                        <td>{{ $assignment->is_primary ? 'Ya' : 'Tidak' }}</td>
+                        <td>{{ $assignment->is_primary ? 'Yes' : 'No' }}</td>
                         <td>{{ $assignment->start_date?->format('Y-m-d') ?? '-' }}</td>
                         <td>{{ $assignment->end_date?->format('Y-m-d') ?? '-' }}</td>
                         <td>
-                            <form action="{{ route('jobdesks.assignments.destroy', [$jobdesk, $assignment]) }}" method="POST" onsubmit="return confirm('Hapus assignment ini?')">
+                            <form action="{{ route('jobdesks.assignments.destroy', [$jobdesk, $assignment]) }}" method="POST" onsubmit="return confirm('Delete this assignment?')">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">Delete</button>
@@ -78,7 +78,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Belum ada assignment.</td>
+                        <td colspan="7" class="text-center text-muted">No assignments yet.</td>
                     </tr>
                 @endforelse
             </tbody>

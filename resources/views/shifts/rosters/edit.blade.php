@@ -9,7 +9,7 @@
           <h3 class="mb-1">Edit / Rolling Roster</h3>
           <p class="text-muted mb-0">{{ $roster->location->name ?? '-' }} | {{ $roster->locationShift->shift->name ?? 'Shift' }}</p>
         </div>
-        <a href="{{ route('shifts.rosters.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+        <a href="{{ route('shifts.rosters.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
       </div>
       @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
       @if($errors->any())
@@ -20,7 +20,7 @@
 
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Tukar Karyawan per Tanggal & Slot</h3>
+          <h3 class="card-title">Swap Employee per Date & Slot</h3>
         </div>
         <div class="card-body">
           <form method="POST" action="{{ route('shifts.rosters.update', $roster) }}">
@@ -28,11 +28,11 @@
             @method('PUT')
             <div class="row g-3">
               <div class="col-md-4">
-                <label class="form-label">Tanggal</label>
+                <label class="form-label">Date</label>
                 <input type="date" name="swap_date" class="form-control" value="{{ $roster->week_start->toDateString() }}">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Karyawan A</label>
+                <label class="form-label">Employee A</label>
                 <select name="swap_user_a" class="form-select">
                   @foreach($rosterUsers as $u)
                     <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -40,7 +40,7 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label">Karyawan B</label>
+                <label class="form-label">Employee B</label>
                 <select name="swap_user_b" class="form-select">
                   @foreach($rosterUsers as $u)
                     <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -49,22 +49,22 @@
               </div>
             </div>
             <div class="mt-3 d-flex justify-content-between">
-              <a href="{{ route('shifts.rosters.show', $roster) }}" class="btn btn-outline-secondary">Kembali</a>
-              <button type="submit" class="btn btn-primary">Tukar Karyawan</button>
+              <a href="{{ route('shifts.rosters.show', $roster) }}" class="btn btn-outline-secondary">Back</a>
+              <button type="submit" class="btn btn-primary">Swap Employee</button>
             </div>
           </form>
 
           <hr>
-          <h5>Roster Minggu Ini</h5>
+          <h5>This Week's Roster</h5>
           <div class="table-responsive">
             <table class="table table-bordered">
               <thead>
                 <tr>
                   <th style="width:50px">No</th>
-                  <th>Tanggal</th>
+                  <th>Date</th>
                   <th>Slot</th>
-                  <th>Jam</th>
-                  <th>Karyawan</th>
+                  <th>Hours</th>
+                  <th>Employee</th>
                   <th>Status</th>
                 </tr>
               </thead>

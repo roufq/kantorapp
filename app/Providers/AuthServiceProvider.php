@@ -41,7 +41,7 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
             // Location Admin may manage users within the same location
-            if ($authUser->hasRole('Admin Lokasi') && $authUser->location_id && $target->location_id) {
+            if ($authUser->hasRole('Location Admin') && $authUser->location_id && $target->location_id) {
                 return (int)$authUser->location_id === (int)$target->location_id;
             }
             return false;
@@ -52,7 +52,7 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
             // Location Admin can transfer users only from their own location
-            if ($authUser->hasRole('Admin Lokasi') && $authUser->location_id && $target->location_id) {
+            if ($authUser->hasRole('Location Admin') && $authUser->location_id && $target->location_id) {
                 return (int)$authUser->location_id === (int)$target->location_id;
             }
             return false;
@@ -62,7 +62,7 @@ class AuthServiceProvider extends ServiceProvider
             if ($authUser->hasRole('Super Admin')) {
                 return true;
             }
-            if ($authUser->hasRole('Admin Lokasi')) {
+            if ($authUser->hasRole('Location Admin')) {
                 return $locationId !== null && (int)$authUser->location_id === (int)$locationId;
             }
             return false;

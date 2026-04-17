@@ -84,8 +84,8 @@ class DatabaseSeeder extends Seeder
                     'karyawan_id' => $employee->id,
                     'location_id' => $loc->id,
                 ]);
-                if (!$u->hasRole('Karyawan')) {
-                    $u->assignRole('Karyawan');
+                if (!$u->hasRole('Employee')) {
+                    $u->assignRole('Employee');
                 }
             }
         }
@@ -103,22 +103,22 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Create 2 Admin Lokasi users with assigned locations
+        // Create 2 Location Admin users with assigned locations
         $locations = Location::take(2)->pluck('id');
         foreach ($locations as $idx => $locId) {
             $al = User::firstOrCreate([
                 'email' => 'adminlokasi' . ($idx + 1) . '@example.com',
             ], [
-                'name' => 'Admin Lokasi ' . ($idx + 1),
+                'name' => 'Location Admin ' . ($idx + 1),
                 'password' => Hash::make('password'),
                 'location_id' => $locId,
             ]);
-            if (!$al->hasRole('Admin Lokasi')) {
-                $al->assignRole('Admin Lokasi');
+            if (!$al->hasRole('Location Admin')) {
+                $al->assignRole('Location Admin');
             }
         }
 
-        // Create 5 Karyawan users
+        // Create 5 Employee users
         for ($i = 1; $i <= 5; $i++) {
             $user = User::firstOrCreate([
                 'email' => 'employee' . $i . '@example.com',
@@ -127,8 +127,8 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'location_id' => Location::inRandomOrder()->value('id'),
             ]);
-            if (!$user->hasRole('Karyawan')) {
-                $user->assignRole('Karyawan');
+            if (!$user->hasRole('Employee')) {
+                $user->assignRole('Employee');
             }
         }
 

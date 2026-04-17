@@ -12,8 +12,8 @@ class UserRoleBackfillSeeder extends Seeder
     {
         // Ensure roles exist
         Role::firstOrCreate(['name' => 'Super Admin']);
-        Role::firstOrCreate(['name' => 'Admin Lokasi']);
-        Role::firstOrCreate(['name' => 'Karyawan']);
+        Role::firstOrCreate(['name' => 'Location Admin']);
+        Role::firstOrCreate(['name' => 'Employee']);
 
         // Promote a Super Admin if none exists
         if (User::role('Super Admin')->count() === 0) {
@@ -23,9 +23,9 @@ class UserRoleBackfillSeeder extends Seeder
             }
         }
 
-        // Assign Karyawan to users without any role
+        // Assign Employee to users without any role
         User::doesntHave('roles')->get()->each(function (User $user) {
-            $user->assignRole('Karyawan');
+            $user->assignRole('Employee');
         });
     }
 }

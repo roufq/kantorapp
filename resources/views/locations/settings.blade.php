@@ -1,12 +1,12 @@
-﻿@extends('layouts.appnew')
+@extends('layouts.appnew')
 
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
   <div>
-    <h3 class="mb-1">Pengaturan Lokasi</h3>
+    <h3 class="mb-1">Location Settings</h3>
     <p class="text-muted mb-0">{{ $location->name }}</p>
   </div>
-  <a href="{{ route('locations.show', $location) }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+  <a href="{{ route('locations.show', $location) }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
   <div class="col-12">
@@ -55,7 +55,7 @@
               <div class="mb-3">
                 <label class="form-label">Radius (meter)</label>
                 <input type="number" class="form-control" id="loc_radius" name="radius" value="{{ old('radius', $location->radius ?? 50) }}" placeholder="50">
-                <small class="text-muted">Default disarankan 50m</small>
+                <small class="text-muted">Default recommended 50m</small>
               </div>
             </div>
           </div>
@@ -63,7 +63,7 @@
           <div class="row mt-2">
             <div class="col-12">
               <div id="loc-map" style="height: 340px; border-radius: 6px; overflow: hidden; border: 1px solid #dee2e6;"></div>
-              <small class="text-muted d-block mt-1">Tip: drag marker atau klik peta untuk memilih titik. Gunakan pencarian untuk mencari alamat.</small>
+              <small class="text-muted d-block mt-1">Tip: drag marker or click map to select a point. Use search to find an address.</small>
             </div>
           </div>
 
@@ -143,7 +143,7 @@
     @endif
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Jadwal Notifikasi</h3>
+        <h3 class="card-title">Notification Schedule</h3>
       </div>
       <div class="card-body">
         <form method="POST" action="{{ route('locations.settings.update', $location) }}">
@@ -151,36 +151,36 @@
           @method('PATCH')
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Approval Pending (Harian)</label>
+              <label class="form-label">Pending Approvals (Daily)</label>
               <input type="time" class="form-control" name="settings[0][value]" value="{{ old('notify_pending_approvals_time', $notificationSettings['notify_pending_approvals_time'] ?? '00:00') }}" required>
               <input type="hidden" name="settings[0][key]" value="notify_pending_approvals_time">
               <input type="hidden" name="settings[0][type]" value="string">
-              <small class="text-muted">Contoh: 07:00</small>
+              <small class="text-muted">Example: 07:00</small>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Jadwal Masuk H-1 (Harian)</label>
+              <label class="form-label">H-1 Login Schedule (Daily)</label>
               <input type="time" class="form-control" name="settings[1][value]" value="{{ old('notify_shift_h1_time', $notificationSettings['notify_shift_h1_time'] ?? '00:00') }}" required>
               <input type="hidden" name="settings[1][key]" value="notify_shift_h1_time">
               <input type="hidden" name="settings[1][type]" value="string">
-              <small class="text-muted">Dikirim ke karyawan & admin lokasi.</small>
+              <small class="text-muted">Sent to employees & location admins.</small>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Ringkasan Sisa Cuti (Akhir Bulan)</label>
+              <label class="form-label">Remaining Leave Summary (End of Month)</label>
               <input type="time" class="form-control" name="settings[2][value]" value="{{ old('notify_leave_monthly_summary_time', $notificationSettings['notify_leave_monthly_summary_time'] ?? '00:00') }}" required>
               <input type="hidden" name="settings[2][key]" value="notify_leave_monthly_summary_time">
               <input type="hidden" name="settings[2][type]" value="string">
-              <small class="text-muted">Kirim pada hari terakhir bulan.</small>
+              <small class="text-muted">Sent on the last day of the month.</small>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Pengingat Cuti Bulanan (Awal Bulan)</label>
+              <label class="form-label">Monthly Leave Reminder (Start of Month)</label>
               <input type="time" class="form-control" name="settings[3][value]" value="{{ old('notify_leave_monthly_reminder_time', $notificationSettings['notify_leave_monthly_reminder_time'] ?? '00:00') }}" required>
               <input type="hidden" name="settings[3][key]" value="notify_leave_monthly_reminder_time">
               <input type="hidden" name="settings[3][type]" value="string">
-              <small class="text-muted">Kirim pada tanggal 1 setiap bulan.</small>
+              <small class="text-muted">Sent on the 1st of every month.</small>
             </div>
           </div>
           <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Simpan Jadwal</button>
+            <button type="submit" class="btn btn-primary">Save Schedule</button>
           </div>
         </form>
       </div>
@@ -347,7 +347,7 @@
       const geocoder = L.Control.geocoder({
         defaultMarkGeocode: false,
         collapsed: false,
-        placeholder: "Cari alamat atau tempat…",
+        placeholder: "Search address or place…",
         position: "topleft",
         geocoder: geocoderService,
         suggestMinLength: 3,
@@ -371,7 +371,7 @@
       if (status) status.textContent = 'Geolocation not supported by this browser.';
       return;
     }
-    if (status) status.textContent = 'Getting locationâ€¦';
+    if (status) status.textContent = 'Getting location...';
     navigator.geolocation.getCurrentPosition(function(pos) {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
@@ -381,7 +381,7 @@
       if (!document.getElementById('loc_radius').value) {
         document.getElementById('loc_radius').value = 50;
       }
-      if (status) status.textContent = 'Location set: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ' (Â±' + Math.round(acc) + 'm)';
+      if (status) status.textContent = 'Location set: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ' (+/- ' + Math.round(acc) + 'm)';
     }, function(err) {
       if (status) status.textContent = 'Error: ' + err.message;
     }, {

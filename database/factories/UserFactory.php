@@ -61,7 +61,7 @@ class UserFactory extends Factory
     {
         return $this->afterCreating(function (\App\Models\User $user) {
             if (method_exists($user, 'assignRole')) {
-                $user->assignRole('Karyawan');
+                $user->assignRole('Employee');
             }
         });
     }

@@ -25,7 +25,7 @@ class ShiftAssignmentController extends Controller
             'days' => 'nullable|integer|min:1|max:60',
         ]);
 
-        $locationId = $auth->hasRole('Admin Lokasi') ? $auth->location_id : ($request->location_id ?: $auth->location_id);
+        $locationId = $auth->hasRole('Location Admin') ? $auth->location_id : ($request->location_id ?: $auth->location_id);
         $days = (int) ($request->days ?: 14);
 
         if (!$locationId) {
@@ -47,7 +47,7 @@ class ShiftAssignmentController extends Controller
         $auth = Auth::user();
 
         $query = ShiftAssignment::with(['user', 'shift', 'location', 'locationShift.shift']);
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $query->forLocation($auth->location_id);
         }
 
@@ -74,14 +74,14 @@ class ShiftAssignmentController extends Controller
     public function create()
     {
         $auth = Auth::user();
-        $users = User::when($auth->hasRole('Admin Lokasi'), function ($q) use ($auth) {
+        $users = User::when($auth->hasRole('Location Admin'), function ($q) use ($auth) {
             $q->where('location_id', $auth->location_id);
         })->orderBy('name')->get();
 
         $locationsQuery = Location::active()->orderBy('name')->with(['shifts' => function ($q) {
             $q->active()->orderBy('name');
         }]);
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $locationsQuery->where('id', $auth->location_id);
         }
         $locations = $locationsQuery->get();
@@ -127,7 +127,7 @@ class ShiftAssignmentController extends Controller
             return back()->withErrors(['user_id' => 'User must be assigned to a location'])->withInput();
         }
 
-        if ($auth->hasRole('Admin Lokasi') && $locationShift->location_id !== $auth->location_id) {
+        if ($auth->hasRole('Location Admin') && $locationShift->location_id !== $auth->location_id) {
             abort(403, 'User/Shift must be within your location');
         }
 
@@ -177,17 +177,17 @@ class ShiftAssignmentController extends Controller
     {
         $auth = Auth::user();
         $shift_assignment->load(['locationShift.shift', 'location', 'user']);
-        if ($auth->hasRole('Admin Lokasi') && $shift_assignment->location_id !== $auth->location_id) {
+        if ($auth->hasRole('Location Admin') && $shift_assignment->location_id !== $auth->location_id) {
             abort(403);
         }
-        $users = User::when($auth->hasRole('Admin Lokasi'), function ($q) use ($auth) {
+        $users = User::when($auth->hasRole('Location Admin'), function ($q) use ($auth) {
             $q->where('location_id', $auth->location_id);
         })->orderBy('name')->get();
 
         $locationsQuery = Location::query()->orderBy('name')->with(['shifts' => function ($q) {
             $q->active()->orderBy('name');
         }]);
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $locationsQuery->where('id', $auth->location_id);
         } else {
             $locationsQuery->where(function ($q) use ($shift_assignment) {
@@ -213,7 +213,7 @@ class ShiftAssignmentController extends Controller
     public function update(Request $request, ShiftAssignment $shift_assignment)
     {
         $auth = Auth::user();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             if ($shift_assignment->location_id !== $auth->location_id) {
                 abort(403);
             }
@@ -250,7 +250,7 @@ class ShiftAssignmentController extends Controller
             return back()->withErrors(['location_shift_id' => 'The location shift id field is required.'])->withInput();
         }
 
-        if ($auth->hasRole('Admin Lokasi') && $locationShift->location_id !== $auth->location_id) {
+        if ($auth->hasRole('Location Admin') && $locationShift->location_id !== $auth->location_id) {
             abort(403);
         }
 
@@ -478,9 +478,9 @@ class ShiftAssignmentController extends Controller
             return ['status' => 'error', 'message' => 'Lokasi tidak ditemukan'];
         }
 
-        $users = User::role('Karyawan')->where('location_id', $locationId)->orderBy('id')->get();
+        $users = User::role('Employee')->where('location_id', $locationId)->orderBy('id')->get();
         if ($users->isEmpty()) {
-            return ['status' => 'error', 'message' => 'Tidak ada karyawan di lokasi ini'];
+            return ['status' => 'error', 'message' => 'Tidak ada employee di lokasi ini'];
         }
 
         $locationShifts = $location->shifts->map(function ($shift) {
@@ -668,7 +668,7 @@ class ShiftAssignmentController extends Controller
     public function destroy(ShiftAssignment $shift_assignment)
     {
         $auth = Auth::user();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             if ($shift_assignment->location_id !== $auth->location_id) {
                 abort(403);
             }
@@ -690,7 +690,7 @@ class ShiftAssignmentController extends Controller
     {
         $auth = Auth::user();
         $query = ShiftAssignment::with(['user', 'shift', 'location', 'locationShift.shift']);
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $query->forLocation($auth->location_id);
         }
         if ($request->filled('location_id')) {

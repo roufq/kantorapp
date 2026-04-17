@@ -62,7 +62,7 @@ class JobdeskOutputTargetController extends Controller
             ->where('month', (int) $month)
             ->exists();
         if ($exists) {
-            return back()->withErrors(['month' => 'Target untuk kombinasi jobdesk/karyawan/bulan sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Target untuk kombinasi jobdesk/employee/bulan sudah ada.'])->withInput();
         }
 
         JobdeskOutputTarget::create([
@@ -110,7 +110,7 @@ class JobdeskOutputTargetController extends Controller
             ->where('id', '!=', $jobdesk_target->id)
             ->exists();
         if ($exists) {
-            return back()->withErrors(['month' => 'Target untuk kombinasi jobdesk/karyawan/bulan sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Target untuk kombinasi jobdesk/employee/bulan sudah ada.'])->withInput();
         }
 
         $jobdesk_target->update([

@@ -25,7 +25,7 @@ class EmployeePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('Admin Lokasi');
+        return $user->hasRole('Location Admin');
     }
 
     /**
@@ -33,13 +33,13 @@ class EmployeePolicy
      */
     public function view(User $user, Employee $employee): bool
     {
-        // Admin Lokasi can view any employee in their own location.
-        if ($user->hasRole('Admin Lokasi')) {
+        // Location Admin can view any employee in their own location.
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $employee->location_id;
         }
 
-        // Karyawan can only view their own employee data.
-        if ($user->hasRole('Karyawan')) {
+        // Employee can only view their own employee data.
+        if ($user->hasRole('Employee')) {
             return $user->employee_id === $employee->id;
         }
 
@@ -51,7 +51,7 @@ class EmployeePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole('Admin Lokasi');
+        return $user->hasRole('Location Admin');
     }
 
     /**
@@ -59,13 +59,13 @@ class EmployeePolicy
      */
     public function update(User $user, Employee $employee): bool
     {
-        // Admin Lokasi can update any employee in their own location.
-        if ($user->hasRole('Admin Lokasi')) {
+        // Location Admin can update any employee in their own location.
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $employee->location_id;
         }
 
-        // Karyawan can only update their own employee data.
-        if ($user->hasRole('Karyawan')) {
+        // Employee can only update their own employee data.
+        if ($user->hasRole('Employee')) {
             return $user->employee_id === $employee->id;
         }
 
@@ -77,8 +77,8 @@ class EmployeePolicy
      */
     public function delete(User $user, Employee $employee): bool
     {
-        // Admin Lokasi can delete any employee in their own location.
-        if ($user->hasRole('Admin Lokasi')) {
+        // Location Admin can delete any employee in their own location.
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $employee->location_id;
         }
 
@@ -90,7 +90,7 @@ class EmployeePolicy
      */
     public function restore(User $user, Employee $employee): bool
     {
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $employee->location_id;
         }
         return false;
@@ -101,7 +101,7 @@ class EmployeePolicy
      */
     public function forceDelete(User $user, Employee $employee): bool
     {
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $employee->location_id;
         }
         return false;

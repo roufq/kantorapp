@@ -30,7 +30,7 @@ class UserController extends Controller
                           ->orWhere('email', 'like', '%' . $request->q . '%');
                     })
                     ->whereHas('roles', function ($q) {
-                        $q->whereIn('name', ['Karyawan', 'Admin Lokasi']);
+                        $q->whereIn('name', ['Employee', 'Location Admin']);
                     })
                     ->orderBy('name');
 

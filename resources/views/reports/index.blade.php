@@ -2,100 +2,137 @@
 
 @section('content')
 <div class="content-wrapper">
-  <div class="content">
+  <div class="content pt-4">
     <div class="container-fluid">
-      <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-          <h3 class="mb-1">Laporan</h3>
-          <p class="text-muted mb-0">Pantau laporan karyawan dan approval</p>
+      <div class="row mb-5 align-items-center">
+        <div class="col-lg-7">
+          <h1 class="fw-bold mb-1" style="font-size: 2.2rem; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ __('Insight Reports') }}
+          </h1>
+          <p class="text-muted mb-0" style="font-size: 1.1rem; opacity: 0.8;">{{ __('Monitor field operations and verify documented activities.') }}</p>
         </div>
-        <div class="d-flex gap-2">
-          @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
-          <a href="{{ route('reports.create') }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Buat Laporan
-          </a>
-          @endif
-          @if(auth()->user()->hasRole(['Super Admin','Admin Lokasi','Karyawan']))
-          <a href="{{ route('reports.employee-performance') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-graph-up me-1"></i>Performa Karyawan
-          </a>
-          @endif
+        <div class="col-lg-5 text-lg-end mt-4 mt-lg-0">
+          <div class="d-flex justify-content-lg-end gap-3 flex-wrap">
+            @if(auth()->user()->hasAnyRole(['Super Admin','Location Admin','Employee']))
+            <a href="{{ route('reports.create') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg">
+              <i class="mdi mdi-plus-circle-outline me-2"></i>{{ __('New Report') }}
+            </a>
+            <a href="{{ route('reports.employee-performance') }}" class="btn btn-outline-light text-dark border bg-white rounded-pill px-4 fw-bold shadow-sm">
+              <i class="mdi mdi-chart-box-outline me-2"></i>{{ __('KPI Performance') }}
+            </a>
+            @endif
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-body">
-          <form method="GET" class="row g-2 mb-3">
-            <div class="col-md-5">
-              <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari tiket / judul / deskripsi">
-            </div>
-            <div class="col-md-3">
-              <select name="status" class="form-select">
-                <option value="">Semua Status</option>
-                @foreach(['pending'=>'Pending','approved'=>'Approved','rejected'=>'Rejected'] as $key=>$label)
-                  <option value="{{ $key }}" @selected(request('status')===$key)>{{ $label }}</option>
-                @endforeach
-              </select>
-            </div>
-            <div class="col-md-4 d-flex gap-2">
-              <button class="btn btn-secondary" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
-              <a href="{{ route('reports.index') }}" class="btn btn-light">Reset</a>
-            </div>
-          </form>
 
+      <!-- Filter Section -->
+      <div class="card mb-4 border-light shadow-soft rounded-4">
+          <div class="card-body p-4">
+              <form method="GET" action="{{ route('reports.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label text-muted smaller fw-bold text-uppercase mb-2">{{ __('Search Reports') }}</label>
+                  <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="{{ __('Ticket ID, title or keyword...') }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label text-muted smaller fw-bold text-uppercase mb-2">{{ __('Status Type') }}</label>
+                  <select name="status" class="form-select fw-bold">
+                    <option value="">{{ __('All Status') }}</option>
+                    @foreach(['pending'=>__('Pending'),'approved'=>__('Approved'),'rejected'=>__('Rejected')] as $key=>$label)
+                      <option value="{{ $key }}" @selected(request('status')===$key)>{{ $label }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2 text-end">
+                  <button class="btn btn-primary rounded-pill px-4 fw-bold flex-grow-1 shadow-soft" type="submit">{{ __('Filter') }}</button>
+                  <a href="{{ route('reports.index') }}" class="btn btn-light border rounded-pill px-4 fw-bold text-muted">{{ __('Reset') }}</a>
+                </div>
+              </form>
+          </div>
+      </div>
+
+      <!-- Table Section -->
+      <div class="card border-light shadow-sm overflow-hidden">
+        <div class="card-header border-bottom border-light p-4 bg-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 text-dark fw-bold"><i class="mdi mdi-clipboard-text-clock-outline text-info me-2"></i>{{ __('Verified Documentation') }}</h5>
+            <span class="text-muted smaller fw-bold">{{ $reports->total() }} entries</span>
+        </div>
+        <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table table-striped align-middle">
+            <table class="table align-middle mb-0">
               <thead>
                 <tr>
-                  <th style="width:50px">No</th>
-                  <th>Tiket</th>
-                  <th>Judul</th>
-                  <th>Pelapor</th>
-                  <th>Lokasi</th>
-                  <th>Status</th>
-                  <th>Dibuat</th>
-                  <th>Action</th>
+                  <th class="ps-4">No</th>
+                  <th>{{ __('Reference / Subject') }}</th>
+                  <th>{{ __('Originator') }}</th>
+                  <th>{{ __('Location') }}</th>
+                  <th>{{ __('Current Status') }}</th>
+                  <th class="pe-4 text-end">{{ __('Action') }}</th>
                 </tr>
               </thead>
               <tbody>
                 @forelse($reports as $report)
-                  <tr>
-                    <td>{{ $loop->iteration + ($reports->currentPage()-1)*$reports->perPage() }}</td>
-                    <td class="fw-semibold">{{ $report->ticket_number }}</td>
-                    <td>{{ $report->title }}</td>
-                    <td>{{ $report->reporter?->name ?? '-' }}</td>
-                    <td>{{ $report->location?->name ?? '-' }}</td>
+                  <tr onclick="window.location='{{ route('reports.show', $report) }}'" style="cursor: pointer;" class="hover-row">
+                    <td class="ps-4 fw-bold text-muted smaller">{{ $loop->iteration + ($reports->currentPage()-1)*$reports->perPage() }}</td>
                     <td>
-                      <span class="badge text-bg-{{ $report->status === 'approved' ? 'success' : ($report->status === 'rejected' ? 'danger' : 'warning') }}">
-                        {{ ucfirst($report->status) }}
+                        <div class="badge badge-secondary mb-1" style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem !important;">#{{ $report->ticket_number }}</div>
+                        <div class="text-dark fw-bold smaller text-truncate" style="max-width: 240px;">{{ $report->title }}</div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold smaller" style="width: 32px; height: 32px;">
+                                {{ substr($report->reporter?->name ?? '?', 0, 1) }}
+                            </div>
+                            <span class="text-dark smaller fw-bold">{{ $report->reporter?->name ?? '-' }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center smaller text-muted fw-500">
+                             <i class="mdi mdi-map-marker-outline me-1"></i>{{ $report->location?->name ?? 'HQ' }}
+                        </div>
+                    </td>
+                    <td>
+                      @php
+                          $statusBadge = match($report->status) {
+                            'approved' => 'badge-success',
+                            'rejected' => 'badge-danger',
+                            default => 'badge-warning'
+                          };
+                      @endphp
+                      <span class="badge {{ $statusBadge }}">
+                        {{ strtoupper(__($report->status)) }}
                       </span>
                     </td>
-                    <td>{{ $report->created_at->format('d M Y H:i') }}</td>
-                    <td class="text-end">
-                      <a class="btn btn-sm btn-outline-primary" href="{{ route('reports.show', $report) }}">Lihat</a>
-                      @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Admin Lokasi'))
-                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('reports.edit', $report) }}">Edit</a>
-                        <form action="{{ route('reports.destroy', $report) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus laporan ini?')">
-                          @csrf
-                          @method('DELETE')
-                          <button class="btn btn-sm btn-outline-danger" type="submit">Hapus</button>
-                        </form>
-                      @endif
+                    <td class="pe-4 text-end">
+                       <i class="mdi mdi-chevron-right text-muted opacity-50"></i>
                     </td>
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="7" class="text-center text-secondary">Belum ada laporan.</td>
+                    <td colspan="6" class="text-center py-5">
+                       <div class="p-3 bg-light rounded-circle d-inline-flex mb-3">
+                          <i class="mdi mdi-file-question-outline fs-2 text-muted"></i>
+                       </div>
+                       <p class="text-muted smaller fw-bold mb-0">{{ __('Project documentation is currently empty.') }}</p>
+                    </td>
                   </tr>
                 @endforelse
               </tbody>
             </table>
           </div>
-          <div>
-            {{ $reports->links() }}
-          </div>
         </div>
+        @if($reports->hasPages())
+           <div class="card-footer border-top border-light p-4 bg-white d-flex justify-content-end">
+                {{ $reports->appends(request()->query())->links() }}
+           </div>
+        @endif
       </div>
     </div>
   </div>
 </div>
+
+<style>
+    .smaller { font-size: 0.75rem; }
+    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,0.03) !important; }
+    .hover-row:hover { background-color: #fcfdfe !important; }
+</style>
 @endsection

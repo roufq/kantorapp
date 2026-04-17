@@ -36,9 +36,9 @@ class DummyDataSeeder extends Seeder
         // Ensure roles exist when seeding this class directly
         $guard = config('auth.defaults.guard', 'web');
         Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => $guard]);
-        Role::firstOrCreate(['name' => 'Admin Lokasi', 'guard_name' => $guard]);
+        Role::firstOrCreate(['name' => 'Location Admin', 'guard_name' => $guard]);
         Role::firstOrCreate(['name' => 'HR', 'guard_name' => $guard]);
-        Role::firstOrCreate(['name' => 'Karyawan', 'guard_name' => $guard]);
+        Role::firstOrCreate(['name' => 'Employee', 'guard_name' => $guard]);
 
         $locations = Location::all();
         $employees = Employee::all();
@@ -56,7 +56,7 @@ class DummyDataSeeder extends Seeder
             ['name' => 'General Office', 'location_id' => null],
             [
                 'description' => 'Jobdesk umum untuk karyawan non-shift.',
-                'role_scope' => 'Karyawan',
+                'role_scope' => 'Employee',
                 'created_by' => $hrUser?->id ?? $superAdmin?->id,
                 'is_active' => true,
                 'min_attendance_minutes' => 360,
@@ -70,7 +70,7 @@ class DummyDataSeeder extends Seeder
                 ['name' => $name, 'location_id' => $loc->id],
                 [
                     'description' => 'Jobdesk operasional per lokasi.',
-                    'role_scope' => 'Karyawan',
+                    'role_scope' => 'Employee',
                     'created_by' => $hrUser?->id ?? $superAdmin?->id,
                     'is_active' => true,
                     'min_attendance_minutes' => 420,
@@ -231,7 +231,7 @@ class DummyDataSeeder extends Seeder
 
         // Create a few tasks + slots based on catalog
         $catalogs = TaskCatalog::where('is_active', true)->limit(5)->get();
-        $assignees = User::role('Karyawan')->take(5)->get();
+        $assignees = User::role('Employee')->take(5)->get();
         foreach ($assignees as $assignee) {
             $catalog = $catalogs->random();
             $title = $catalog->name . ' - ' . $assignee->name;

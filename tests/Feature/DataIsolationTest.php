@@ -25,12 +25,12 @@ class DataIsolationTest extends TestCase
         $l2 = Location::create(['name' => 'L2', 'code' => 'L2']);
 
         $admin = User::factory()->create(['name' => 'Admin L1', 'location_id' => $l1->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $u1 = User::factory()->create(['name' => 'Alice L1', 'location_id' => $l1->id]);
-        $u1->assignRole('Karyawan');
+        $u1->assignRole('Employee');
         $u2 = User::factory()->create(['name' => 'Bob L2', 'location_id' => $l2->id]);
-        $u2->assignRole('Karyawan');
+        $u2->assignRole('Employee');
 
         Task::create(['title' => 'Task L1', 'description' => 'd', 'assigned_by' => $admin->id, 'assigned_to' => $u1->id, 'status' => 'pending']);
         Task::create(['title' => 'Task L2', 'description' => 'd', 'assigned_by' => $admin->id, 'assigned_to' => $u2->id, 'status' => 'pending']);

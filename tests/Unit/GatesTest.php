@@ -15,8 +15,8 @@ class GatesTest extends TestCase
     private function ensureRoles(): void
     {
         \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Admin Lokasi']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Karyawan']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Location Admin']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Employee']);
     }
 
     public function test_manage_user_gate_admin_same_location(): void
@@ -24,7 +24,7 @@ class GatesTest extends TestCase
         $this->ensureRoles();
         $loc = Location::create(['name' => 'A', 'code' => 'LD', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $admin = User::factory()->create(['location_id' => $loc->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
         $target = User::factory()->create(['location_id' => $loc->id]);
 
         $this->be($admin);
@@ -37,7 +37,7 @@ class GatesTest extends TestCase
         $loc1 = Location::create(['name' => 'A', 'code' => 'LE', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $loc2 = Location::create(['name' => 'B', 'code' => 'LF', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $admin = User::factory()->create(['location_id' => $loc1->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $this->be($admin);
         $this->assertTrue(Gate::allows('create-user', $loc1->id));
@@ -49,7 +49,7 @@ class GatesTest extends TestCase
         $this->ensureRoles();
         $loc = Location::create(['name' => 'A', 'code' => 'LG', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $admin = User::factory()->create(['location_id' => $loc->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
         $target = User::factory()->create(['location_id' => $loc->id]);
 
         $this->be($admin);

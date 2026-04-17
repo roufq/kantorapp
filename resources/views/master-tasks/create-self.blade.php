@@ -2,10 +2,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Buat Master Task untuk Diri Sendiri</h3>
-        <p class="text-muted mb-0">Catat tugas pribadi level master dan pantau progresnya.</p>
+        <h3 class="mb-1">Create Master Task for Self</h3>
+        <p class="text-muted mb-0">Record personal master level tasks and track their progress.</p>
     </div>
-    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('master-tasks.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="row">
     <div class="col-12">

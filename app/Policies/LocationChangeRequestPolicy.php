@@ -41,7 +41,7 @@ class LocationChangeRequestPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole('Karyawan') || $user->hasRole('Admin Lokasi') || $user->hasRole('Super Admin');
+        return $user->hasRole('Employee') || $user->hasRole('Location Admin') || $user->hasRole('Super Admin');
     }
 
     /**
@@ -49,7 +49,7 @@ class LocationChangeRequestPolicy
      */
     public function update(User $user, LocationChangeRequest $locationChangeRequest): bool
     {
-        return $user->hasRole('Admin Lokasi') && $user->location_id === $locationChangeRequest->original_location_id;
+        return $user->hasRole('Location Admin') && $user->location_id === $locationChangeRequest->original_location_id;
     }
 
     /**

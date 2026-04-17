@@ -17,14 +17,14 @@ class ReportController extends Controller
         $user = $request->user();
 
         // Authorization
-        if (!$user->hasRole(['Super Admin', 'Admin Lokasi'])) {
+        if (!$user->hasRole(['Super Admin', 'Location Admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $query = Attendance::with(['user', 'location', 'shift']);
 
         // Scope by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
         }
 
@@ -76,14 +76,14 @@ class ReportController extends Controller
         $user = $request->user();
 
         // Authorization
-        if (!$user->hasRole(['Super Admin', 'Admin Lokasi'])) {
+        if (!$user->hasRole(['Super Admin', 'Location Admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $query = Overtime::with(['user', 'approver']);
 
         // Scope by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('location_id', $user->location_id);
             });
@@ -137,7 +137,7 @@ class ReportController extends Controller
         // Authorization
         if ($user->hasRole('Super Admin')) {
             // Can view anyone
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             if ($targetUser->location_id !== $user->location_id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }

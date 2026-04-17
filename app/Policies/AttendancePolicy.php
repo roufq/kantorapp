@@ -22,26 +22,26 @@ class AttendancePolicy
 
     /**
      * Determine whether the user can view any models.
-     * Karyawan can view their own attendance list.
-     * Admin Lokasi can view attendance list of their location.
+     * Employee can view their own attendance list.
+     * Location Admin can view attendance list of their location.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('Karyawan') || $user->hasRole('Admin Lokasi') || $user->hasRole('HR');
+        return $user->hasRole('Employee') || $user->hasRole('Location Admin') || $user->hasRole('HR');
     }
 
     /**
      * Determine whether the user can view the model.
-     * Karyawan can view their own attendance.
-     * Admin Lokasi can view attendance of their location.
+     * Employee can view their own attendance.
+     * Location Admin can view attendance of their location.
      */
     public function view(User $user, Attendance $attendance): bool
     {
-        if ($user->hasRole('Karyawan')) {
+        if ($user->hasRole('Employee')) {
             return $user->id === $attendance->user_id;
         }
 
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $attendance->location_id;
         }
 
@@ -63,11 +63,11 @@ class AttendancePolicy
 
     /**
      * Determine whether the user can update the model.
-     * Only Admin Lokasi can update attendance (e.g., for approval).
+     * Only Location Admin can update attendance (e.g., for approval).
      */
     public function update(User $user, Attendance $attendance): bool
     {
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             return $user->location_id === $attendance->location_id;
         }
 

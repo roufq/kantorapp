@@ -27,7 +27,7 @@ class ShiftRosterController extends Controller
         $rostersQuery = WeeklyRoster::with(['location', 'locationShift.shift'])
             ->orderBy('week_start', 'desc');
 
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $rostersQuery->where('location_id', $auth->location_id);
         }
 
@@ -71,14 +71,11 @@ class ShiftRosterController extends Controller
         })->filter()->unique()->values();
         $locationCategory = $locationCategories->first();
 
-        $rosterEntries = collect();
-        if ($locationCategory !== 'office') {
-            $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
-                ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
-                ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                ->get()
-                ->groupBy(fn($e) => $e->date->toDateString());
-        }
+        $rosterEntries = WeeklyRosterEntry::with(['user', 'roster.locationShift.shift'])
+            ->whereHas('roster', fn($q) => $q->where('location_id', $locationId))
+            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get()
+            ->groupBy(fn($e) => $e->date->toDateString());
 
         $leaves = EmployeeLeave::with('user')
             ->where('status', 'approved')
@@ -161,7 +158,7 @@ class ShiftRosterController extends Controller
                         : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
 
                     $calendarEvents->push([
-                        'title' => ($entry->user->name ?? '-') . ' - ' . $time,
+                        'title' => ($entry->user->name ?? '-') . ' • ' . ($entry->roster?->locationShift?->shift?->name ?? 'Duty'),
                         'start' => $entry->date->toDateString(),
                         'allDay' => true,
                         'className' => match ($entry->status) {
@@ -170,6 +167,8 @@ class ShiftRosterController extends Controller
                             'missing' => 'fc-event-missing',
                             default => 'fc-event-on',
                         },
+                        'user_id' => $entry->user_id,
+                        'user_name' => $entry->user?->name,
                         'notes' => $entry->notes,
                         'status' => $entry->status,
                         'time' => $time,
@@ -227,7 +226,7 @@ class ShiftRosterController extends Controller
     {
         $auth = auth()->user();
         $locationsQuery = Location::active()->orderBy('name');
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $locationsQuery->where('id', $auth->location_id);
         }
         $locations = $locationsQuery->get();
@@ -241,7 +240,7 @@ class ShiftRosterController extends Controller
                     $q->where('category', 'non_office');
                 })
                 ->get();
-            $users = User::role('Karyawan')->where('location_id', $locationId)->orderBy('name')->get();
+            $users = User::role('Employee')->where('location_id', $locationId)->orderBy('name')->get();
         }
 
         $weekStart = Carbon::parse($request->week_start ?? Carbon::now()->startOfWeek());
@@ -275,7 +274,7 @@ class ShiftRosterController extends Controller
         if ($locationShift->location_id != $data['location_id']) {
             return back()->withErrors(['location_shift_id' => 'Shift tidak terikat ke lokasi ini.'])->withInput();
         }
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $data['location_id']) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $data['location_id']) {
             return back()->withErrors(['location_id' => 'Anda hanya boleh membuat roster untuk lokasi Anda.'])->withInput();
         }
 
@@ -575,7 +574,7 @@ class ShiftRosterController extends Controller
     public function show(WeeklyRoster $roster)
     {
         $auth = auth()->user();
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
         $roster->load(['location', 'locationShift.shift', 'entries.user']);
@@ -590,7 +589,7 @@ class ShiftRosterController extends Controller
     public function edit(WeeklyRoster $roster)
     {
         $auth = auth()->user();
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
         $roster->load(['location', 'locationShift.shift', 'entries.user']);
@@ -607,7 +606,7 @@ class ShiftRosterController extends Controller
     public function update(Request $request, WeeklyRoster $roster)
     {
         $auth = auth()->user();
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
         $data = $request->validate([
@@ -620,7 +619,7 @@ class ShiftRosterController extends Controller
         $entryA = $entries->firstWhere('user_id', $data['swap_user_a']);
         $entryB = $entries->firstWhere('user_id', $data['swap_user_b']);
         if (!$entryA || !$entryB) {
-            return back()->withErrors(['swap_user_a' => 'Karyawan yang dipilih tidak memiliki jadwal pada tanggal tersebut.']);
+            return back()->withErrors(['swap_user_a' => 'Employee yang dipilih tidak memiliki jadwal pada tanggal tersebut.']);
         }
 
         $locationShift = $roster->locationShift;
@@ -655,7 +654,7 @@ class ShiftRosterController extends Controller
             return back()->withErrors(['swap_user_b' => 'Jadwal user B bentrok dengan slot baru.']);
         }
 
-        // Bypass batas jam kerja untuk swap agar tidak memblokir rolling karyawan.
+        // Bypass batas jam kerja untuk swap agar tidak memblokir rolling employee.
 
         // Tukar user antar entri
         $tmpUser = $entryA->user_id;
@@ -699,13 +698,13 @@ class ShiftRosterController extends Controller
             'slot_b' => $entryB->slot_index,
         ]);
 
-        return back()->with('success', 'Rolling karyawan berhasil.');
+        return back()->with('success', 'Rolling employee berhasil.');
     }
 
     public function destroy(WeeklyRoster $roster)
     {
         $auth = auth()->user();
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
         $before = [
@@ -905,7 +904,7 @@ class ShiftRosterController extends Controller
     public function export(WeeklyRoster $roster)
     {
         $auth = auth()->user();
-        if ($auth->hasRole('Admin Lokasi') && $auth->location_id != $roster->location_id) {
+        if ($auth->hasRole('Location Admin') && $auth->location_id != $roster->location_id) {
             abort(403);
         }
 

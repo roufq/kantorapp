@@ -3,10 +3,10 @@
 @section('content')
 <div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h3 class="mb-1">Edit Lokasi</h3>
-        <p class="text-muted mb-0">Perbarui detail lokasi agar data operasional tetap akurat.</p>
+        <h3 class="mb-1">Edit Location</h3>
+        <p class="text-muted mb-0">Update location details to ensure operational data remains accurate.</p>
     </div>
-    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
 </div>
 <div class="content-wrapper">
     <!-- Main content -->
@@ -190,7 +190,7 @@
                                         <div id="loc-map" style="height: 340px; border-radius: 6px; overflow: hidden; border: 1px solid #dee2e6; position:relative;">
                                             <div id="loc-map-status" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#6c757d;font-size:14px;">Loading map…</div>
                                         </div>
-                                        <small class="text-muted d-block mt-1">Tip: drag marker atau klik peta untuk memilih titik. Gunakan pencarian untuk mencari alamat.</small>
+                                        <small class="text-muted d-block mt-1">Tip: drag marker or click map to select a point. Use search to find an address.</small>
                                     </div>
                                 </div>
 
@@ -253,7 +253,7 @@
                                                 <strong>{{ $message }}</strong>
                                             </span>
                                             @enderror
-                                            <small class="form-text text-muted">Saat "Enable Shift System" dicentang tampil opsi Multiple Shift, jika tidak maka tampil Single Shift. Nilai yang disimpan adalah shift_id terpilih.</small>
+                                            <small class="form-text text-muted">When "Enable Shift System" is checked, Multiple Shift options will be displayed; otherwise, Single Shift options will be shown. The saved value is the selected shift_id.</small>
                                         </div>
                                     </div>
                                 </div>

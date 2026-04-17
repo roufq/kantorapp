@@ -22,7 +22,7 @@ class LocationWorkTargetController extends Controller
             if ($request->filled('location_id')) {
                 $query->where('location_id', $request->location_id);
             }
-        } elseif ($user->hasRole('Admin Lokasi')) {
+        } elseif ($user->hasRole('Location Admin')) {
             $query->where('location_id', $user->location_id);
         } else {
             abort(403);
@@ -80,7 +80,7 @@ class LocationWorkTargetController extends Controller
         ]);
 
         [$year, $month] = explode('-', $data['month']);
-        $locationId = $user->hasRole('Admin Lokasi') ? $user->location_id : ($data['location_id'] ?? null);
+        $locationId = $user->hasRole('Location Admin') ? $user->location_id : ($data['location_id'] ?? null);
 
         $exists = LocationWorkTarget::where('location_id', $locationId)
             ->where('employee_id', $data['employee_id'])
@@ -88,7 +88,7 @@ class LocationWorkTargetController extends Controller
             ->where('month', (int) $month)
             ->exists();
         if ($exists) {
-            return back()->withErrors(['month' => 'Target untuk kombinasi lokasi/karyawan/bulan sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Target untuk kombinasi lokasi/employee/bulan sudah ada.'])->withInput();
         }
 
         LocationWorkTarget::create([
@@ -105,7 +105,7 @@ class LocationWorkTargetController extends Controller
     public function edit(LocationWorkTarget $work_target)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_target->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_target->location_id !== $user->location_id) {
             abort(403);
         }
 
@@ -130,7 +130,7 @@ class LocationWorkTargetController extends Controller
     public function update(Request $request, LocationWorkTarget $work_target)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_target->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_target->location_id !== $user->location_id) {
             abort(403);
         }
 
@@ -142,7 +142,7 @@ class LocationWorkTargetController extends Controller
         ]);
 
         [$year, $month] = explode('-', $data['month']);
-        $locationId = $user->hasRole('Admin Lokasi') ? $user->location_id : ($data['location_id'] ?? null);
+        $locationId = $user->hasRole('Location Admin') ? $user->location_id : ($data['location_id'] ?? null);
 
         $exists = LocationWorkTarget::where('location_id', $locationId)
             ->where('employee_id', $data['employee_id'])
@@ -151,7 +151,7 @@ class LocationWorkTargetController extends Controller
             ->where('id', '!=', $work_target->id)
             ->exists();
         if ($exists) {
-            return back()->withErrors(['month' => 'Target untuk kombinasi lokasi/karyawan/bulan sudah ada.'])->withInput();
+            return back()->withErrors(['month' => 'Target untuk kombinasi lokasi/employee/bulan sudah ada.'])->withInput();
         }
 
         $work_target->update([
@@ -168,7 +168,7 @@ class LocationWorkTargetController extends Controller
     public function destroy(LocationWorkTarget $work_target)
     {
         $user = Auth::user();
-        if ($user->hasRole('Admin Lokasi') && $work_target->location_id !== $user->location_id) {
+        if ($user->hasRole('Location Admin') && $work_target->location_id !== $user->location_id) {
             abort(403);
         }
 

@@ -17,9 +17,9 @@ class LeaveController extends Controller
     {
         $auth = Auth::user();
         $q = EmployeeLeave::with(['user','approver']);
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $q->where('location_id', $auth->location_id);
-        } elseif ($auth->hasRole('Karyawan')) {
+        } elseif ($auth->hasRole('Employee')) {
             $q->where('user_id', $auth->id);
         }
         $leaves = $q->orderBy('start_date','desc')->paginate(15);
@@ -78,7 +78,7 @@ class LeaveController extends Controller
     public function updateStatus(Request $request, EmployeeLeave $leave)
     {
         $auth = Auth::user();
-        abort_unless($auth->hasRole('Super Admin') || ($auth->hasRole('Admin Lokasi') && $auth->location_id === $leave->location_id), 403);
+        abort_unless($auth->hasRole('Super Admin') || ($auth->hasRole('Location Admin') && $auth->location_id === $leave->location_id), 403);
         $request->validate([
             'status' => 'required|in:pending,approved,rejected',
         ]);
@@ -91,7 +91,7 @@ class LeaveController extends Controller
             'status' => $leave->status,
             'approved_by' => $leave->approved_by,
         ]);
-        // Kirim notifikasi ke karyawan terkait
+        // Kirim notifikasi ke employee terkait
         try {
             $msg = 'Status Izin/Cuti Anda (' . $leave->start_date->format('Y-m-d') . ' s/d ' . $leave->end_date->format('Y-m-d') . ', ' . $leave->type . ') berubah menjadi: ' . $request->status;
             \App\Models\Message::create([

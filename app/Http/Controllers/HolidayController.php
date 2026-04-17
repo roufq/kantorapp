@@ -13,7 +13,7 @@ class HolidayController extends Controller
         $auth = Auth::user();
         $q = Holiday::query();
         // Scope by role
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             $q->where(function($qq) use ($auth){
                 $qq->where('is_national', true)->orWhere('location_id', $auth->location_id);
             });
@@ -59,18 +59,21 @@ class HolidayController extends Controller
         ]);
 
         $data = $request->only('date','name');
-        $isNational = $request->boolean('is_national');
-        if ($auth->hasRole('Admin Lokasi')) {
+        
+        if ($auth->hasRole('Location Admin')) {
             // Admin lokasi hanya boleh buat untuk lokasinya (non nasional)
             $data['is_national'] = false;
             $data['location_id'] = $auth->location_id;
         } else {
-            // Super Admin: jika non-nasional, pastikan lokasi dipilih
-            if (!$isNational && !$request->filled('location_id')) {
-                return back()->withErrors(['location_id' => 'Pilih lokasi untuk libur non-nasional.'])->withInput();
+            // Super Admin: uses scope field
+            $scope = $request->input('scope', 'national');
+            if ($scope === 'national') {
+                $data['is_national'] = true;
+                $data['location_id'] = null;
+            } else {
+                $data['is_national'] = false;
+                $data['location_id'] = $scope;
             }
-            $data['is_national'] = $isNational;
-            $data['location_id'] = $isNational ? null : $request->location_id;
         }
         $data['is_active'] = true;
 
@@ -128,7 +131,7 @@ class HolidayController extends Controller
     public function destroy(Holiday $holiday)
     {
         $auth = Auth::user();
-        if ($auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Location Admin')) {
             abort_unless(!$holiday->is_national && $holiday->location_id === $auth->location_id, 403);
         }
         $holiday->delete();

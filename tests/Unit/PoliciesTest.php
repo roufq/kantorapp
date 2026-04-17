@@ -16,8 +16,8 @@ class PoliciesTest extends TestCase
     private function ensureRoles(): void
     {
         \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Admin Lokasi']);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Karyawan']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Location Admin']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Employee']);
     }
 
     public function test_employee_policy_admin_lokasi_same_location_can_manage(): void
@@ -27,7 +27,7 @@ class PoliciesTest extends TestCase
         $loc = Location::create(['name' => 'A', 'code' => 'LA', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $div = \App\Models\Division::create(['nama' => 'Div1', 'location_id' => $loc->id]);
         $admin = User::factory()->create(['location_id' => $loc->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $emp = Employee::create([
             'nama' => 'E1','email' => 'e1@example.com','divisi_id' => $div->id,'location_id' => $loc->id,
@@ -48,7 +48,7 @@ class PoliciesTest extends TestCase
             'nama' => 'Self','email' => 'self@example.com','divisi_id' => $div->id,'location_id' => $loc->id,
         ]);
         $user = User::factory()->create(['location_id' => $loc->id, 'employee_id' => $emp->id]);
-        $user->assignRole('Karyawan');
+        $user->assignRole('Employee');
 
         $this->assertTrue($user->can('view', $emp));
         $this->assertTrue($user->can('update', $emp));
@@ -65,10 +65,10 @@ class PoliciesTest extends TestCase
         $this->ensureRoles();
         $loc = Location::create(['name' => 'A', 'code' => 'LC', 'timezone' => 'Asia/Jakarta', 'is_active' => true]);
         $admin = User::factory()->create(['location_id' => $loc->id]);
-        $admin->assignRole('Admin Lokasi');
+        $admin->assignRole('Location Admin');
 
         $empUser = User::factory()->create(['location_id' => $loc->id]);
-        $empUser->assignRole('Karyawan');
+        $empUser->assignRole('Employee');
 
         $att = Attendance::create([
             'user_id' => $empUser->id,

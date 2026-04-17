@@ -22,7 +22,7 @@ class LocationNotificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['name' => 'Karyawan']);
+        Role::firstOrCreate(['name' => 'Employee']);
     }
 
     public function test_shift_reminder_and_absence_alert_are_location_scoped(): void
@@ -54,13 +54,13 @@ class LocationNotificationTest extends TestCase
             'location_id' => $loc->id,
             'email' => 'reminder@example.com',
         ]);
-        $userReminder->assignRole('Karyawan');
+        $userReminder->assignRole('Employee');
 
         $userAlert = User::factory()->create([
             'location_id' => $loc->id,
             'email' => 'alert@example.com',
         ]);
-        $userAlert->assignRole('Karyawan');
+        $userAlert->assignRole('Employee');
 
         // Reminder assignment (starts in 30 minutes)
         ShiftAssignment::create([

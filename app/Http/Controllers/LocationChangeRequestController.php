@@ -16,9 +16,9 @@ class LocationChangeRequestController extends Controller
         $query = LocationChangeRequest::with(['user', 'originalLocation', 'targetLocation']);
 
         // Scope baseline by role
-        if ($user->hasRole('Admin Lokasi')) {
+        if ($user->hasRole('Location Admin')) {
             $query->where('original_location_id', $user->location_id);
-        } elseif ($user->hasRole('Karyawan')) {
+        } elseif ($user->hasRole('Employee')) {
             $query->where('user_id', $user->id);
         }
 
@@ -50,11 +50,11 @@ class LocationChangeRequestController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Admin Lokasi / Super Admin can create on behalf of a user
+        // Location Admin / Super Admin can create on behalf of a user
         $users = null;
         if ($auth->hasRole('Super Admin')) {
             $users = \App\Models\User::orderBy('name')->get();
-        } elseif ($auth->hasRole('Admin Lokasi')) {
+        } elseif ($auth->hasRole('Location Admin')) {
             $users = \App\Models\User::where('location_id', $auth->location_id)->orderBy('name')->get();
         }
 
@@ -72,7 +72,7 @@ class LocationChangeRequestController extends Controller
             'request_date' => 'required|date',
         ];
         // Admin/Super can choose user
-        if ($auth->hasRole('Super Admin') || $auth->hasRole('Admin Lokasi')) {
+        if ($auth->hasRole('Super Admin') || $auth->hasRole('Location Admin')) {
             $rules['user_id'] = 'required|exists:users,id';
         }
         $validated = $request->validate($rules);
@@ -81,12 +81,12 @@ class LocationChangeRequestController extends Controller
         $targetUser = $auth;
         if (isset($validated['user_id'])) {
             $targetUser = \App\Models\User::findOrFail($validated['user_id']);
-            if ($auth->hasRole('Admin Lokasi') && (int)$targetUser->location_id !== (int)$auth->location_id) {
+            if ($auth->hasRole('Location Admin') && (int)$targetUser->location_id !== (int)$auth->location_id) {
                 abort(403, 'You can only request for users in your location');
             }
         }
 
-        $autoApprove = ($auth->hasRole('Super Admin') || $auth->hasRole('Admin Lokasi')) && $request->boolean('approve_now');
+        $autoApprove = ($auth->hasRole('Super Admin') || $auth->hasRole('Location Admin')) && $request->boolean('approve_now');
 
         $requestData = [
             'user_id' => $targetUser->id,
