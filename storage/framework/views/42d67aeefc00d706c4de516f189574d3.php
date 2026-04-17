@@ -13,6 +13,10 @@
     ?>
     <title><?php echo e($brandName); ?> | Digital Workplace</title>
     
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="<?php echo e(asset('favicon.png')); ?>?v=<?php echo e(time()); ?>">
+    <link rel="apple-touch-icon" href="<?php echo e(asset('apple-touch-icon.png')); ?>?v=<?php echo e(time()); ?>">
+    
     <link rel="stylesheet" href="<?php echo e(asset('NewAsset/assets/css/bootstrap.min.css')); ?>" type="text/css">
     <link rel="stylesheet" href="https://cdn.materialdesignicons.com/7.4.47/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap">
@@ -243,11 +247,13 @@
 
         .form-control, .form-select {
             border-radius: 14px !important;
-            padding: 12px 18px !important;
+            padding: 10px 18px !important; /* Slightly reduced top/bottom padding */
             border: 1px solid #e2e8f0 !important;
             background: #f8fafc !important;
             transition: all 0.2s ease !important;
             font-weight: 500 !important;
+            line-height: 1.6 !important; /* Ensure vertical space for text */
+            height: auto !important;
         }
         .form-control:focus { background: #fff !important; border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important; }
 
@@ -287,6 +293,30 @@
 
         /* Generic Table Wrapper */
         .table-responsive { border-radius: 12px; border: none; overflow-x: auto; }
+
+        /* Dropdown Polish */
+        .hide-caret::after { display: none !important; }
+        .dropdown-menu { animation: dropdownFadeIn 0.2s ease-out; }
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item:hover {
+            background-color: var(--primary-light) !important;
+            color: var(--primary) !important;
+        }
+        .dropdown-menu.show { display: block !important; }
+        .top-actions .dropdown-menu {
+            right: 0 !important;
+            left: auto !important;
+            margin-top: 15px !important;
+            transform-origin: top right;
+        }
+        .bg-soft-success { background-color: #ecfdf5 !important; }
+        .bg-soft-info { background-color: #f0f9ff !important; }
+        .bg-soft-warning { background-color: #fffbeb !important; }
+        .bg-soft-danger { background-color: #fef2f2 !important; }
+        .rounded-4 { border-radius: 12px !important; }
     </style>
     <?php echo $__env->yieldPushContent('styles'); ?>
 </head>
@@ -296,7 +326,7 @@
         <!-- Sidebar -->
         <div class="side-menu">
             <div class="logo-box d-flex align-items-center">
-                <i class="mdi mdi-leaf logo-icon"></i>
+                <img src="<?php echo e(asset('assets/img/logo.png')); ?>" alt="Logo" class="logo-img" style="width: 40px; height: 40px; margin-right: 12px; border-radius: 10px;">
                 <span class="brand-label">KantorApp</span>
             </div>
             
@@ -549,6 +579,7 @@
                     <button class="btn p-0 me-3 text-dark sidebar-toggle" id="mobile-toggle">
                         <i class="mdi mdi-menu fs-1"></i>
                     </button>
+                    <img src="<?php echo e(asset('assets/img/logo.png')); ?>" alt="Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 8px;">
                     <span class="fw-bold fs-4">KantorApp</span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
@@ -572,19 +603,109 @@
                         <input type="text" placeholder="Search">
                     </div>
 
-                    <div class="nav-icon-btn">
-                        <i class="mdi mdi-bell-outline"></i>
-                        <?php if(isset($unreadNotifications) && $unreadNotifications > 0): ?>
-                            <div class="badge-dot"></div>
-                        <?php endif; ?>
+                    <?php
+                        $unreadNotificationCount = $authUser->unreadNotifications()->count();
+                        $taskNotifTypes = [
+                            \App\Notifications\TaskSlotApprovalNotification::class,
+                            \App\Notifications\TaskApprovalNotification::class,
+                        ];
+                        $recentTaskNotifs = $authUser->unreadNotifications()
+                            ->whereIn('type', $taskNotifTypes)
+                            ->latest()
+                            ->take(5)
+                            ->get();
+                    ?>
+                    <div class="dropdown">
+                        <div class="nav-icon-btn dropdown-toggle hide-caret" id="notifDropdown" data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="mdi mdi-bell-outline"></i>
+                            <?php if($unreadNotificationCount > 0): ?>
+                                <div class="badge-dot"></div>
+                            <?php endif; ?>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="notifDropdown" style="border-radius: 20px; min-width: 320px; padding: 15px; z-index: 1060; margin-top: 20px !important;">
+                            <li class="px-3 py-2 border-bottom mb-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold"><?php echo e(__('Notifications')); ?></h6>
+                                <span class="badge bg-soft-success text-success"><?php echo e($unreadNotificationCount); ?> New</span>
+                            </li>
+                            <?php if($recentTaskNotifs->count() > 0): ?>
+                                <?php $__currentLoopData = $recentTaskNotifs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notif): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php
+                                        $data = $notif->data ?? [];
+                                        $title = $data['task_title'] ?? 'Task Update';
+                                        $status = $data['status'] ?? 'info';
+                                    ?>
+                                    <li>
+                                        <a class="dropdown-item py-2 px-3 rounded-4 mb-1" href="<?php echo e(route('tasks.index')); ?>">
+                                            <div class="d-flex align-items-center">
+                                                <div class="activity-icon bg-soft-info text-info me-3" style="width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;">
+                                                    <i class="mdi mdi-calendar-check fs-6"></i>
+                                                </div>
+                                                <div class="overflow-hidden">
+                                                    <p class="mb-0 fw-bold text-truncate" style="font-size: 0.85rem;"><?php echo e($title); ?></p>
+                                                    <small class="text-muted" style="font-size: 0.75rem;"><?php echo e($notif->created_at->diffForHumans()); ?></small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <?php else: ?>
+                                <li class="text-center py-4 text-muted">
+                                    <i class="mdi mdi-bell-off-outline fs-1 opacity-25"></i>
+                                    <p class="mt-2 small fw-medium">No new notifications</p>
+                                </li>
+                            <?php endif; ?>
+                            <li><hr class="dropdown-divider mx-2 opacity-10"></li>
+                            <li>
+                                <a class="dropdown-item text-center fw-bold py-2 text-primary" href="<?php echo e(route('tasks.index')); ?>">
+                                    <?php echo e(__('View All Notifications')); ?>
+
+                                </a>
+                            </li>
+                        </ul>
                     </div>
 
                     <?php
                         $avatarUrl = $authUser->profile_photo_path ? asset('storage/' . $authUser->profile_photo_path) : asset('assets/img/user2-160x160.jpg');
                     ?>
-                    <a href="<?php echo e(route('profile.show')); ?>">
-                        <img src="<?php echo e($avatarUrl); ?>" class="user-profile-img" alt="Profile">
-                    </a>
+                    <div class="dropdown">
+                        <button class="btn p-0 border-0 dropdown-toggle hide-caret" type="button" id="userDropdown" data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="<?php echo e($avatarUrl); ?>" class="user-profile-img" alt="Profile" style="cursor: pointer;">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown" style="border-radius: 20px; min-width: 260px; padding: 15px; z-index: 1060; margin-top: 20px !important;">
+                            <li class="px-3 py-3 border-bottom mb-2">
+                                <div class="d-flex align-items-center mb-1">
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <h6 class="mb-0 fw-bold text-truncate" style="font-size: 1rem; max-width: 150px;"><?php echo e($authUser->name); ?></h6>
+                                        <small class="text-muted fw-semibold" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><?php echo e($authUser->getRoleNames()->first()); ?></small>
+                                    </div>
+                                    <div class="badge bg-soft-success text-success rounded-pill px-2 py-1" style="font-size: 0.7rem;">Active</div>
+                                </div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 px-3 rounded-pill fw-medium mb-1 mt-1" href="<?php echo e(route('profile.show')); ?>">
+                                    <i class="mdi mdi-account-circle-outline me-2 fs-5 opacity-75"></i> <?php echo e(__('My Profile')); ?>
+
+                                </a>
+                            </li>
+                            <?php $twoFactorEnabled = $authUser->hasTwoFactorEnabled(); ?>
+                            <li>
+                                <a class="dropdown-item py-2 px-3 rounded-pill fw-medium mb-1" href="<?php echo e(route('2fa.setup')); ?>">
+                                    <i class="mdi mdi-shield-link-variant-outline me-2 fs-5 opacity-75"></i> <?php echo e($twoFactorEnabled ? __('Security Settings') : __('Enable 2FA')); ?>
+
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider mx-2 opacity-10"></li>
+                            <li>
+                                <form method="POST" action="<?php echo e(route('logout')); ?>">
+                                    <?php echo csrf_field(); ?>
+                                    <button type="submit" class="dropdown-item py-2 px-3 rounded-pill fw-bold text-danger">
+                                        <i class="mdi mdi-power-cycle me-2 fs-5 opacity-75"></i> <?php echo e(__('Sign Out')); ?>
+
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             <?php endif; ?>
@@ -598,6 +719,7 @@
 
     <!-- Scripts -->
     <script src="<?php echo e(asset('NewAsset/assets/js/jquery.min.js')); ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="<?php echo e(asset('NewAsset/assets/js/bootstrap.min.js')); ?>"></script>
     <script src="<?php echo e(asset('NewAsset/assets/js/jquery.slimscroll.js')); ?>"></script>
     <script src="<?php echo e(asset('NewAsset/assets/js/app.js')); ?>"></script>
@@ -618,6 +740,22 @@
                     }
                 });
             }
+
+            // Manual Header Dropdowns Toggle
+            $('.top-actions .dropdown-toggle').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $target = $(this).next('.dropdown-menu');
+                $('.dropdown-menu').not($target).removeClass('show'); // Close others
+                $target.toggleClass('show');
+            });
+
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dropdown').length) {
+                    $('.dropdown-menu').removeClass('show');
+                }
+            });
         });
     </script>
     <?php echo $__env->yieldContent('scripts'); ?>

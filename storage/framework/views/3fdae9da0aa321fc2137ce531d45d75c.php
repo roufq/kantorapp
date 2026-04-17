@@ -85,71 +85,59 @@
 <!-- Key Performance Indicators -->
 <div class="row g-3 mb-4">
     <!-- Total Workforce -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div>
                 <div class="stat-icon icon-primary"><i class="mdi mdi-account-group"></i></div>
-                <div class="stat-label"><?php echo e(__('Total Workforce')); ?></div>
-                <div class="stat-value"><?php echo e($chartMetrics['total_employees']); ?></div>
-            </div>
-            <div class="stat-meta text-success">
-                <i class="mdi mdi-check-circle"></i> <?php echo e(__('Active personnel')); ?>
-
+                <div class="stat-label d-none d-md-block"><?php echo e(__('Total Workforce')); ?></div>
+                <div class="stat-label d-md-none"><?php echo e(__('Staff')); ?></div>
+                <div class="stat-value" style="font-size: clamp(1.5rem, 4vw, 2.2rem);"><?php echo e($chartMetrics['total_employees']); ?></div>
             </div>
         </div>
     </div>
 
     <!-- Attendance Rate -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div>
                 <div class="stat-icon icon-info"><i class="mdi mdi-calendar-check"></i></div>
-                <div class="stat-label"><?php echo e(__('Daily Attendance')); ?></div>
+                <div class="stat-label d-none d-md-block"><?php echo e(__('Daily Attendance')); ?></div>
+                <div class="stat-label d-md-none"><?php echo e(__('Present')); ?></div>
                 <?php
                     $attRate = $chartMetrics['total_employees'] > 0 
                         ? round(($chartMetrics['checked_in_today'] / $chartMetrics['total_employees']) * 100, 1) 
                         : 0;
                 ?>
-                <div class="stat-value"><?php echo e($attRate); ?>%</div>
-            </div>
-            <div class="stat-meta text-muted">
-                <?php echo e($chartMetrics['checked_in_today']); ?> <?php echo e(__('of')); ?> <?php echo e($chartMetrics['total_employees']); ?> <?php echo e(__('Present')); ?>
-
+                <div class="stat-value" style="font-size: clamp(1.5rem, 4vw, 2.2rem);"><?php echo e($attRate); ?>%</div>
             </div>
         </div>
     </div>
 
     <!-- Task Completion -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div>
                 <div class="stat-icon icon-warning"><i class="mdi mdi-progress-check"></i></div>
-                <div class="stat-label"><?php echo e(__('Task Velocity')); ?></div>
+                <div class="stat-label d-none d-md-block"><?php echo e(__('Task Velocity')); ?></div>
+                <div class="stat-label d-md-none"><?php echo e(__('Tasks')); ?></div>
                 <?php
                     $taskRate = $chartMetrics['total_tasks'] > 0 
                         ? round(($chartMetrics['completed_tasks'] / $chartMetrics['total_tasks']) * 100, 1) 
                         : 0;
                 ?>
-                <div class="stat-value"><?php echo e($taskRate); ?>%</div>
-            </div>
-            <div class="stat-meta text-muted">
-                <?php echo e($chartMetrics['completed_tasks']); ?> <?php echo e(__('Completed of')); ?> <?php echo e($chartMetrics['total_tasks']); ?>
-
+                <div class="stat-value" style="font-size: clamp(1.5rem, 4vw, 2.2rem);"><?php echo e($taskRate); ?>%</div>
             </div>
         </div>
     </div>
 
     <!-- Messages/Requests -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div>
                 <div class="stat-icon icon-danger"><i class="mdi mdi-bell-ring-outline"></i></div>
-                <div class="stat-label"><?php echo e(__('Action Required')); ?></div>
-                <div class="stat-value"><?php echo e($unreadMessages + $absencesTodayCount); ?></div>
-            </div>
-            <div class="stat-meta text-muted">
-                <?php echo e($unreadMessages); ?> <?php echo e(__('Messages')); ?> | <?php echo e($absencesTodayCount); ?> <?php echo e(__('Pending Requests')); ?>
-
+                <div class="stat-label d-none d-md-block"><?php echo e(__('Action Required')); ?></div>
+                <div class="stat-label d-md-none"><?php echo e(__('Alerts')); ?></div>
+                <div class="stat-value" style="font-size: clamp(1.5rem, 4vw, 2.2rem);"><?php echo e($unreadMessages + $absencesTodayCount); ?></div>
             </div>
         </div>
     </div>
@@ -157,59 +145,34 @@
 
 <div class="row g-4">
     <!-- Main Visual Analytics -->
-    <div class="col-xl-8">
+    <div class="col-xl-8 col-lg-12">
         <div class="card shadow-sm border-light h-100">
             <div class="card-header bg-white border-0 p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="section-title mb-0"><i class="mdi mdi-chart-line text-primary"></i> <?php echo e(__('Workplace Analytics')); ?></h5>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-light text-dark active">Pulse</button>
-                        <button class="btn btn-outline-light text-dark">Trends</button>
-                    </div>
                 </div>
             </div>
             <div class="card-body p-4 pt-0">
-                <div class="chart-container">
+                <div class="chart-container" style="height: 300px;">
                     <canvas id="mainDashboardChart"></canvas>
-                </div>
-                <div class="row g-3 mt-4">
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-4 bg-light border border-light">
-                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Overtime Trend')); ?></div>
-                            <div class="h5 mb-0 fw-800"><?php echo e($chartMetrics['overtime_hours_30d']); ?> <span class="smaller fw-bold text-muted">Hrs</span></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-4 bg-light border border-light">
-                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Employee Satisfaction')); ?></div>
-                            <div class="h5 mb-0 fw-800">4.8 <i class="mdi mdi-star text-warning"></i></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 rounded-4 bg-light border border-light">
-                            <div class="smaller text-muted fw-bold text-uppercase mb-1"><?php echo e(__('Efficiency Index')); ?></div>
-                            <div class="h5 mb-0 fw-800">+12% <i class="mdi mdi-trending-up text-success"></i></div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Side Intelligence Panes -->
-    <div class="col-xl-4">
+    <div class="col-xl-4 col-lg-12">
         <div class="row g-4 h-100">
             <!-- Active Personnel -->
-            <div class="col-12">
+            <div class="col-12 col-md-6 col-xl-12">
                 <div class="card shadow-sm border-light h-100">
                     <div class="card-header bg-white border-0 p-4 pb-0">
                         <h5 class="section-title mb-0"><i class="mdi mdi-account-star text-info"></i> <?php echo e(__('Recent Assignments')); ?></h5>
                     </div>
                     <div class="card-body p-4 scroll-body">
-                        <div class="dashboard-list">
-                            <?php $__empty_1 = true; $__currentLoopData = $recentAssignments->take(6); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                         <div class="dashboard-list">
+                            <?php $__empty_1 = true; $__currentLoopData = $recentAssignments->take(4); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assign): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <div class="list-item">
-                                    <img src="<?php echo e($assign->user->profile_photo_url ?? asset('NewAsset/assets/images/users/avatar-1.jpg')); ?>" class="avatar-sm" alt="">
                                     <div class="flex-grow-1 overflow-hidden">
                                         <div class="text-dark fw-bold small text-truncate"><?php echo e($assign->user->name); ?></div>
                                         <div class="smaller text-muted"><?php echo e(optional($assign->shift)->name ?? 'General'); ?> | <?php echo e(\Carbon\Carbon::parse($assign->date)->format('d M')); ?></div>
@@ -218,7 +181,6 @@
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <div class="text-center py-4">
-                                    <i class="mdi mdi-account-off-outline fs-2 text-muted opacity-25"></i>
                                     <p class="text-muted smaller mt-2">No recent assignments found.</p>
                                 </div>
                             <?php endif; ?>
@@ -228,11 +190,10 @@
             </div>
             
             <!-- Quick Timeline -->
-            <div class="col-12">
+            <div class="col-12 col-md-6 col-xl-12">
                 <div class="card shadow-sm border-light" style="background: var(--soft-mint);">
                     <div class="card-body p-4 text-center">
                         <h6 class="text-mint-text fw-bold mb-3"><?php echo e(__('Need support?')); ?></h6>
-                        <p class="smaller text-mint-text opacity-75 mb-4"><?php echo e(__('Quickly generate a workplace compliance report or contact HR for assistance.')); ?></p>
                         <a href="<?php echo e(route('reports.create')); ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-soft w-100">
                             <?php echo e(__('Generate Report')); ?>
 

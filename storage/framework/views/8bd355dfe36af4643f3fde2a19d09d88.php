@@ -18,8 +18,8 @@
             --card-border: #f1f5f9;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --primary: #0ea5e9;
-            --primary-hover: #0284c7;
+            --primary: #10b981;
+            --primary-hover: #059669;
         }
 
         * {
@@ -226,8 +226,8 @@
         <div class="card">
             <div class="header">
                 <div class="logo-text">
-                    <i class="mdi mdi-office-building text-primary"></i>
-                    Kantor<span>App</span>
+                    <img src="<?php echo e(asset('assets/img/logo.png')); ?>" alt="Logo" style="width: 42px; height: 42px; border-radius: 10px;">
+                    KantorApp
                 </div>
                 <p class="subtitle">Welcome back! Please enter your details.</p>
             </div>

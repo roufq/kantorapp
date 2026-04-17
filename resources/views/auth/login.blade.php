@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.materialdesignicons.com/7.4.47/css/materialdesignicons.min.css">
-    <link rel="shortcut icon" href="{{ asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.png') }}?v={{ time() }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v={{ time() }}">
     
     <style>
         :root {
@@ -18,8 +19,8 @@
             --card-border: #f1f5f9;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --primary: #0ea5e9;
-            --primary-hover: #0284c7;
+            --primary: #10b981;
+            --primary-hover: #059669;
         }
 
         * {
@@ -226,8 +227,8 @@
         <div class="card">
             <div class="header">
                 <div class="logo-text">
-                    <i class="mdi mdi-office-building text-primary"></i>
-                    Kantor<span>App</span>
+                    <img src="{{ asset('assets/img/logo.png') }}" alt="Logo" style="width: 42px; height: 42px; border-radius: 10px;">
+                    KantorApp
                 </div>
                 <p class="subtitle">Welcome back! Please enter your details.</p>
             </div>
