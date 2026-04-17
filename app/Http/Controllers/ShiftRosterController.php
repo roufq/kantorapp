@@ -154,7 +154,7 @@ class ShiftRosterController extends Controller
                     $slots = $entry->roster?->locationShift?->normalizedSlots() ?? [];
                     $slot = $slots[$entry->slot_index] ?? null;
                     $time = $entry->status === 'off'
-                        ? 'Hari libur'
+                        ? __('Weekly Off')
                         : ($slot ? (($slot['start'] ?? '?') . ' - ' . ($slot['end'] ?? '?')) : '-');
 
                     $calendarEvents->push([
@@ -201,7 +201,7 @@ class ShiftRosterController extends Controller
             $dateStr = $d->format('Y-m-d');
             if (!$datesWithEvents->contains($dateStr)) {
                 $calendarEvents->push([
-                    'title' => 'Belum ada jadwal',
+                    'title' => __('No schedule found'),
                     'start' => $dateStr,
                     'allDay' => true,
                     'className' => 'fc-event-missing',

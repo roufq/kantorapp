@@ -32,7 +32,7 @@ class AttendanceController extends Controller
 
         // Skip check-in on non-working days (weekly off / holiday / approved leave)
         if (\App\Services\WorkdayService::isWorkingDay($user, now()) === false) {
-            return back()->withErrors(['message' => 'Hari ini adalah hari libur untuk Anda (mingguan/nasional/izin). Tidak perlu check-in.']);
+            return back()->withErrors(['message' => __('Today is a non-working day for you (Weekly Off / Holiday / Leave). Check-in not required.')]);
         }
 
         // Check if user already checked in today without check out
@@ -42,7 +42,7 @@ class AttendanceController extends Controller
             ->first();
 
         if ($existing) {
-            return back()->withErrors(['message' => 'You have already checked in today.']);
+            return back()->withErrors(['message' => __('You have already checked in today.')]);
         }
 
         // Validate user has an assigned location
@@ -632,7 +632,7 @@ class AttendanceController extends Controller
             'approval_status' => $attendance->approval_status,
         ]);
 
-        return back()->with('success', 'Approval status updated successfully.');
+        return back()->with('success', __('Approval status updated successfully.'));
     }
 
     public function export(Request $request)
