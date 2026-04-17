@@ -167,7 +167,7 @@
                         <div class="mb-5">
                             <label class="form-label text-muted status-badge mb-2 ms-1">{{ __('Identity Verification Feed') }}</label>
                             <div class="scanner-container shadow-sm">
-                                <video id="{{ !$todayAttendance ? 'checkinVideo' : 'checkoutVideo' }}" class="w-100 h-100 object-fit-cover"></video>
+                                <video id="{{ !$todayAttendance ? 'checkinVideo' : 'checkoutVideo' }}" class="w-100 h-100 object-fit-cover" autoplay playsinline muted></video>
                                 <canvas id="{{ !$todayAttendance ? 'checkinCanvas' : 'checkoutCanvas' }}" class="d-none"></canvas>
                                 <img id="{{ !$todayAttendance ? 'checkinPreview' : 'checkoutPreview' }}" class="w-100 h-100 object-fit-cover d-none shadow-soft rounded-4" alt="">
                                 

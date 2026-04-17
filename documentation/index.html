@@ -10,36 +10,32 @@
     <link rel="shortcut icon" href="favicon.png">
     <style>
         :root {
-            --primary: #06b6d4;
-            --secondary: #a855f7;
-            --dark: #03001c;
+            --primary: #10b981;
+            --secondary: #059669;
+            --dark: #020617;
             --surface: #0f172a;
             --text-muted: #e2e8f0;
             /* Even brighter for maximum clarity */
         }
 
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
-            color: #ffffff !important;
-        }
-
         body {
-            background-color: var(--dark);
-            color: #f8fafc;
-            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
             scroll-behavior: smooth;
         }
 
+        h1, h2, h3, h4, h5, h6 {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+
         .sidebar {
-            background: #0b1120;
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
             height: 100vh;
             position: fixed;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
             width: 280px;
             overflow-y: auto;
             z-index: 1000;
@@ -67,22 +63,21 @@
 
         .nav-link {
             padding: 0.75rem 1rem;
-            color: #d1d5db;
-            /* Brighter sidebar links */
-            transition: all 0.3s;
-            border-radius: 8px;
+            color: #64748b;
+            transition: all 0.2s ease;
+            border-radius: 12px;
             margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .nav-link:hover,
         .nav-link.active {
-            background: rgba(6, 182, 212, 0.1);
-            color: var(--primary);
+            background: #ecfdf5;
+            color: #10b981;
         }
 
         .text-muted {
-            color: var(--text-muted) !important;
+            color: #64748b !important;
             font-weight: 500 !important;
         }
 
@@ -91,10 +86,10 @@
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
             padding: 2rem;
             margin-bottom: 2rem;
         }
@@ -118,7 +113,7 @@
         }
 
         .text-gradient {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            background: linear-gradient(90deg, #10b981, #34d399);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -140,9 +135,9 @@
         .logo-img {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: 10px;
             object-fit: contain;
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
             vertical-align: middle;
             margin-right: 12px;
         }
@@ -171,8 +166,10 @@
     <main class="content-main">
         <section id="intro">
             <h1 class="display-4 fw-bold mb-3">Welcome to <span class="text-gradient">KantorApp</span></h1>
-            <p class="lead text-muted mb-5">The ultimate multi-location HR management system for modern teams. Secure,
-                transparent, and aesthetically stunning.</p>
+            <div class="mb-5 overflow-hidden rounded-4 shadow-sm border border-secondary border-opacity-10">
+                <img src="hero.png" alt="KantorApp Hero" class="img-fluid w-100">
+            </div>
+            <p class="lead text-muted mb-5">Enterprise-grade multi-location HR, Attendance, and Workforce Intelligence. Designed for precision, security, and elite performance.</p>
 
             <div class="glass-card">
                 <h4>Overview</h4>
@@ -181,22 +178,22 @@
                     rotating shift scheduler.</p>
                 <div class="row g-4 mt-2">
                     <div class="col-md-4">
-                        <div class="p-3 border rounded border-opacity-10 text-center">
-                            <i class="mdi mdi-shield-check fa-2x text-warning mb-3"></i>
+                        <div class="p-3 border rounded border-opacity-10 text-center" style="border-color: var(--primary) !important;">
+                            <i class="mdi mdi-shield-check fa-2x text-primary mb-3"></i>
                             <h5>Secure</h5>
                             <p class="small text-muted">2FA, Device ID, and Audit Logs built-in.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 border rounded border-opacity-10 text-center">
+                        <div class="p-3 border rounded border-opacity-10 text-center" style="border-color: var(--primary) !important;">
                             <i class="mdi mdi-cpu-64-bit fa-2x text-primary mb-3"></i>
                             <h5>Automated</h5>
                             <p class="small text-muted">Smart conversion from task points to minutes.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 border rounded border-opacity-10 text-center">
-                            <i class="mdi mdi-layers-triple fa-2x text-secondary mb-3"></i>
+                        <div class="p-3 border rounded border-opacity-10 text-center" style="border-color: var(--primary) !important;">
+                            <i class="mdi mdi-layers-triple fa-2x text-primary mb-3"></i>
                             <h5>Scalable</h5>
                             <p class="small text-muted">Manage unlimited locations and shifts.</p>
                         </div>
@@ -239,9 +236,13 @@ php artisan migrate --seed
 php artisan db:seed --class=RoleSeeder
         </pre>
 
-            <h5 class="mt-4">3. Web Installer (Optional)</h5>
-            <p>We've included a simple installer to help you check server requirements and permissions. Upload the files
-                to your server and navigate to your domain.</p>
+            <h5 class="mt-4">3. Default Credentials</h5>
+            <div class="glass-card bg-soft-info border-info border-opacity-10 py-3">
+                <p class="mb-2"><strong>Super Admin:</strong> <code>superadmin1@example.com</code> / <code>password</code></p>
+                <p class="mb-2"><strong>Location Admin:</strong> <code>adminlokasi1@example.com</code> / <code>password</code></p>
+                <p class="mb-0"><strong>Employee:</strong> <code>employee1@example.com</code> / <code>password</code></p>
+            </div>
+            <p class="small text-muted mt-2"><em>*After seeding, please change these passwords immediately in the profile settings.</em></p>
         </section>
 
         <section id="roles">
@@ -379,7 +380,7 @@ php artisan db:seed --class=RoleSeeder
                     <a href="mailto:roufmawanto963@gmail.com" class="text-decoration-none">
                         <div class="glass-card mb-0 text-center py-4">
                             <i class="mdi mdi-email-edit-outline fs-1 text-primary mb-3"></i>
-                            <h6 class="text-white">Email Us</h6>
+                            <h6 class="mb-1">Email Us</h6>
                              <p class="small text-muted mb-0">roufmawanto963@gmail.com</p>
                         </div>
                     </a>
@@ -388,7 +389,7 @@ php artisan db:seed --class=RoleSeeder
                     <a href="https://www.kantorapp.com/help" target="_blank" class="text-decoration-none">
                         <div class="glass-card mb-0 text-center py-4">
                             <i class="mdi mdi-help-circle-outline fs-1 text-secondary mb-3"></i>
-                            <h6 class="text-white">Help Center</h6>
+                            <h6 class="mb-1">Help Center</h6>
                             <p class="small text-muted mb-0">Visit our Knowledgebase</p>
                         </div>
                     </a>
@@ -396,7 +397,7 @@ php artisan db:seed --class=RoleSeeder
             </div>
         </section>
 
-        <footer class="mt-5 pt-5 text-center text-muted border-top border-white border-opacity-10">
+        <footer class="mt-5 pt-5 text-center text-muted border-top border-secondary border-opacity-10">
             <p>&copy; 2025 KantorApp Documentation. Built for modern businesses.</p>
         </footer>
     </main>

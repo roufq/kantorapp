@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.materialdesignicons.com/7.4.47/css/materialdesignicons.min.css">
-    <link rel="shortcut icon" href="<?php echo e(asset('favicon.png')); ?>">
+    <link rel="shortcut icon" href="<?php echo e(asset('favicon.png')); ?>?v=<?php echo e(time()); ?>">
+    <link rel="apple-touch-icon" href="<?php echo e(asset('apple-touch-icon.png')); ?>?v=<?php echo e(time()); ?>">
     
     <style>
         :root {

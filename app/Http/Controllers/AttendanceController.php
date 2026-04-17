@@ -31,7 +31,8 @@ class AttendanceController extends Controller
         $user = auth()->user();
 
         // Skip check-in on non-working days (weekly off / holiday / approved leave)
-        if (\App\Services\WorkdayService::isWorkingDay($user, now()) === false) {
+        // Super Admin can check in anytime
+        if (!$user->hasRole('Super Admin') && \App\Services\WorkdayService::isWorkingDay($user, now()) === false) {
             return back()->withErrors(['message' => __('Today is a non-working day for you (Weekly Off / Holiday / Leave). Check-in not required.')]);
         }
 
@@ -46,7 +47,7 @@ class AttendanceController extends Controller
         }
 
         // Validate user has an assigned location
-        if (!$user->location) {
+        if (!$user->location && !$user->hasRole('Super Admin')) {
             return back()->withErrors(['message' => 'You are not assigned to any location.']);
         }
 
@@ -65,8 +66,9 @@ class AttendanceController extends Controller
 
         // Validate location radius compliance (with fallback to approved location change for today)
         $attendanceLocationId = $user->location_id;
-        $withinAssigned = $this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location, $request->accuracy);
-        if (!$withinAssigned) {
+        $withinAssigned = $user->location ? $this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location, $request->accuracy) : false;
+
+        if (!$withinAssigned && !$user->hasRole('Super Admin')) {
             $approvedChangeRequest = LocationChangeRequest::where('user_id', $user->id)
                 ->whereDate('request_date', Carbon::today())
                 ->where('status', 'approved')
@@ -77,6 +79,21 @@ class AttendanceController extends Controller
             } else {
                 $radius = $user->location && $user->location->radius ? $user->location->radius : 0;
                 return back()->withErrors(['message' => 'You must be within ' . $radius . ' meters of your assigned office location to check in.']);
+            }
+        } elseif (!$withinAssigned && $user->hasRole('Super Admin')) {
+            // Find NEAREST location if Super Admin is outside their assigned one or has none
+            $allLocations = Location::all();
+            $nearest = null;
+            $minDist = 99999999;
+            foreach ($allLocations as $loc) {
+                $dist = $this->calculateDistance($request->latitude, $request->longitude, $loc->latitude, $loc->longitude);
+                if ($dist < $minDist) {
+                    $minDist = $dist;
+                    $nearest = $loc;
+                }
+            }
+            if ($nearest) {
+                $attendanceLocationId = $nearest->id;
             }
         }
 
@@ -134,7 +151,7 @@ class AttendanceController extends Controller
         }
 
         // Pastikan masih dalam jendela jam kerja (grace early 30 menit)
-        $graceEarlyMinutes = 30;
+        $graceEarlyMinutes = 60; // Increased for flexibility
         $insideSlot = false;
         foreach ($slotIntervals as [$start, $end]) {
             $startWithGrace = $start->copy()->subMinutes($graceEarlyMinutes);
@@ -144,7 +161,9 @@ class AttendanceController extends Controller
                 break;
             }
         }
-        if (!$insideSlot) {
+
+        // Super Admin can check in even if no schedule/slot is found
+        if (!$insideSlot && !$user->hasRole('Super Admin')) {
             $ranges = collect($slotIntervals)->map(fn($i) => $i[0]->format('H:i') . ' - ' . $i[1]->format('H:i'))->implode(', ');
             return back()->withErrors(['message' => 'Di luar jam kerja. Jadwal hari ini: ' . $ranges]);
         }
@@ -204,9 +223,9 @@ class AttendanceController extends Controller
         }
 
         // Validate location
-        $isValidLocation = $this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location, $request->accuracy);
+        $isValidLocation = $user->location ? $this->isWithinOfficeRadius($request->latitude, $request->longitude, $user->location, $request->accuracy) : false;
 
-        if (!$isValidLocation) {
+        if (!$isValidLocation && !$user->hasRole('Super Admin')) {
             $approvedChangeRequest = LocationChangeRequest::where('user_id', $user->id)
                 ->where('request_date', Carbon::today())
                 ->where('status', 'approved')
