@@ -452,7 +452,7 @@
             @endif
             @if(auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('Location Admin'))
             <li class="nav-item">
-              <a href="{{ route('karyawans.index') }}" class="nav-link {{ request()->routeIs('karyawans.*') ? 'active' : '' }}">
+              <a href="{{ route('employees.index') }}" class="nav-link {{ request()->routeIs('employees.*') ? 'active' : '' }}">
                 <i class="nav-icon bi bi-person-badge"></i>
                 <p>Employees</p>
               </a>

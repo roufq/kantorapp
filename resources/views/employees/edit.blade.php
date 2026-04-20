@@ -23,7 +23,7 @@
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
                 <div class="card-header border-bottom border-light p-4 bg-transparent d-flex align-items-center justify-content-between">
                     <h5 class="card-title mb-0 text-dark fw-bold"><i class="mdi mdi-account-edit-outline text-info me-2"></i>{{ __('Record Management') }}</h5>
-                    <span class="badge badge-info">{{ $karyawan->email }}</span>
+                    <span class="badge badge-info">{{ $employee->email }}</span>
                 </div>
                 <div class="card-body p-4 p-lg-5">
                     @if($errors->any())
@@ -36,41 +36,41 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('employees.update', $karyawan) }}" method="POST">
+                    <form action="{{ route('employees.update', $employee) }}" method="POST">
                         @csrf @method('PATCH')
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Legal Name') }}</label>
-                                <input type="text" name="nama" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('nama', $karyawan->nama) }}" required>
+                                <input type="text" name="nama" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('nama', $employee->nama) }}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Official Email') }}</label>
-                                <input type="email" name="email" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('email', $karyawan->email) }}" required>
+                                <input type="email" name="email" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('email', $employee->email) }}" required>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Direct Contact') }}</label>
-                                <input type="text" name="telepon" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('telepon', $karyawan->telepon) }}">
+                                <input type="text" name="telepon" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('telepon', $employee->telepon) }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Assigned Position') }}</label>
-                                <input type="text" name="jabatan" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('jabatan', $karyawan->jabatan) }}">
+                                <input type="text" name="jabatan" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('jabatan', $employee->jabatan) }}">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Primary Department') }}</label>
-                                <input type="text" name="departemen" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('departemen', $karyawan->departemen) }}">
+                                <input type="text" name="departemen" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('departemen', $employee->departemen) }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Onboarding Date') }}</label>
-                                <input type="date" name="tanggal_masuk_kerja" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('tanggal_masuk_kerja', optional($karyawan->tanggal_masuk_kerja)->format('Y-m-d')) }}">
+                                <input type="date" name="tanggal_masuk_kerja" class="form-control rounded-pill px-4 border-light shadow-none fw-bold" value="{{ old('tanggal_masuk_kerja', optional($employee->tanggal_masuk_kerja)->format('Y-m-d')) }}">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-bold text-uppercase mb-2">{{ __('Division Stream') }}</label>
                                 <select name="divisi_id" class="form-select rounded-pill px-4 border-light shadow-none fw-bold" required>
                                     @foreach($divisions as $division)
-                                        <option value="{{ $division->id }}" {{ old('divisi_id', $karyawan->divisi_id) == $division->id ? 'selected' : '' }}>{{ $division->nama }}</option>
+                                        <option value="{{ $division->id }}" {{ old('divisi_id', $employee->divisi_id) == $division->id ? 'selected' : '' }}>{{ $division->nama }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -82,7 +82,7 @@
                                 @else
                                     <select name="location_id" class="form-select rounded-pill px-4 border-light shadow-none fw-bold" required>
                                         @foreach($locations as $location)
-                                            <option value="{{ $location->id }}" {{ old('location_id', $karyawan->location_id) == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
+                                            <option value="{{ $location->id }}" {{ old('location_id', $employee->location_id) == $location->id ? 'selected' : '' }}>{{ $location->name }}</option>
                                         @endforeach
                                     </select>
                                 @endif

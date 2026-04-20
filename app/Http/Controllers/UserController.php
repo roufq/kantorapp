@@ -77,7 +77,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             // Maintain both legacy and new linkage for compatibility
             'employee_id' => $employee->id,
-            'employee_id' => $employee->id,
+            'karyawan_id' => $employee->id,
             'location_id' => $targetLocation,
         ]);
 

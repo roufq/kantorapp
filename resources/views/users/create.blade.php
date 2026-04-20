@@ -18,14 +18,14 @@
                 <form action="{{ route('users.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
-                        <label for="karyawan_id" class="form-label">Select Employee</label>
-                        <select name="karyawan_id" class="form-control" id="karyawan_id" required>
+                        <label for="employee_id" class="form-label">Select Employee</label>
+                        <select name="employee_id" class="form-control" id="employee_id" required>
                             <option value="">Select Employee</option>
-                            @foreach($karyawans as $karyawan)
-                                <option value="{{ $karyawan->id }}" data-name="{{ $karyawan->nama }}" data-email="{{ $karyawan->email }}">{{ $karyawan->nama }} - {{ $karyawan->email }}</option>
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}" data-name="{{ $employee->nama }}" data-email="{{ $employee->email }}">{{ $employee->nama }} - {{ $employee->email }}</option>
                             @endforeach
                         </select>
-                        @error('karyawan_id')
+                        @error('employee_id')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
@@ -67,7 +67,7 @@
                 </form>
 
                 <script>
-                    document.getElementById('karyawan_id').addEventListener('change', function() {
+                    document.getElementById('employee_id').addEventListener('change', function() {
                         const selectedOption = this.options[this.selectedIndex];
                         document.getElementById('name').value = selectedOption.getAttribute('data-name') || '';
                         document.getElementById('email').value = selectedOption.getAttribute('data-email') || '';

@@ -16,7 +16,7 @@
             <a href="{{ route('employees.index') }}" class="btn btn-light border rounded-pill px-4 fw-bold text-muted shadow-sm">
                 <i class="mdi mdi-arrow-left me-2"></i>{{ __('Staff Directory') }}
             </a>
-            <a href="{{ route('employees.edit', $karyawan) }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg">
+            <a href="{{ route('employees.edit', $employee) }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg">
                 <i class="mdi mdi-pencil-outline me-2"></i>{{ __('Edit Profile') }}
             </a>
           </div>
@@ -28,23 +28,23 @@
             <div class="card border-0 shadow-sm p-4 text-center h-100">
                 <div class="mb-4 mt-3">
                     <div class="Avatar-Large rounded-circle d-flex align-items-center justify-content-center fw-bold mx-auto text-primary" style="width: 120px; height: 120px; background-color: var(--soft-celeste); font-size: 2.5rem;">
-                        {{ strtoupper(substr($karyawan->nama, 0, 1)) }}{{ strtoupper(substr(strrchr($karyawan->nama, ' '), 1, 1)) ?: '' }}
+                        {{ strtoupper(substr($employee->nama, 0, 1)) }}{{ strtoupper(substr(strrchr($employee->nama, ' '), 1, 1)) ?: '' }}
                     </div>
                 </div>
-                <h3 class="fw-bold text-dark mb-1">{{ $karyawan->nama }}</h3>
-                <div class="text-muted small mb-4 fw-bold">{{ $karyawan->jabatan }}</div>
+                <h3 class="fw-bold text-dark mb-1">{{ $employee->nama }}</h3>
+                <div class="text-muted small mb-4 fw-bold">{{ $employee->jabatan }}</div>
                 
                 <div class="row g-2 mb-4">
                     <div class="col-6">
                         <div class="p-3 bg-light rounded-4">
                             <div class="text-muted smallest fw-bold mb-1 text-uppercase letter-spacing-1">{{ __('Division') }}</div>
-                            <div class="text-dark fw-bold small text-truncate">{{ $karyawan->division->nama ?? '—' }}</div>
+                            <div class="text-dark fw-bold small text-truncate">{{ $employee->division->nama ?? '—' }}</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="p-3 bg-light rounded-4">
                             <div class="text-muted smallest fw-bold mb-1 text-uppercase letter-spacing-1">{{ __('Site') }}</div>
-                            <div class="text-dark fw-bold small text-truncate text-info">{{ $karyawan->location->name ?? '—' }}</div>
+                            <div class="text-dark fw-bold small text-truncate text-info">{{ $employee->location->name ?? '—' }}</div>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                 <div class="pt-4 border-top border-light mt-auto">
                     <div class="d-flex justify-content-between align-items-center text-muted smallest fw-bold">
                         <span>{{ __('REGISTERED SINCE') }}</span>
-                        <span>{{ $karyawan->created_at->format('M Y') }}</span>
+                        <span>{{ $employee->created_at->format('M Y') }}</span>
                     </div>
                 </div>
             </div>
@@ -72,13 +72,13 @@
                                     <div class="p-2 soft-card-mint rounded-pill me-3">
                                         <i class="mdi mdi-email-outline fs-5"></i>
                                     </div>
-                                    <div class="fw-bold text-dark">{{ $karyawan->email }}</div>
+                                    <div class="fw-bold text-dark">{{ $employee->email }}</div>
                                 </div>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 soft-card-celeste rounded-pill me-3">
                                         <i class="mdi mdi-phone-outline fs-5"></i>
                                     </div>
-                                    <div class="fw-bold text-dark">{{ $karyawan->telepon ?: '—' }}</div>
+                                    <div class="fw-bold text-dark">{{ $employee->telepon ?: '—' }}</div>
                                 </div>
                             </div>
                         </div>
@@ -89,20 +89,20 @@
                                     <div class="p-2 soft-card-lavender rounded-pill me-3">
                                         <i class="mdi mdi-cake-variant-outline fs-5"></i>
                                     </div>
-                                    <div class="fw-bold text-dark">{{ $karyawan->tanggal_lahir ? $karyawan->tanggal_lahir->format('d M Y') : '—' }}</div>
+                                    <div class="fw-bold text-dark">{{ $employee->tanggal_lahir ? $employee->tanggal_lahir->format('d M Y') : '—' }}</div>
                                 </div>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 soft-card-peach rounded-pill me-3">
                                         <i class="mdi mdi-login-variant fs-5"></i>
                                     </div>
-                                    <div class="fw-bold text-dark">{{ $karyawan->tanggal_masuk_kerja ? $karyawan->tanggal_masuk_kerja->format('d M Y') : '—' }}</div>
+                                    <div class="fw-bold text-dark">{{ $employee->tanggal_masuk_kerja ? $employee->tanggal_masuk_kerja->format('d M Y') : '—' }}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="p-4 rounded-4 bg-light transition-all border border-transparent hover-lift">
                                 <label class="text-muted smallest fw-bold text-uppercase mb-2 d-block">{{ __('Residential Address') }}</label>
-                                <div class="text-dark fw-medium">{{ $karyawan->alamat ?: __('No address listed on file.') }}</div>
+                                <div class="text-dark fw-medium">{{ $employee->alamat ?: __('No address listed on file.') }}</div>
                             </div>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                         <i class="mdi mdi-alert-circle-outline fs-4 me-3"></i>
                         <div>
                             <div class="fw-bold small">{{ __('Administrative Note') }}</div>
-                            <div class="smallest opacity-75 fw-medium mt-1">{{ __('Records were last audited on') }} {{ $karyawan->updated_at->format('d M Y') }}. {{ __('Ensure all information matches official documentation.') }}</div>
+                            <div class="smallest opacity-75 fw-medium mt-1">{{ __('Records were last audited on') }} {{ $employee->updated_at->format('d M Y') }}. {{ __('Ensure all information matches official documentation.') }}</div>
                         </div>
                     </div>
                 </div>
