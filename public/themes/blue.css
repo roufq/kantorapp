@@ -1,9 +1,0 @@
-/* Simple sample theme: blue accents */
-:root{
-  --brand-primary: #0d6efd;
-  --brand-secondary: #1b6ec2;
-}
-.navbar, .app-header, .app-footer{ border-top: 2px solid var(--brand-primary); }
-.nav-link.active { color: var(--brand-primary) !important; }
-.btn-outline-primary{ color: var(--brand-primary); border-color: var(--brand-primary); }
-.btn-outline-primary:hover{ background-color: var(--brand-primary); color: #fff; }

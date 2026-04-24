@@ -1,7 +1,7 @@
-# KantorApp - Multi-Location HR, Attendance & Shift Management
-### Modern "Cyberpunk Glassmorphism" Edition (Laravel 12)
+# OmniPresence HRIS - Enterprise Multi-Location & Geofencing System
+### High-Fidelity Management Suite with "Executive Soft" UI (Laravel 12)
 
-**KantorApp** is a high-performance, multi-location HR management system designed for modern enterprises. Built with **Laravel 12**, it features a stunning "Cyberpunk Glassmorphism" UI, robust GPS-validated attendance, complex shift/roster scheduling, and a jobdesk-based task management system.
+**OmniPresence HRIS** is a high-performance, multi-location HR management system designed for modern enterprises. Built with **Laravel 12**, it features a stunning "Executive Soft" UI/UX, robust GPS-validated attendance, complex shift/roster scheduling, and a jobdesk-based task management system.
 
 ---
 
@@ -13,102 +13,88 @@
 - **Custom Branding**: Every location can have its own brand name, logo, primary colors, and custom CSS.
 
 ### 🛡️ Security & Authentication
-- **2FA (Two-Factor Authentication)**: Protected by Email, SMS, or Authenticator Apps (with backup codes).
-- **Hardened Login**: Brute-force throttling, single-session invalidation, and mandatory GPS/Device ID logging.
+- **2FA (Two-Factor Authentication)**: Protected by Email, SMS, or Authenticator Apps (Google Authenticator) with backup codes.
+- **Hardened Login**: Brute-force throttling, single-session invalidation, and mandatory GPS logging.
 - **Audit Trails**: Detailed logs for critical data changes (shifts, approvals, mutations).
 
 ### 📍 GPS & Biometric Attendance
 - **Geofencing Verification**: GPS-validated check-in/out within branch radius.
 - **Biometric Selfie**: Browser-based camera capture for real-time verification (no spoofing).
 - **Shift & Roster Sync**: Prevents check-in on holidays, weekly offs, or outside shift windows.
-- **Recap & Reports**: Full-width attendance reports with Excel/CSV export and detailed absence tracking.
+- **Recap & Reports**: Comprehensive attendance reports with Excel/CSV export and detailed absence tracking.
 
 ### 📅 Advanced Shift & Roster System
 - **Master vs Location Shifts**: Create global templates and override them locally (slots/hours).
 - **Roster Fairness Guard**: Anti-overlap protection, night-to-morning interval checks, and consecutive night shift limits.
-- **Weekly Roster Calendar**: Visual calendar for managing employee rotations.
+- **Weekly Roster Calendar**: Professional visual calendar for managing employee rotations.
 - **Auto-Scheduler**: Generate weekly rotations with a single click.
 
 ### 📝 Task & Jobdesk Management
-- **Jobdesk-Based Catalog**: Employees can only pick tasks assigned to their jobdesk catalog.
-- **Point-to-Minute Conversion**: Automated duration estimates (e.g., 1 point = 30 minutes).
-- **Progress Slots & Evidence**: Tasks are divided into mandatory slots with 100% completion target. Slots require link/file evidence and manual approval.
+- **Jobdesk-Based Catalog**: Employees pick tasks assigned to their specific jobdesk catalog.
+- **Progress Slots & Evidence**: Tasks are divided into mandatory slots requiring link/file evidence and manual approval.
 - **Productivity Tracking**: Target minutes vs. actual approved minutes per location/month.
 
-### 📊 Reporting & Efficiency
-- **Monthly Work Recap**: Comprehensive overview of targets, approved slots, attendance, and remaining hours.
-- **PDF Export**: One-click professional PDF generation with employee-specific naming.
-- **Internal Messaging**: Integrated communication system for task-related discussions.
-- **Location Change Requests**: Formal workflow for employees to request branch transfers.
+### 🤖 Telegram Bot Assistant
+- **Real-Time Alerts**: Receive attendance and task notifications directly in Telegram.
+- **Transaction Undo**: Revert accidental check-ins/outs via bot commands.
+- **Quick Recaps**: View monthly summaries without logging into the web dashboard.
 
 ---
 
 ## 🛠️ Technology Stack
-
 - **Framework**: Laravel 12.x
 - **Language**: PHP 8.2+
-- **Styling**: Bootstrap 5 + Custom Glassmorphism UI
+- **Styling**: Bootstrap 5 + Custom "Executive Soft" UI Design
 - **Database**: MySQL 8.0+ / MariaDB 10.5+
 - **Assets**: Vite, Chart.js, Leaflet (Geocoding)
-- **Dependencies**: Spatie Permission, Maatwebsite Excel, DomPDF
 
 ---
 
 ## 💻 Installation Guide
 
-### Prerequisites
+### 1. Prerequisites
 - PHP 8.2 or higher
 - Composer 2.x
 - Node.js 18.x & NPM
 - MySQL 8.0+
 
-### Step-by-Step Installation
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd kantorapp
-   ```
-2. **Install Dependencies**
-   ```bash
-   composer install
-   npm install
-   ```
-3. **Setup Environment**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-4. **Configure Database**
-   Edit `.env` and set your `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`.
-5. **Migrate & Seed**
-   ```bash
-   php artisan migrate --seed
-   php artisan db:seed --class=RoleSeeder
-   ```
-6. **Build Assets**
-   ```bash
-   npm run build
-   ```
-7. **Serve Application**
-   ```bash
-   php artisan serve
-   ```
+### 2. Step-by-Step Setup
+```bash
+# Install Dependencies
+composer install
+npm install && npm run build
+
+# Setup Environment
+cp .env.example .env
+php artisan key:generate
+
+# Migrate & Seed Database
+php artisan migrate --seed
+
+# Create Storage Link
+php artisan storage:link
+
+# Serve Application
+php artisan serve
+```
 
 ---
 
-## 📦 Marketplace Requirements (Envato/Codester)
+## 🔐 Default Access Credentials
+Username & Password: `password`
 
-- **Documentation**: Comprehensive HTML guide included in `/documentation`.
-- **Clean Code**: SOLID principles followed across controllers and models.
-- **Localization**: Fully i18n ready (edit `lang/en.json` for translations).
-- **Dark Mode**: Native cyberpunk aesthetic optimized for high-end SaaS presentation.
-
----
-
-## 📜 Support & License
-
-For support, please visit our help center or contact the developer via the marketplace profile. 
-Developed with ❤️ by **mawantorouf**.
+| Role | Email |
+| :--- | :--- |
+| **Super Admin** | `superadmin1@example.com` |
+| **Location Admin** | `adminlokasi1@example.com` |
+| **Employee** | `employee1@example.com` |
 
 ---
-*© 2025 KantorApp. All rights reserved.*
+
+## 📜 Professional Documentation
+- **Marketplace Ready**: Fully i18n ready with clean architectural structure.
+- **Premium UX**: Native "Executive Soft" aesthetic optimized for high-end SaaS presentation.
+- **Licensed Software**: Developed with ❤️ by **roufq**.
+
+---
+*© 2025 OmniPresence HRIS. All rights reserved.*
