@@ -139,8 +139,4 @@
   </div>
 </div>
 
-<style>
-    .smaller { font-size: 0.75rem; }
-    .dropdown-item:active { background-color: var(--primary) !important; color: white !important; }
-</style>
 @endsection

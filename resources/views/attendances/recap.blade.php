@@ -22,17 +22,17 @@
               <div class="row g-3">
                   <div class="col-xl-2 col-md-4">
                       <label class="form-label text-muted small fw-bold text-uppercase letter-spacing-1 mb-2">{{ __('Start Date') }}</label>
-                      <input type="date" name="start_date" class="form-control bg-dark bg-opacity-50 border-light text-white rounded-pill px-4 shadow-none" value="{{ request('start_date', $start) }}">
+                      <input type="date" name="start_date" class="form-control bg-light border-0 text-dark rounded-pill px-4 shadow-none" value="{{ request('start_date', $start) }}">
                   </div>
                   <div class="col-xl-2 col-md-4">
                       <label class="form-label text-muted small fw-bold text-uppercase letter-spacing-1 mb-2">{{ __('End Date') }}</label>
-                      <input type="date" name="end_date" class="form-control bg-dark bg-opacity-50 border-light text-white rounded-pill px-4 shadow-none" value="{{ request('end_date', $end) }}">
+                      <input type="date" name="end_date" class="form-control bg-light border-0 text-dark rounded-pill px-4 shadow-none" value="{{ request('end_date', $end) }}">
                   </div>
 
                   @if(auth()->user()->hasRole('Super Admin'))
                   <div class="col-xl-2 col-md-4">
                       <label class="form-label text-muted small fw-bold text-uppercase letter-spacing-1 mb-2">{{ __('Location') }}</label>
-                      <select name="location_id" class="form-select bg-dark bg-opacity-50 border-light text-white rounded-pill px-4 shadow-none">
+                      <select name="location_id" class="form-select bg-light border-0 text-dark rounded-pill px-4 shadow-none">
                           <option value="">{{ __('All') }}</option>
                           @foreach($locations as $loc)
                             <option value="{{ $loc->id }}" @selected(request('location_id')==$loc->id)>{{ $loc->name }}</option>
@@ -49,7 +49,7 @@
                         if(auth()->user()->hasRole('Employee')){ $uQuery->where('id', auth()->id()); }
                         $users = $uQuery->get();
                       @endphp
-                      <select name="user_id" class="form-select bg-dark bg-opacity-50 border-light text-white rounded-pill px-4 shadow-none">
+                      <select name="user_id" class="form-select bg-light border-0 text-dark rounded-pill px-4 shadow-none">
                           <option value="">{{ __('All') }}</option>
                           @foreach($users as $u)
                             <option value="{{ $u->id }}" @selected(request('user_id')==$u->id)>{{ $u->name }}</option>
@@ -62,13 +62,13 @@
                           <i class="mdi mdi-filter-variant me-1"></i>{{ __('Apply') }}
                       </button>
                       <button type="submit" formaction="{{ route('attendance.recap.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}" class="btn btn-success rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;" title="{{ __('Export Excel') }}">
-                        <i class="mdi mdi-file-excel"></i>
+                        <i class="mdi mdi-file-excel-box fs-5"></i>
                       </button>
                       <button type="submit" formaction="{{ route('attendance.recap.export', array_merge(request()->query(), ['format' => 'csv'])) }}" class="btn btn-outline-success rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;" title="{{ __('Export CSV') }}">
-                        <i class="mdi mdi-file-csv"></i>
+                        <i class="mdi mdi-file-delimited-outline fs-5"></i>
                       </button>
-                      <a href="{{ route('attendance.recap') }}" class="btn btn-outline-secondary rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;">
-                          <i class="mdi mdi-refresh"></i>
+                      <a href="{{ route('attendance.recap') }}" class="btn btn-outline-secondary rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;" title="{{ __('Reset') }}">
+                          <i class="mdi mdi-refresh fs-5"></i>
                       </a>
                   </div>
               </div>
@@ -133,11 +133,4 @@
   </div>
 </div>
 
-<style>
-.smaller { font-size: 0.85rem; }
-.italic { font-style: italic; }
-.letter-spacing-1 { letter-spacing: 1px; }
-.form-select option { background-color: #1a1d21; color: white; }
-.table-hover tbody tr:hover { background-color: rgba(255,255,255,0.02) !important; }
-</style>
 @endsection

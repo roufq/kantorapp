@@ -116,11 +116,4 @@
     </div>
 </div>
 
-<style>
-    .smallest { font-size: 0.65rem; }
-    .smaller { font-size: 0.75rem; }
-    .letter-spacing-1 { letter-spacing: 0.5px; }
-    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,0.03) !important; }
-    .hover-row:hover { background-color: #fcfdfe !important; }
-</style>
 @endsection

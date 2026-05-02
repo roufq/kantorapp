@@ -668,7 +668,7 @@ class ShiftRosterController extends Controller
             $assignment = ShiftAssignment::updateOrCreate(
                 [
                     'user_id' => $entry->user_id,
-                    'date' => $entry->date->toDateString(),
+                    'date' => Carbon::parse($entry->date)->toDateString(),
                     'location_id' => $locationShift->location_id,
                     'location_shift_id' => $locationShift->id,
                 ],
@@ -710,8 +710,8 @@ class ShiftRosterController extends Controller
         $before = [
             'location_id' => $roster->location_id,
             'location_shift_id' => $roster->location_shift_id,
-            'week_start' => $roster->week_start?->toDateString(),
-            'week_end' => $roster->week_end?->toDateString(),
+            'week_start' => $roster->week_start ? Carbon::parse($roster->week_start)->toDateString() : null,
+            'week_end' => $roster->week_end ? Carbon::parse($roster->week_end)->toDateString() : null,
         ];
         $roster->delete();
         AuditLogger::record('weekly_roster_deleted', $roster, $before, null);
@@ -833,7 +833,7 @@ class ShiftRosterController extends Controller
         return false;
     }
 
-    private function calculateAssignmentHoursFromModel(ShiftAssignment $assignment): float
+    private function calculateAssignmentHoursFromModel($assignment): float
     {
         $intervals = $this->assignmentIntervals($assignment);
         $minutes = 0;
@@ -908,7 +908,7 @@ class ShiftRosterController extends Controller
             abort(403);
         }
 
-        $filename = sprintf('roster_%s_%s.xlsx', $roster->location->code ?? 'loc', $roster->week_start->format('Ymd'));
+        $filename = sprintf('roster_%s_%s.xlsx', $roster->location->code ?? 'loc', Carbon::parse($roster->week_start)->format('Ymd'));
         return Excel::download(new WeeklyRosterExport($roster), $filename);
     }
 }

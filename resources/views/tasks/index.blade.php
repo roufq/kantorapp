@@ -177,15 +177,4 @@
 @endif
 @endsection
 
-@push('styles')
-<style>
-    .text-truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .status-badge { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05rem; text-transform: uppercase; }
-    .smaller { font-size: 0.85rem; }
-    .smallest { font-size: 0.7rem; }
-    .shadow-soft-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.06) !important; }
-    .transition-base { transition: all 0.3s ease; }
-    .hover-primary:hover { color: #0ea5e9 !important; }
-    .fw-800 { font-weight: 800; }
-</style>
-@endpush
+@endsection

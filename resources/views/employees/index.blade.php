@@ -104,13 +104,4 @@
     @endif
 </div>
 
-<style>
-    .status-badge { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05rem; text-transform: uppercase; }
-    .smaller { font-size: 0.85rem; }
-    .smallest { font-size: 0.75rem; }
-    .fw-800 { font-weight: 800; }
-    .transition-base { transition: all 0.2s ease; }
-    tr.transition-base:hover { background-color: rgba(248, 250, 252, 0.8); }
-    .shadow-soft { box-shadow: 0 10px 40px rgba(0,0,0,0.04) !important; }
-</style>
 @endsection

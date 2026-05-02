@@ -544,11 +544,11 @@ class AttendanceController extends Controller
     {
         $auth = auth()->user();
 
-        $start = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
-        $end = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
+        $start = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfMonth();
+        $end = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfMonth();
         if ($start->gt($end)) { [$start, $end] = [$end, $start]; }
 
-        $usersQuery = \App\Models\User::query();
+        $usersQuery = \App\Models\User::with('location')->orderBy('name');
         if ($auth->hasRole('Location Admin')) {
             $usersQuery->where('location_id', $auth->location_id);
         } elseif ($auth->hasRole('Employee')) {
@@ -560,71 +560,121 @@ class AttendanceController extends Controller
         if ($auth->hasRole('Super Admin') && $request->filled('location_id')) {
             $usersQuery->where('location_id', $request->location_id);
         }
-        $users = $usersQuery->orderBy('name')->get();
+        $users = $usersQuery->get();
+        $userIds = $users->pluck('id');
 
-        // Ambil roster non-office (Weekly Rosters) dalam rentang tanggal, dikelompokkan per user|date
-        $rosterEntries = \App\Models\WeeklyRosterEntry::with('roster')
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->whereIn('user_id', $users->pluck('id'))
+        // Pre-fetch all necessary data to avoid N+1 queries
+        $attendances = Attendance::whereIn('user_id', $userIds)
+            ->where(function($q) use ($start, $end) {
+                $q->whereBetween('check_in_time', [$start, $end])
+                  ->orWhereBetween('check_out_time', [$start, $end]);
+            })
             ->get()
-            ->groupBy(function ($e) {
-                return $e->user_id . '|' . $e->date->toDateString();
-            });
+            ->groupBy('user_id');
+
+        $leaves = EmployeeLeave::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->where(function($q) use ($start, $end) {
+                $q->whereBetween('start_date', [$start->toDateString(), $end->toDateString()])
+                  ->orWhereBetween('end_date', [$start->toDateString(), $end->toDateString()])
+                  ->orWhere(function($sq) use ($start, $end) {
+                      $sq->where('start_date', '<=', $start->toDateString())->where('end_date', '>=', $end->toDateString());
+                  });
+            })
+            ->get()
+            ->groupBy('user_id');
+
+        $rosterEntries = \App\Models\WeeklyRosterEntry::whereIn('user_id', $userIds)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->groupBy('user_id');
+
+        $holidays = \App\Models\Holiday::active()
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get();
+
+        $weeklyOffs = \App\Models\WeeklyOff::where(function($q) use ($userIds, $users) {
+                $q->whereIn('user_id', $userIds)
+                  ->orWhereIn('location_id', $users->pluck('location_id')->unique());
+            })
+            ->get();
 
         $rows = [];
+        $period = CarbonPeriod::create($start->toDateString(), $end->toDateString());
+
         foreach ($users as $u) {
-            $totalDays = 0;
-            $holidayDays = 0;
-            $weeklyOffDays = 0;
-            $leaveDays = 0;
-            $workingDays = 0;
-            $presentDays = 0;
+            $uAttendances = $attendances->get($u->id, collect());
+            $uLeaves = $leaves->get($u->id, collect());
+            $uRosters = $rosterEntries->get($u->id, collect())->keyBy(function($r) {
+                return $r->date->toDateString();
+            });
+            $uPersonalWOs = $weeklyOffs->where('user_id', $u->id)->pluck('day_of_week')->toArray();
+            $locWOs = $weeklyOffs->where('location_id', $u->location_id)->whereNull('user_id')->pluck('day_of_week')->toArray();
 
-            foreach (CarbonPeriod::create($start->toDateString(), $end->toDateString()) as $date) {
-                $totalDays++;
-                $key = $u->id . '|' . $date->toDateString();
-                $roster = $rosterEntries->get($key)?->first();
-
-                // Jika ada roster Weekly Roster, gunakan status roster sebagai dasar
-                if ($roster) {
-                    $isHoliday = WorkdayService::isHolidayForUser($u, $date);
-                    $isWO = $roster->status === 'off';
-                } else {
-                    $isHoliday = WorkdayService::isHolidayForUser($u, $date);
-                    $isWO = WorkdayService::isWeeklyOff($u, $date);
-                }
-                // Leave dihitung per hari, meskipun ada roster
-                $hasLeave = WorkdayService::hasApprovedLeave($u, $date);
-
-                if ($isHoliday) { $holidayDays++; }
-                if ($isWO) { $weeklyOffDays++; }
-                if ($hasLeave) { $leaveDays++; }
-
-                if (!$isHoliday && !$isWO && !$hasLeave) {
-                    $workingDays++;
-                    $hasAtt = Attendance::where('user_id', $u->id)
-                        ->whereDate('check_in_time', $date->toDateString())
-                        ->exists();
-                    if ($hasAtt) { $presentDays++; }
-                }
-            }
-
-            $alphaDays = max(0, $workingDays - $presentDays);
-
-            $rows[] = [
+            $res = [
                 'user' => $u,
                 'location' => $u->location,
-                'totalDays' => $totalDays,
-                'holidayDays' => $holidayDays,
-                'weeklyOffDays' => $weeklyOffDays,
-                'leaveDays' => $leaveDays,
-                'workingDays' => $workingDays,
-                'presentDays' => $presentDays,
-                'alphaDays' => $alphaDays,
+                'totalDays' => 0,
+                'holidayDays' => 0,
+                'weeklyOffDays' => 0,
+                'leaveDays' => 0,
+                'workingDays' => 0,
+                'presentDays' => 0,
+                'alphaDays' => 0,
             ];
+
+            foreach ($period as $date) {
+                $res['totalDays']++;
+                $dateStr = $date->toDateString();
+                
+                // Effective Timezone for this user/location
+                $tz = $u->location->timezone ?? config('app.timezone', 'UTC');
+
+                // Check Attendance
+                $hasAtt = $uAttendances->some(function($att) use ($dateStr, $tz) {
+                    return $att->check_in_time->setTimezone($tz)->toDateString() === $dateStr;
+                });
+
+                // Check Holiday
+                $isHoliday = $holidays->some(function($h) use ($dateStr, $u) {
+                    return $h->date->toDateString() === $dateStr && ($h->is_national || $h->location_id == $u->location_id);
+                });
+
+                // Check Weekly Off (Roster overrides Master)
+                $roster = $uRosters->get($dateStr);
+                $isWO = false;
+                if ($roster) {
+                    $isWO = $roster->status === 'off';
+                } else {
+                    $dow = strtolower($date->format('l'));
+                    $isWO = in_array($dow, $uPersonalWOs) || in_array($dow, $locWOs);
+                }
+
+                // Check Leave
+                $isLeave = $uLeaves->some(function($l) use ($dateStr) {
+                    return $dateStr >= $l->start_date->toDateString() && $dateStr <= $l->end_date->toDateString();
+                });
+
+                if ($isHoliday) $res['holidayDays']++;
+                if ($isWO) $res['weeklyOffDays']++;
+                if ($isLeave) $res['leaveDays']++;
+
+                if (!$isHoliday && !$isWO && !$isLeave) {
+                    $res['workingDays']++;
+                    if ($hasAtt) {
+                        $res['presentDays']++;
+                    } else {
+                        $res['alphaDays']++;
+                    }
+                } elseif ($hasAtt) {
+                    // Worked on a non-working day (Holiday/WO/Leave)
+                    $res['presentDays']++;
+                }
+            }
+            $rows[] = $res;
         }
 
-        $locations = $auth->hasRole('Super Admin') ? Location::orderBy('name')->get() : collect();
+        $locations = $auth->hasRole('Super Admin') ? \App\Models\Location::orderBy('name')->get() : collect();
 
         return [
             'rows' => $rows,

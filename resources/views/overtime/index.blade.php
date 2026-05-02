@@ -177,8 +177,4 @@
   </div>
 </div>
 
-<style>
-    .smaller { font-size: 0.75rem; }
-    .smallest { font-size: 0.65rem; }
-</style>
 @endsection

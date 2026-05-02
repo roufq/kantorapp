@@ -167,8 +167,4 @@
   </div>
 </div>
 
-<style>
-    .smallest { font-size: 0.65rem; }
-    .avatar-xs { width: 30px; height: 30px; }
-</style>
 @endsection

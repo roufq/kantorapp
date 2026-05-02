@@ -13,13 +13,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Manual Header Dropdowns Toggle
-    $('.top-actions .dropdown-toggle').on('click', function (e) {
-        e.preventDefault();
+    // Dropdowns are handled by Bootstrap 5 natively.
+    // Ensure dropdowns don't close when clicking inside (optional)
+    $('.dropdown-menu').on('click', function (e) {
         e.stopPropagation();
-        const $target = $(this).next('.dropdown-menu');
-        $('.dropdown-menu').not($target).removeClass('show'); // Close others
-        $target.toggleClass('show');
     });
 
     // Close dropdown when clicking outside
@@ -28,4 +25,34 @@ document.addEventListener('DOMContentLoaded', function () {
             $('.dropdown-menu').removeClass('show');
         }
     });
+    // Unpoly SPA Configuration
+    if (window.up) {
+        up.fragment.config.mainTargets.push('.page-body');
+        
+        // Auto-follow sidebar links and target the page-body
+        $('.side-menu a').attr('up-follow', '');
+        $('.side-menu a').attr('up-target', '.page-body');
+
+        // Update active menu state after navigation
+        up.on('up:fragment:inserted', function() {
+            const currentPath = window.location.pathname;
+            $('.side-menu a').each(function() {
+                const linkPath = new URL($(this).attr('href'), window.location.origin).pathname;
+                if (currentPath === linkPath) {
+                    $('.side-menu a').removeClass('active');
+                    $(this).addClass('active');
+                }
+            });
+        });
+    }
+
+    // Sidebar Scroll Memory
+    const sidebarScrollKey = 'kantorapp_sidebar_scroll';
+    // Record scroll position on every scroll
+    if (sidebar) {
+        sidebar.addEventListener('scroll', function() {
+            sessionStorage.setItem(sidebarScrollKey, sidebar.scrollTop);
+        }, { passive: true });
+    }
 });
+

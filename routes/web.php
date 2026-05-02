@@ -21,7 +21,7 @@ Route::get('/', function () {
         return redirect('/dashboard');
     }
     return redirect('/login');
-});
+})->name('home');
 
 Route::get('/login', function () {
     if (Auth::check()) {

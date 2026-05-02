@@ -1,0 +1,127 @@
+<?php $__env->startSection('content'); ?>
+<div class="bg-light p-3 mb-3 rounded border d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h3 class="mb-1">Master Task Detail</h3>
+        <p class="text-muted mb-0"><?php echo e($masterTask->title); ?></p>
+    </div>
+    <a href="<?php echo e(route('master-tasks.index')); ?>" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><?php echo e($masterTask->title); ?></h3>
+                <div class="card-tools">
+                    <a href="<?php echo e(route('master-tasks.edit', $masterTask)); ?>" class="btn btn-primary btn-sm">Edit</a>
+                    <form action="<?php echo e(route('master-tasks.destroy', $masterTask)); ?>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this task?')">
+                        <?php echo csrf_field(); ?>
+                        <?php echo method_field('DELETE'); ?>
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Description</h5>
+                        <p><?php echo e($masterTask->description); ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Status & Progress</h5>
+                        <p class="mb-1"><span class="badge text-bg-secondary"><?php echo e(ucfirst($masterTask->status)); ?></span></p>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>Progress</span>
+                                <span><?php echo e($masterTask->progress ?? 0); ?>%</span>
+                            </div>
+                            <div class="progress" style="height:10px;">
+                                <div class="progress-bar" role="progressbar" style="width: <?php echo e($masterTask->progress ?? 0); ?>%;" aria-valuenow="<?php echo e($masterTask->progress ?? 0); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Update progress 0-100% with photo/document attachment.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Due Date</h5>
+                        <p><?php echo e($masterTask->due_date ? $masterTask->due_date->format('d M Y') : 'No due date'); ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Assigned By</h5>
+                        <p><?php echo e($masterTask->assigner->name); ?></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Assigned To</h5>
+                        <p><?php echo e($masterTask->assignee ? $masterTask->assignee->name : 'Not assigned'); ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Created At</h5>
+                        <p><?php echo e($masterTask->created_at->format('d M Y H:i')); ?></p>
+                    </div>
+                </div>
+                <?php if($masterTask->updated_at != $masterTask->created_at): ?>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Last Updated</h5>
+                        <p><?php echo e($masterTask->updated_at->format('d M Y H:i')); ?></p>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if($masterTask->photo_path): ?>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Photo</h5>
+                        <p><a href="<?php echo e(route('master-tasks.download.photo', $masterTask)); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Download Photo</a></p>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if($masterTask->document_path): ?>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Document</h5>
+                        <p><a href="<?php echo e(route('master-tasks.download.document', $masterTask)); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Download Document</a></p>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3" id="progress-form">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Update Progress (Super Admin)</h5>
+            </div>
+            <div class="card-body">
+                <form action="<?php echo e(route('master-tasks.update', $masterTask)); ?>" method="POST" enctype="multipart/form-data" class="row g-3">
+                    <?php echo csrf_field(); ?>
+                    <?php echo method_field('PATCH'); ?>
+                    <div class="col-md-4">
+                        <label class="form-label">Progress (%)</label>
+                        <input type="number" name="progress" class="form-control" min="0" max="100" value="<?php echo e(old('progress', $masterTask->progress)); ?>" required>
+                        <small class="text-muted">Status automatically adjusts with progress.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Evidence Photo</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Evidence Document</label>
+                        <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Save Progress</button>
+                        <small class="text-muted ms-2">Must attach at least one file.</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.appnew', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\www\kantorapp\resources\views\master-tasks\show.blade.php ENDPATH**/ ?>

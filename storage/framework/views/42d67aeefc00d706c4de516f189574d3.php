@@ -24,6 +24,11 @@
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap">
 
     <link rel="stylesheet" href="<?php echo e(asset('kantorapp/css/app-modern.css')); ?>?v=<?php echo e(time()); ?>">
+    
+    <!-- Unpoly for SPA-like navigation -->
+    <script src="https://cdn.jsdelivr.net/npm/unpoly@3.10.2/unpoly.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/unpoly@3.10.2/unpoly.min.css">
+
     <?php echo $__env->yieldPushContent('styles'); ?>
 </head>
 
@@ -31,7 +36,8 @@
     <div id="wrapper">
         <?php if(auth()->guard()->check()): ?>
             <!-- Sidebar -->
-            <div class="side-menu">
+            <div class="side-menu" id="sidebar-main" style="visibility: hidden;">
+
                 <div class="logo-box d-flex align-items-center">
                     <img src="<?php echo e(asset('assets/img/logo.png')); ?>" alt="Logo" class="logo-img"
                         style="width: 40px; height: 40px; margin-right: 12px; border-radius: 10px;">
@@ -321,6 +327,16 @@
                         </li>
                     <?php endif; ?>
                 </ul>
+                <script>
+                    (function() {
+                        const sidebar = document.getElementById('sidebar-main');
+                        const savedScroll = sessionStorage.getItem('kantorapp_sidebar_scroll');
+                        if (savedScroll && sidebar) {
+                            sidebar.scrollTop = savedScroll;
+                        }
+                        sidebar.style.visibility = 'visible';
+                    })();
+                </script>
             </div>
         <?php endif; ?>
 
@@ -338,10 +354,24 @@
                     </div>
                     <div class="d-flex align-items-center gap-3">
                         <i class="mdi mdi-bell-outline fs-4 text-muted"></i>
-                        <a href="<?php echo e(route('profile.show')); ?>">
-                            <img src="<?php echo e($authUser->profile_photo_path ? asset('storage/' . $authUser->profile_photo_path) : asset('assets/img/user2-160x160.jpg')); ?>"
-                                class="rounded-pill" style="width: 32px; height: 32px;" alt="">
-                        </a>
+                        <div class="dropdown">
+                            <button class="btn p-0 border-0 dropdown-toggle hide-caret" type="button" data-bs-toggle="dropdown">
+                                <img src="<?php echo e($authUser->profile_photo_path ? asset('storage/' . $authUser->profile_photo_path) : asset('assets/img/user2-160x160.jpg')); ?>"
+                                    class="rounded-pill shadow-sm" style="width: 32px; height: 32px; object-fit: cover;" alt="">
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2">
+                                <li><a class="dropdown-item py-2 px-3 rounded-3 mb-1" href="<?php echo e(route('profile.show')); ?>"><i class="mdi mdi-account-outline me-2"></i>Profile</a></li>
+                                <li><hr class="dropdown-divider mx-2"></li>
+                                <li>
+                                    <form method="POST" action="<?php echo e(route('logout')); ?>">
+                                        <?php echo csrf_field(); ?>
+                                        <button type="submit" class="dropdown-item py-2 px-3 rounded-3 text-danger fw-bold">
+                                            <i class="mdi mdi-logout me-2"></i>Sign Out
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -433,9 +463,9 @@
                             $avatarUrl = $authUser->profile_photo_path ? asset('storage/' . $authUser->profile_photo_path) : asset('assets/img/user2-160x160.jpg');
                         ?>
                         <div class="dropdown">
-                            <button class="btn p-0 border-0 dropdown-toggle hide-caret" type="button" id="userDropdown"
-                                data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="<?php echo e($avatarUrl); ?>" class="user-profile-img" alt="Profile" style="cursor: pointer;">
+                            <button class="btn p-0 border-0 dropdown-toggle hide-caret shadow-none" type="button" id="userDropdown"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="<?php echo e($avatarUrl); ?>" class="user-profile-img shadow-sm" alt="Profile" style="cursor: pointer; object-fit: cover;">
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown"
                                 style="border-radius: 20px; min-width: 260px; padding: 15px; z-index: 1060; margin-top: 20px !important;">
@@ -497,8 +527,6 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo e(asset('NewAsset/assets/js/jquery.slimscroll.js')); ?>"></script>
-    <script src="<?php echo e(asset('NewAsset/assets/js/app.js')); ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="<?php echo e(asset('kantorapp/js/app-modern.js')); ?>?v=<?php echo e(time()); ?>"></script>

@@ -30,8 +30,8 @@
                         <span class="badge bg-light text-muted border px-2 py-1">{{ $contacts->count() }} active</span>
                     </div>
                     <div class="position-relative">
-                        <i class="mdi mdi-magnify position-absolute text-muted" style="top: 10px; left: 15px;"></i>
-                        <input type="text" class="form-control rounded-pill border-light bg-light shadow-none ps-5" id="conversation-search" placeholder="Search team members...">
+                        <i class="mdi mdi-magnify position-absolute text-muted" style="top: 50%; left: 16px; transform: translateY(-50%); font-size: 1.1rem; pointer-events: none;"></i>
+                        <input type="text" class="form-control rounded-pill border-light bg-light shadow-none" style="padding-left: 44px !important;" id="conversation-search" placeholder="Search team members...">
                     </div>
                 </div>
                 <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;" id="conversation-list">
@@ -120,53 +120,4 @@
   </div>
 </div>
 
-<style>
-    .chat-tile-new {
-        display: flex;
-        padding: 20px;
-        border-bottom: 1px solid #f1f5f9;
-        transition: all 0.2s;
-        align-items: center;
-    }
-    .chat-tile-new:hover { background-color: #f8fafc; }
-    .chat-tile-new.active { background-color: var(--soft-celeste); border-right: 4px solid var(--primary); }
-    
-    .message-box {
-        max-width: 70%;
-        padding: 14px 18px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    }
-    .message-box.mine {
-        background-color: var(--primary);
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
-    .message-box.theirs {
-        background-color: white;
-        color: var(--text-main);
-        border-bottom-left-radius: 4px;
-        border: 1px solid #f1f5f9;
-    }
-    .smallest { font-size: 0.7rem; }
-</style>
-
-@push('scripts')
-<script>
-    const thread = document.getElementById('chat-thread');
-    if (thread) thread.scrollTop = thread.scrollHeight;
-    
-    const search = document.getElementById('conversation-search');
-    if (search) {
-        search.addEventListener('input', function(e) {
-            const val = e.target.value.toLowerCase();
-            document.querySelectorAll('.chat-tile-new').forEach(tile => {
-                const name = tile.getAttribute('data-name');
-                tile.style.display = name.includes(val) ? 'flex' : 'none';
-            });
-        });
-    }
-</script>
-@endpush
 @endsection

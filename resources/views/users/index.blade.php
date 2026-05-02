@@ -112,10 +112,4 @@
   </div>
 </div>
 
-<style>
-.italic { font-style: italic; }
-.smaller { font-size: 0.75rem; }
-.letter-spacing-1 { letter-spacing: 1px; }
-.table-hover tbody tr:hover { background-color: rgba(255,255,255,0.02) !important; }
-</style>
 @endsection

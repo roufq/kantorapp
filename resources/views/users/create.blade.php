@@ -66,13 +66,6 @@
                     <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
 
-                <script>
-                    document.getElementById('employee_id').addEventListener('change', function() {
-                        const selectedOption = this.options[this.selectedIndex];
-                        document.getElementById('name').value = selectedOption.getAttribute('data-name') || '';
-                        document.getElementById('email').value = selectedOption.getAttribute('data-email') || '';
-                    });
-                </script>
             </div>
         </div>
     </div>
